@@ -4,5 +4,6 @@ esbuild
 parcel
 rollup
 webpack
+jsshaker
 .nyc_output
 .parcel-cache/

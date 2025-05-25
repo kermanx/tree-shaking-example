@@ -50,6 +50,7 @@ const bundlers = [
 	'parcel',
 	'rollup',
 	'webpack',
+	'jsshaker',
 ];
 
 const sizes = [];

@@ -5,6 +5,7 @@
 	"author": "Dejan Toteff <deyan8284@gmail.com>",
 	"license": "MIT",
 	"dependencies": {
+		"@kermanx/tree-shaker": "https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker@0508150",
 		"@material-ui/core": "^4.10.2",
 		"@sentry/browser": "^5.17.0",
 		"lodash": "4.17.21",
@@ -46,12 +47,13 @@
 		}
 	},
 	"scripts": {
-		"clean": "rm -rf .parcel-cache parcel rollup webpack esbuild",
-		"build": "run-s clean && run-s rollup webpack parcel esbuild",
+		"clean": "rm -rf .parcel-cache parcel rollup webpack esbuild jsshaker",
+		"build": "run-s clean && run-s rollup webpack parcel esbuild jsshaker",
 		"parcel": "run-s parcel:*",
 		"rollup": "run-s rollup:*",
 		"webpack": "run-s webpack:*",
 		"esbuild": "run-s esbuild:*",
+		"jsshaker": "run-s jsshaker:*",
 		"start": "run-s build showSize",
 		"showSize": "node showFileSize",
 		"esbuild:lodash": "LIB='lodash' node esbuild.js",
@@ -97,6 +99,17 @@
 		"webpack:ramda": "LIB='ramda' webpack -p",
 		"webpack:ramdaBabel": "LIB='ramdaBabel' webpack -p",
 		"webpack:material-ui": "LIB='material-ui' webpack -p",
-		"webpack:sentry": "LIB='sentry' webpack -p"
+		"webpack:sentry": "LIB='sentry' webpack -p",
+		"jsshaker:lodash": "LIB='lodash' node jsshaker.js",
+		"jsshaker:lodash-es": "LIB='lodash-es' node jsshaker.js",
+		"jsshaker:rxjs": "LIB='rxjs' node jsshaker.js",
+		"jsshaker:react-icons": "LIB='react-icons' node jsshaker.js",
+		"jsshaker:rambda": "LIB='rambda' node jsshaker.js",
+		"jsshaker:rambdax": "LIB='rambdax' node jsshaker.js",
+		"jsshaker:remeda": "LIB='remeda' node jsshaker.js",
+		"jsshaker:ramda": "LIB='ramda' node jsshaker.js",
+		"jsshaker:ramdaBabel": "LIB='ramdaBabel' node jsshaker.js",
+		"jsshaker:material-ui": "LIB='material-ui' node jsshaker.js",
+		"jsshaker:sentry": "LIB='sentry' node jsshaker.js"
 	}
 }
