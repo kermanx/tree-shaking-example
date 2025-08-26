@@ -1,0 +1,1 @@
+var range=require(`ramda/src/range`),compose=require(`ramda/src/compose`),filter=require(`ramda/src/filter`);function isOdd(e){return e%2==0}function fn(){return compose(filter(isOdd),range(2))(10)}exports.answer=fn().join(`,`);
