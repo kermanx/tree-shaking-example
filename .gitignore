@@ -1,9 +1,5 @@
 .cache
 node_modules
-esbuild
-parcel
-rollup
-webpack
-jsshaker
+dist
 .nyc_output
 .parcel-cache/
