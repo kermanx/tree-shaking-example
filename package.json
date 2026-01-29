@@ -21,7 +21,7 @@
 	},
 	"devDependencies": {
 		"@babel/preset-env": "^7.28.6",
-		"@kermanx/tree-shaker": "https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker@121f7fb",
+		"jsshaker": "latest",
 		"@parcel/config-default": "^2.16.3",
 		"@parcel/core": "^2.16.3",
 		"@rollup/plugin-commonjs": "^29.0.0",

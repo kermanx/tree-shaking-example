@@ -155,14 +155,16 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
       platform: env,
       input: entry,
       write: false,
+      transform: {
+        define: {
+          'import.meta.env.NODE_ENV': '"production"',
+          'process.env.NODE_ENV': '"production"',
+          'import.meta.env.PROD': 'true',
+          'import.meta.env.DEV': 'false',
+        },
+      },
       output: {
         format: 'esm',
-      },
-      define: {
-        'import.meta.env.NODE_ENV': '"production"',
-        'process.env.NODE_ENV': '"production"',
-        'import.meta.env.PROD': 'true',
-        'import.meta.env.DEV': 'false',
       },
     });
     assert(result.output.length === 1, 'Expected exactly one output');

@@ -48,9 +48,6 @@ importers:
       '@babel/preset-env':
         specifier: ^7.28.6
         version: 7.28.6(@babel/core@7.28.6)
-      '@kermanx/tree-shaker':
-        specifier: https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker@121f7fb
-        version: https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker@121f7fb
       '@parcel/config-default':
         specifier: ^2.16.3
         version: 2.16.3(@parcel/core@2.16.3(@swc/helpers@0.5.18))(@swc/helpers@0.5.18)
@@ -81,6 +78,9 @@ importers:
       esbuild:
         specifier: ^0.27.2
         version: 0.27.2
+      jsshaker:
+        specifier: latest
+        version: 0.2.5
       memfs:
         specifier: ^4.56.10
         version: 4.56.10(tslib@2.8.1)
@@ -927,37 +927,30 @@ packages:
     peerDependencies:
       tslib: '2'
 
-  '@kermanx/tree-shaker-darwin-arm64@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-darwin-arm64@121f7fb701203adb0a97810cd4bbc185a8b17e65':
-    resolution: {tarball: https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-darwin-arm64@121f7fb701203adb0a97810cd4bbc185a8b17e65}
-    version: 0.0.0
-    engines: {node: '>= 10'}
+  '@jsshaker/binding-darwin-arm64@0.2.5':
+    resolution: {integrity: sha512-KQCLAQkt0aZc0RdovMMgEk8x78UtFydX/VYcYoMhv6kR9x10FaWbt4W2hg/2Oe1kOK51cPI69zwAbaBBrwIRCA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@kermanx/tree-shaker-darwin-x64@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-darwin-x64@121f7fb701203adb0a97810cd4bbc185a8b17e65':
-    resolution: {tarball: https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-darwin-x64@121f7fb701203adb0a97810cd4bbc185a8b17e65}
-    version: 0.0.0
-    engines: {node: '>= 10'}
+  '@jsshaker/binding-darwin-x64@0.2.5':
+    resolution: {integrity: sha512-P9I+oyauTsixeu7qW695TFVRq3pNVi85whH81d/5eb1HEtsmMVAgwJuoICvTa72ycbf56ZMZ71F3Y0x3ZK9BgA==}
     cpu: [x64]
     os: [darwin]
 
-  '@kermanx/tree-shaker-linux-x64-gnu@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-linux-x64-gnu@121f7fb701203adb0a97810cd4bbc185a8b17e65':
-    resolution: {tarball: https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-linux-x64-gnu@121f7fb701203adb0a97810cd4bbc185a8b17e65}
-    version: 0.0.0
-    engines: {node: '>= 10'}
+  '@jsshaker/binding-linux-x64-gnu@0.2.5':
+    resolution: {integrity: sha512-UQQFYB+yAkzEOdPPhi5fUJhRFWGoDnCkI/sDhH9ERO1wNomW+G9j+7532u7z94A+bpNrd6BruswbzPX15laBKQ==}
     cpu: [x64]
     os: [linux]
 
-  '@kermanx/tree-shaker-win32-x64-msvc@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-win32-x64-msvc@121f7fb701203adb0a97810cd4bbc185a8b17e65':
-    resolution: {tarball: https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-win32-x64-msvc@121f7fb701203adb0a97810cd4bbc185a8b17e65}
-    version: 0.0.0
-    engines: {node: '>= 10'}
+  '@jsshaker/binding-wasm32-wasi@0.2.5':
+    resolution: {integrity: sha512-zGVp549cHVw6wUtEEL3TrUTolBMR0kf4H3ue6RQgsBqMkxmBPko6u1y/M0wKAllorLhlVpFBtQ0sD2pwvXf3pg==}
+    engines: {node: '>=14.0.0'}
+    cpu: [wasm32]
+
+  '@jsshaker/binding-win32-x64-msvc@0.2.5':
+    resolution: {integrity: sha512-EPrMcObNoupwJeWly6PznLiTgl9B7BqtFSjaugH/fBQ+zIrhyNkpBnMCDgKAmBmICOjSC4AaCFs4hNBdW783Og==}
     cpu: [x64]
     os: [win32]
-
-  '@kermanx/tree-shaker@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker@121f7fb':
-    resolution: {integrity: sha512-LJxBXLzeX0A9kWoTV3SqiuZP3wXKmRpvCmbQ3e4L71NvrIxWJuGcvwvZNrKwtkVm+QUY8rpGREc/7jWiiq/sRw==, tarball: https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker@121f7fb}
-    version: 0.0.0
 
   '@lezer/common@1.5.0':
     resolution: {integrity: sha512-PNGcolp9hr4PJdXR4ix7XtixDrClScvtSCYW3rQG106oVMOOI+jFb+0+J3mbeL/53g1Zd6s0kJzaw6Ri68GmAA==}
@@ -2663,6 +2656,10 @@ packages:
 
   jss@10.10.0:
     resolution: {integrity: sha512-cqsOTS7jqPsPMjtKYDUpdFC0AbhYFLTcuGRqymgmdJIeQ8cH7+AgX7YSgQy79wXloZq2VvATYxUOUQEvS1V/Zw==}
+
+  jsshaker@0.2.5:
+    resolution: {integrity: sha512-p7f6ufUKW97AgLjl3PT3GS/WjcTiAYZHaoNMrLXdBbx3D/auLkOafVF4UFW0g+aHjMHx6v5oV02L+boutd90ug==}
+    hasBin: true
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
@@ -4444,24 +4441,22 @@ snapshots:
       '@jsonjoy.com/codegen': 17.65.0(tslib@2.8.1)
       tslib: 2.8.1
 
-  '@kermanx/tree-shaker-darwin-arm64@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-darwin-arm64@121f7fb701203adb0a97810cd4bbc185a8b17e65':
+  '@jsshaker/binding-darwin-arm64@0.2.5':
     optional: true
 
-  '@kermanx/tree-shaker-darwin-x64@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-darwin-x64@121f7fb701203adb0a97810cd4bbc185a8b17e65':
+  '@jsshaker/binding-darwin-x64@0.2.5':
     optional: true
 
-  '@kermanx/tree-shaker-linux-x64-gnu@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-linux-x64-gnu@121f7fb701203adb0a97810cd4bbc185a8b17e65':
+  '@jsshaker/binding-linux-x64-gnu@0.2.5':
     optional: true
 
-  '@kermanx/tree-shaker-win32-x64-msvc@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-win32-x64-msvc@121f7fb701203adb0a97810cd4bbc185a8b17e65':
+  '@jsshaker/binding-wasm32-wasi@0.2.5':
+    dependencies:
+      '@napi-rs/wasm-runtime': 1.1.1
     optional: true
 
-  '@kermanx/tree-shaker@https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker@121f7fb':
-    optionalDependencies:
-      '@kermanx/tree-shaker-darwin-arm64': https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-darwin-arm64@121f7fb701203adb0a97810cd4bbc185a8b17e65
-      '@kermanx/tree-shaker-darwin-x64': https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-darwin-x64@121f7fb701203adb0a97810cd4bbc185a8b17e65
-      '@kermanx/tree-shaker-linux-x64-gnu': https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-linux-x64-gnu@121f7fb701203adb0a97810cd4bbc185a8b17e65
-      '@kermanx/tree-shaker-win32-x64-msvc': https://pkg.pr.new/kermanx/tree-shaker/@kermanx/tree-shaker-win32-x64-msvc@121f7fb701203adb0a97810cd4bbc185a8b17e65
+  '@jsshaker/binding-win32-x64-msvc@0.2.5':
+    optional: true
 
   '@lezer/common@1.5.0': {}
 
@@ -6309,6 +6304,14 @@ snapshots:
       csstype: 3.2.3
       is-in-browser: 1.1.3
       tiny-warning: 1.0.3
+
+  jsshaker@0.2.5:
+    optionalDependencies:
+      '@jsshaker/binding-darwin-arm64': 0.2.5
+      '@jsshaker/binding-darwin-x64': 0.2.5
+      '@jsshaker/binding-linux-x64-gnu': 0.2.5
+      '@jsshaker/binding-wasm32-wasi': 0.2.5
+      '@jsshaker/binding-win32-x64-msvc': 0.2.5
 
   keyv@4.5.4:
     dependencies:

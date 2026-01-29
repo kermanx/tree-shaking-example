@@ -16,22 +16,17 @@ async function main() {
   const [name] = args.positionals;
   const { bundler, shaker, minifier } = args.values;
 
-  if (!name || !bundler) {
-    console.error('Missing required arguments.');
-    process.exit(1);
-  }
-
   const allNames = readdirSync('./src')
     .filter(file => file.endsWith('.js'))
     .map(file => file.replace('.js', ''));
 
-  const names = name === 'all' ? allNames : [name];
+  const names = !name ? allNames : [name];
 
   const sizes: Record<string, number> = {};
   await Promise.all(names.map(n => run({
     entry: `./src/${n}.js`,
     env: 'node',
-    bundler,
+    bundler: bundler||'rolldown',
     shaker,
     minifier,
     sizes,

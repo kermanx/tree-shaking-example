@@ -4,12 +4,15 @@ export interface ShakeOptions {
 
 export const shakers: Record<string, (options: ShakeOptions) => Promise<string>> = {
   async jsshaker({ code }) {
-    const { treeShake } = await import('@kermanx/tree-shaker');
-    const result = treeShake(code, "smallest", false);
+    const { shakeSingleModule } = await import('jsshaker');
+    const result = shakeSingleModule(code, {
+      preset: "smallest",
+      jsx: "react",
+    });
     for (const msg of result.diagnostics) {
-      console.log(msg)
+      console.log('[jsshaker]', msg);
     }
-    return result.output;
+    return result.output.code;
   },
   async rollup({ code }) {
     const { rollup } = await import('rollup');
