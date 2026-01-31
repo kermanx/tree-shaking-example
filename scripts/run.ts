@@ -2,16 +2,14 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { bundlers } from './bundle.ts';
-import { minifiers } from './minify.ts';
-import { shakers } from './shake.ts';
+import { Optimizers } from './optimizer.ts';
 
 export async function run({
   name,
   entry,
   env,
   bundler,
-  shaker,
-  minifier,
+  optimizers,
   sizes,
   zip,
 }: {
@@ -19,23 +17,17 @@ export async function run({
   entry: string;
   env: 'browser' | 'node';
   bundler: string;
-  shaker?: string;
-  minifier?: string;
+  optimizers: string[];
   zip?: boolean;
   sizes: Record<string, number>;
 }) {
-  let filename = [basename(entry).split('.')[0], bundler, shaker || 'none', minifier || 'none'].join('_');
+  let filename = [basename(entry).split('.')[0], bundler, ...optimizers].join('_');
   let code = await bundlers[bundler]({ name, entry, env: env as 'browser' | 'node' });
   console.log(`Bundled: ${code.length}B`);
 
-  if (shaker) {
-    code = await shakers[shaker]({ code });
-    console.log(`Shaken: ${code.length}B`);
-  }
-
-  if (minifier) {
-    code = await minifiers[minifier]({ code });
-    console.log(`Minified: ${code.length}B`);
+  for (const optimizer of optimizers) {
+    code = await Optimizers[optimizer]({ code });
+    console.log(`Optimized (${optimizer}): ${code.length}B`);
   }
 
   if (zip) {
