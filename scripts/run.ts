@@ -28,7 +28,7 @@ export async function run({
   console.log(`Bundled: ${code.length}B`);
 
   for (const optimizer of optimizers) {
-    code = await Optimizers[optimizer]({ code, env: env as 'browser' | 'node' });
+    code = await Optimizers[optimizer]({ name, code, env: env as 'browser' | 'node' });
     console.log(`Optimized (${optimizer}): ${code.length}B`);
   }
 

@@ -30,7 +30,7 @@ async function main() {
   await Promise.all(names.map(name => run({
     name,
     entry: `./src/${name}.js`,
-    env: 'browser',
+    env: ['glob'].includes(name) ? 'node' : 'browser',
     bundler: bundler || 'rolldown',
     optimizers: optimizers ? optimizers.split(',') : [],
     zip,

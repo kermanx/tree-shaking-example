@@ -3,19 +3,20 @@ import { gcc } from './cc.ts';
 import assert from 'assert';
 
 export interface OptimizeOptions {
+  name: string
   code: string
   env: 'browser' | 'node';
 }
 
 export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<string>> = {
-  async jsshaker({ code }) {
+  async jsshaker({ name, code }) {
     const { shakeSingleModule } = await import('jsshaker');
     const result = shakeSingleModule(code, {
       preset: "smallest",
       jsx: "react",
     });
     for (const msg of result.diagnostics) {
-      console.log('[jsshaker]', msg);
+      console.log(`[${name}] [jsshaker]`, msg);
     }
     return result.output.code;
   },
