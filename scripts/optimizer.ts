@@ -1,5 +1,10 @@
+import { prepackSources } from 'prepack/lib/prepack-standalone.js'
+import { gcc } from './cc.ts';
+import assert from 'assert';
+
 export interface OptimizeOptions {
   code: string
+  env: 'browser' | 'node';
 }
 
 export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<string>> = {
@@ -34,6 +39,16 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     });
     return output[0].code;
   },
+  async rolldown({ code, env }) {
+    const { build } = await import('rolldown');
+    const result = await build({
+      write: false,
+      platform: env,
+      input: 'data:text/javascript,' + encodeURIComponent(code),
+    });
+    assert(result.output.length === 1, 'Expected exactly one output');
+    return result.output[0].code;
+  },
   async esbuild({ code }) {
     const esbuild = await import('esbuild');
     const result = await esbuild.transform(code, {
@@ -65,5 +80,22 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
       },
     });
     return result.code;
-  }
+  },
+  async gcc({ code }) {
+    return await gcc(code, {
+      compilationLevel: 'SIMPLE',
+      languageIn: 'ECMASCRIPT_NEXT',
+      languageOut: 'ECMASCRIPT_NEXT',
+      // warningLevel: 'QUIET',
+    });
+  },
+  async prepack({ code }) {
+    const res = prepackSources([{
+      filePath: '__in__.js',
+      fileContents: code,
+      sourceMapContents: ''
+    }], {
+    })
+    return res.code;
+  },
 }

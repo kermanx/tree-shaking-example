@@ -12,11 +12,13 @@ async function main() {
       bundler: { type: 'string', short: 'b' },
       optimizers: { type: 'string', short: 'o' },
       zip: { type: 'boolean', short: 'z' },
+
+      cjs: { type: 'boolean' },
     },
   });
 
   const [name] = args.positionals;
-  const { bundler, optimizers, zip } = args.values;
+  const { bundler, optimizers, zip, cjs } = args.values;
 
   const allNames = readdirSync('./src')
     .filter(file => file.endsWith('.js'))
@@ -28,11 +30,12 @@ async function main() {
   await Promise.all(names.map(name => run({
     name,
     entry: `./src/${name}.js`,
-    env: 'node',
+    env: 'browser',
     bundler: bundler || 'rolldown',
     optimizers: optimizers ? optimizers.split(',') : [],
     zip,
     sizes,
+    cjs: cjs || false,
   })));
 
   const oldSizes = existsSync('./sizes.json') ? JSON.parse(readFileSync('./sizes.json', 'utf-8')) : {};

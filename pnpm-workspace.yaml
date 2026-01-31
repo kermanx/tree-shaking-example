@@ -1,6 +1,8 @@
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@swc/core'
+  - core-js
   - esbuild
   - lmdb
   - msgpackr-extract
+  - v8-profiler-next

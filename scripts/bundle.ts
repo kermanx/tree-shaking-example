@@ -8,14 +8,15 @@ interface BundleOptions {
   name: string;
   entry: string;
   env: 'browser' | 'node';
+  cjs: boolean;
 }
 
 export const bundlers: Record<string, (options: BundleOptions) => Promise<string>> = {
-  async esbuild({ entry, env }) {
+  async esbuild({ entry, env, cjs }) {
     const esbuild = await import('esbuild');
     const result = await esbuild.build({
       entryPoints: [entry],
-      format: 'esm',
+      format: cjs ? 'cjs' : 'esm',
       bundle: true,
       write: false,
       platform: env === 'node' ? 'node' : 'browser',
@@ -29,7 +30,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
     assert(result.outputFiles && result.outputFiles.length === 1, 'Expected exactly one output file');
     return result.outputFiles[0].text;
   },
-  async rollup({ name, entry, env }) {
+  async rollup({ name, entry, env, cjs }) {
     const { rollup } = await import('rollup');
     const { nodeResolve } = await import('@rollup/plugin-node-resolve');
     const { default: commonjs } = await import('@rollup/plugin-commonjs');
@@ -70,7 +71,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
       // treeshake: false,
     });
     const { output } = await bundle.generate({
-      format: 'esm',
+      format: cjs ? 'cjs' : 'esm',
     });
     assert(output.length === 1, 'Expected exactly one output chunk');
 
@@ -81,7 +82,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
 
     return output[0].code;
   },
-  async parcel({ entry, env }) {
+  async parcel({ entry, env, cjs }) {
     const { default: _Parcel } = await import('@parcel/core');
     const { Volume } = await import('memfs');
     // @ts-expect-error
@@ -113,7 +114,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
     assert(assets.length === 1, 'Expected exactly one entry asset');
     return await assets[0].getCode();
   },
-  async webpack({ entry, env }) {
+  async webpack({ entry, env, cjs }) {
     const { default: webpack } = await import('webpack');
     const { Volume } = await import('memfs');
     const { Union } = await import('unionfs');
@@ -134,9 +135,9 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
       output: {
         filename: 'bundle.js',
         path: '/dist',
-        module: true,
+        module: !cjs,
         library: {
-          type: 'module',
+          type: cjs ? 'commonjs' : 'module',
         },
       },
       resolve: {
@@ -178,7 +179,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
       });
     });
   },
-  async rolldown({ entry, env }) {
+  async rolldown({ entry, env, cjs }) {
     const { build } = await import('rolldown');
     const result = await build({
       platform: env,
@@ -193,7 +194,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
         },
       },
       output: {
-        format: 'esm',
+        format: cjs ? 'cjs' : 'esm',
       },
     });
     assert(result.output.length === 1, 'Expected exactly one output');
