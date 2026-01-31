@@ -1,7 +1,11 @@
 import assert from 'node:assert';
+import { existsSync } from 'node:fs';
 import { cwd } from 'node:process';
+import { countTotalLines } from './cloc.ts';
+import { summary } from './cli.ts';
 
 interface BundleOptions {
+  name: string;
   entry: string;
   env: 'browser' | 'node';
 }
@@ -25,15 +29,34 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
     assert(result.outputFiles && result.outputFiles.length === 1, 'Expected exactly one output file');
     return result.outputFiles[0].text;
   },
-  async rollup({ entry, env }) {
+  async rollup({ name, entry, env }) {
     const { rollup } = await import('rollup');
     const { nodeResolve } = await import('@rollup/plugin-node-resolve');
     const { default: commonjs } = await import('@rollup/plugin-commonjs');
     const { default: replace } = await import('@rollup/plugin-replace');
 
+    const countLoc = !!process.env.CLOC
+    const files = new Set<string>();
     const bundle = await rollup({
       input: entry,
       plugins: [
+        countLoc ? {
+          name: 'loc-counter',
+          transform: {
+            order: 'pre',
+            async handler(_code: string, id: string) {
+              id = id.split('?')[0];
+              id = id[0] === '\0' ? id.slice(1) : id;
+              if (!existsSync(id)) {
+                console.log(`Warning: file ${JSON.stringify(id)} does not exist`);
+              } else {
+                files.add(id);
+              }
+              return null;
+            }
+          }
+        } : null,
+
         replace({
           'import.meta.env.NODE_ENV': '"production"',
           'process.env.NODE_ENV': '"production"',
@@ -50,6 +73,12 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
       format: 'esm',
     });
     assert(output.length === 1, 'Expected exactly one output chunk');
+
+    if (countLoc) {
+      const result = await countTotalLines(files);
+      summary[name] = result;
+    }
+
     return output[0].code;
   },
   async parcel({ entry, env }) {

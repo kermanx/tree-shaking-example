@@ -2,6 +2,8 @@ import { parseArgs } from 'node:util';
 import { run } from './index.ts';
 import { existsSync, readdir, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
+export const summary: any = {};
+
 async function main() {
   const args = parseArgs({
     allowPositionals: true,
@@ -10,11 +12,12 @@ async function main() {
       bundler: { type: 'string', short: 'b' },
       shaker: { type: 'string', short: 's' },
       minifier: { type: 'string', short: 'm' },
+      zip: { type: 'boolean', short: 'z' },
     },
   });
 
   const [name] = args.positionals;
-  const { bundler, shaker, minifier } = args.values;
+  const { bundler, shaker, minifier, zip } = args.values;
 
   const allNames = readdirSync('./src')
     .filter(file => file.endsWith('.js'))
@@ -23,12 +26,14 @@ async function main() {
   const names = !name ? allNames : [name];
 
   const sizes: Record<string, number> = {};
-  await Promise.all(names.map(n => run({
-    entry: `./src/${n}.js`,
+  await Promise.all(names.map(name => run({
+    name,
+    entry: `./src/${name}.js`,
     env: 'node',
-    bundler: bundler||'rolldown',
+    bundler: bundler || 'rolldown',
     shaker,
     minifier,
+    zip,
     sizes,
   })));
 
@@ -37,6 +42,9 @@ async function main() {
     Object.fromEntries(Object.entries({ ...oldSizes, ...sizes }).sort((a, b) => a[0].localeCompare(b[0]))),
     null, 2));
   console.log('Updated sizes.json');
+
+  if (Object.keys(summary).length !== 0)
+    console.log(summary);
 }
 
 main();

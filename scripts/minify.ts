@@ -25,12 +25,12 @@ export const minifiers: Record<string, (options: MinifyOptions) => Promise<strin
   },
   async oxc({ code }) {
     const { minify } = await import('oxc-minify');
-    const result = minify('_.mjs', code, {
+    const result = await minify('_.mjs', code, {
       module: true,
       compress: true,
       mangle: true,
       codegen: {
-        removeWhitespace: true,
+        removeWhitespace: false,
       },
     });
     return result.code;
