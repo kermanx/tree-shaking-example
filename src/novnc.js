@@ -1,1 +1,8 @@
-import "/home/kerman/workspace/jsshaker_bench/cases/novnc/novnc/index.js"
+import UI from "../vendor/noVNC/app/ui.js";
+
+UI.start({
+  settings: {
+    defaults: {},
+    mandatory: {},
+  }
+});
