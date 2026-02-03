@@ -23,7 +23,7 @@ export async function run({
   sizes: Record<string, number>;
   cjs: boolean;
 }) {
-  let filename = [basename(entry).split('.')[0], bundler, ...optimizers].join('_');
+  let filename = [name, bundler, ...optimizers].join('_');
   let code = await bundlers[bundler]({ name, entry, env: env as 'browser' | 'node', cjs });
   console.log(`Bundled: ${code.length}B`);
 
@@ -32,7 +32,8 @@ export async function run({
     console.log(`Optimized (${optimizer}): ${code.length}B`);
   }
 
-  if (zip) {
+  // if (zip) 
+  {
     const { gzip } = await import('node:zlib');
     const { promisify } = await import('node:util');
     const gzipAsync = promisify(gzip);
@@ -41,6 +42,7 @@ export async function run({
   }
 
   sizes[filename] = code.length;
+
   mkdirSync(`./dist`, { recursive: true })
   writeFileSync(`./dist/${filename}.js`, code);
   console.log(`Wrote ./dist/${filename}.js`);

@@ -119,6 +119,7 @@ function zero(buf) { var len = buf.length; while (--len >= 0) { buf[len] = 0; } 
  * to avoid allocating a large strm->output buffer and copying into it.
  * (See also read_buf()).
  */
+//! @__NO_SHAKE__
 function flush_pending(strm) {
   var s = strm.state;
 
