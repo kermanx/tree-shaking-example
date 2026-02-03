@@ -1,0 +1,12 @@
+language: node_js
+dist: bionic
+addons:
+  apt:
+    sources:
+      - deadsnakes
+node_js:
+  - 14
+install:
+  - npm install
+script:
+  - npm test

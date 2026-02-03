@@ -1,0 +1,35 @@
+{
+  "name": "lacunav2",
+  "version": "1.0.0",
+  "description": "Lacuna improved",
+  "main": "lacuna.js",
+  "scripts": {
+    "test": "node lacuna ./example/test -a static -d ./example/test.output -o 3 -f"
+  },
+  "keywords": [
+    "Lacuna",
+    "deadcode",
+    "javascript",
+    "tool"
+  ],
+  "author": "Kishan Nirghin",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cheerio": "^1.0.0-rc.12",
+    "command-line-args": "^5.2.1",
+    "download-file-sync": "^1.0.4",
+    "espree": "^9.6.1",
+    "express": "^4.18.2",
+    "fs": "0.0.1-security",
+    "fs-extra": "^11.1.1",
+    "hasha": "^5.2.2",
+    "kew": "^0.7.0",
+    "prompt-confirm": "^2.0.4",
+    "prompt-sync": "^4.2.0",
+    "request": "^2.88.2",
+    "request-progress": "^3.0.0",
+    "which": "^4.0.0",
+    "winston": "^3.10.0"
+  }
+}

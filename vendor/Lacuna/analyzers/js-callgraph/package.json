@@ -1,0 +1,48 @@
+{
+  "name": "jscg",
+  "version": "2.2.0",
+  "description": "Builds static call graph for JavaScript with a field-based algorithm.",
+  "main": "index.js",
+  "dependencies": {
+    "@babel/core": "^7.14.6",
+    "@babel/preset-flow": "^7.14.5",
+    "@typescript-eslint/typescript-estree": "^5.37.0",
+    "argparse": "^2.0.1",
+    "babel-core": "^6.26.3",
+    "typescript": "^4.8.3",
+    "underscore": "^1.13.1"
+  },
+  "devDependencies": {
+    "jest": "^27.0.5"
+  },
+  "scripts": {
+    "test": "jest && python3 ./tests/test.py"
+  },
+  "jest": {
+    "testRegex": "tests/input/jest/.*\\.(js|jsx)$"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gaborantal/js-callgraph.git"
+  },
+  "license": "EPL-2.0",
+  "bugs": {
+    "url": "https://github.com/gaborantal/js-callgraph/issues"
+  },
+  "homepage": "https://github.com/gaborantal/js-callgraph#readme",
+  "keywords": [
+    "call graph",
+    "call",
+    "graph",
+    "ast",
+    "static analysis"
+  ],
+  "bin": {
+    "jscg": "./js-callgraph.js"
+  },
+  "files": [
+    "src/",
+    "index.js",
+    "js-callgraph.js"
+  ]
+}

@@ -1,0 +1,4 @@
+node_modules
+exceptions.log
+analyzers/ACG/javascript-call-graph
+analyzers/npm_cg/callgraph
