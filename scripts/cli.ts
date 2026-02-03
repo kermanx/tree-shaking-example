@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
 import { run } from './run.ts';
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, } from 'node:fs';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 
 export const summary: any = {};
 
@@ -23,7 +24,7 @@ async function main() {
   const [name] = args.positionals;
   const { bundler, optimizers, zip, cjs } = args.values;
 
-  const allNames = readdirSync('./src')
+  const allNames = (await readdir('./src'))
     .filter(file => file.endsWith('.js'))
     .map(file => file.replace('.js', ''));
 
@@ -43,11 +44,18 @@ async function main() {
       cjs: cjs || false,
     })));
 
-    const oldSizes = existsSync('./sizes.json') ? JSON.parse(readFileSync('./sizes.json', 'utf-8')) : {};
-    writeFileSync('./sizes.json', JSON.stringify(
+    const oldSizes = existsSync('./sizes.json') ? JSON.parse(await readFile('./sizes.json', 'utf-8')) : {};
+    await writeFile('./sizes.json', JSON.stringify(
       Object.fromEntries(Object.entries({ ...oldSizes, ...sizes }).sort((a, b) => a[0].localeCompare(b[0]))),
       null, 2));
     console.log('Updated sizes.json');
+
+    if (!name && optimizers.length === 1 && optimizers[0] === 'jsshaker') {
+      await writeFile('./sizes_jsshaker.json', JSON.stringify(
+        Object.fromEntries(Object.entries(sizes).sort((a, b) => a[0].localeCompare(b[0]))),
+        null, 2));
+      console.log('Updated sizes_jsshaker.json');
+    }
   }
 
   if (Object.keys(summary).length !== 0)
@@ -63,14 +71,17 @@ function resolveOptimizers(raw: string | undefined): string[][] {
   for (let input of inputs) {
     const optional = input.endsWith('?');
     if (optional) input = input.slice(0, -1);
-    for (const r of res) {
-      r.push(input);
-    }
+    const newRes: string[][] = [];
     if (optional) {
-      res.push(...res.map(r => r.slice(0, -1)));
+      newRes.push(...res);
     }
+    for (const o of input.split('/')) {
+      for (const r of res) {
+        newRes.push([...r, o]);
+      }
+    }
+    res = newRes;
   }
-  res.reverse();
   console.log('Resolved optimizers:', res);
   return res;
 }

@@ -65,7 +65,14 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
 
     try {
       const { minify } = await import('terser');
-      const result = await minify(code);
+      const result = await minify(code, {
+        toplevel: true,
+        ecma: 2018,
+				sourceMap: false,
+				output: {
+					comments: false,
+				},
+      });
       return result.code!;
     }
     catch (e) {
@@ -194,7 +201,7 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
       // Change to the temp directory before running Lacuna
       // This helps Lacuna resolve paths correctly
       const originalCwd = process.cwd();
-      process.chdir(absTmpDir);
+      // process.chdir(absTmpDir);
 
       try {
         // Run Lacuna with specified options
@@ -223,7 +230,7 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
         });
       } finally {
         // Restore original working directory
-        process.chdir(originalCwd);
+        // process.chdir(originalCwd);
       }
 
       // Read the optimized code back from the JS file

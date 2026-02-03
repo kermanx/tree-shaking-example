@@ -140,8 +140,9 @@ module.exports = class CallGraph {
         /*this approach is required for jelly since the order of the edges 
         returned in CG does not match with the order retured by espree.parse*/ 
         if (analyzer === "jelly") { 
+            const normalize = path => path.startsWith('/') ? path.slice(1) : path;
             const foundNode = nodeList.find(node =>
-                node.functionData.file === functionData.file && node.functionData.range[0] === functionData.range[0] && node.functionData.range[1] === functionData.range[1]);
+               normalize(node.functionData.file) === normalize(functionData.file)&& node.functionData.range[0] === functionData.range[0] && node.functionData.range[1] === functionData.range[1]);
             if (foundNode) {
                 return foundNode;
             }

@@ -1,7 +1,6 @@
-
-import { mkdirSync, writeFileSync } from 'node:fs';
 import { bundlers } from './bundle.ts';
 import { Optimizers } from './optimizer.ts';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 export async function run({
   name,
@@ -46,7 +45,13 @@ export async function run({
 
   sizes[filename] = code.length;
 
-  mkdirSync(`./dist`, { recursive: true })
-  writeFileSync(`./dist/${filename}.js`, code);
+  await mkdir(`./dist`, { recursive: true })
+  await writeFile(`./dist/${filename}.js`, code);
   console.log(`Wrote ./dist/${filename}.js`);
+
+  if (optimizers.length === 1 && optimizers[0] === 'jsshaker') {
+    await mkdir(`./snapshots`, { recursive: true })
+    await writeFile(`./snapshots/${name}.js`, code);
+    console.log(`Wrote ./snapshots/${name}.js`);
+  }
 }
