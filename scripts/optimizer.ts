@@ -13,6 +13,7 @@ export interface OptimizeOptions {
 export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<string>> = {
   async jsshaker({ name, code }) {
     const { shakeSingleModule } = await import('jsshaker');
+    console.log(`[${name}] Running jsshaker...`);
     const result = shakeSingleModule(code, {
       preset: "smallest",
       jsx: "react",
@@ -60,10 +61,18 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     });
     return result.code;
   },
-  async terser({ code }) {
-    const { minify } = await import('terser');
-    const result = await minify(code);
-    return result.code!;
+  async terser({ name, code }) {
+    code = code.replace('await _checkWebCodecsH264DecodeSupport()', 'await (_checkWebCodecsH264DecodeSupport())');
+
+    try {
+      const { minify } = await import('terser');
+      const result = await minify(code);
+      return result.code!;
+    }
+    catch (e) {
+      console.error(`[${name}] [terser] Minification failed:`, e);
+      return ''
+    }
   },
   async swc({ code }) {
     const { transform } = await import('@swc/core');
@@ -72,12 +81,28 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     });
     return result.code!;
   },
-  async oxc({ code }) {
+  async oxc({ name, code }) {
     const { minify } = await import('oxc-minify');
-    const result = await minify('_.mjs', code, {
+    const result = await minify(`${name}.mjs`, code, {
       module: true,
       compress: true,
-      mangle: true,
+      mangle: {
+        toplevel: true,
+      },
+      codegen: {
+        removeWhitespace: true,
+      },
+    });
+    return result.code;
+  },
+  async oxcPretty({ name, code }) {
+    const { minify } = await import('oxc-minify');
+    const result = await minify(`${name}.mjs`, code, {
+      module: true,
+      compress: true,
+      mangle: {
+        toplevel: true,
+      },
       codegen: {
         removeWhitespace: false,
       },
@@ -85,16 +110,34 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     return result.code;
   },
   async gcc({ code }) {
-    return await gcc(code, {
-      compilationLevel: 'SIMPLE',
-      languageIn: 'ECMASCRIPT_NEXT',
-      languageOut: 'ECMASCRIPT_NEXT',
-      // warningLevel: 'QUIET',
-    });
+    try {
+      return await gcc(code, {
+        compilationLevel: 'SIMPLE',
+        languageIn: 'ECMASCRIPT_NEXT',
+        languageOut: 'ECMASCRIPT_NEXT',
+        // warningLevel: 'QUIET',
+      });
+    } catch (e) {
+      console.error('[gcc-adv] Compilation failed:', e);
+      return ''
+    }
   },
-  async prepack({ code }) {
+  async gccAdv({ code }) {
+    try {
+      return await gcc(code, {
+        compilationLevel: 'ADVANCED',
+        languageIn: 'ECMASCRIPT_NEXT',
+        languageOut: 'ECMASCRIPT_NEXT',
+        // warningLevel: 'QUIET',
+      });
+    } catch (e) {
+      console.error('[gcc-adv] Compilation failed:', e);
+      return ''
+    }
+  },
+  async prepack({ name, code }) {
     const res = prepackSources([{
-      filePath: '__in__.js',
+      filePath: `${name}.js`,
       fileContents: code,
       sourceMapContents: ''
     }], {
