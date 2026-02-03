@@ -182,8 +182,7 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
       await fs.writeFile(entryHtml, htmlContent, 'utf8');
 
       // Import and run Lacuna
-      const lacunaPath = path.join(process.cwd(), 'vendor', 'Lacuna', 'lacuna_runner.js');
-      const { run } = await import(lacunaPath);
+      const { run } = await import('../vendor/Lacuna/lacuna_runner.js');
 
       // Prepare analyzer configuration
       const analyzerConfig: Record<string, string> = {};
