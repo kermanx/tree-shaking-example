@@ -13,6 +13,8 @@ export async function run({
   sizes,
   zip,
   cjs,
+  lacunaAnalyzers,
+  lacunaOLevel,
 }: {
   name: string;
   entry: string;
@@ -22,13 +24,21 @@ export async function run({
   zip?: boolean;
   sizes: Record<string, number>;
   cjs: boolean;
+  lacunaAnalyzers?: Record<string, number>;
+  lacunaOLevel?: number;
 }) {
   let filename = [basename(entry).split('.')[0], bundler, ...optimizers].join('_');
   let code = await bundlers[bundler]({ name, entry, env: env as 'browser' | 'node', cjs });
   console.log(`Bundled: ${code.length}B`);
 
   for (const optimizer of optimizers) {
-    code = await Optimizers[optimizer]({ name, code, env: env as 'browser' | 'node' });
+    code = await Optimizers[optimizer]({
+      name,
+      code,
+      env: env as 'browser' | 'node',
+      lacunaAnalyzers,
+      lacunaOLevel,
+    });
     console.log(`Optimized (${optimizer}): ${code.length}B`);
   }
 

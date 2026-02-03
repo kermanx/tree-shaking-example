@@ -6,6 +6,8 @@ export interface OptimizeOptions {
   name: string
   code: string
   env: 'browser' | 'node';
+  lacunaAnalyzers?: Record<string, number>; // e.g., { "static": 0.6, "acg": 0.5 }
+  lacunaOLevel?: number; // 0-3, optimization level
 }
 
 export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<string>> = {
@@ -98,5 +100,96 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     }], {
     })
     return res.code;
+  },
+  async lacuna({ code, lacunaAnalyzers = { jelly: 0.5 }, lacunaOLevel = 2 }) {
+    const fs = await import('node:fs/promises');
+    const fsSync = await import('node:fs');
+    const path = await import('node:path');
+    const os = await import('node:os');
+
+    // Create a temporary directory for Lacuna to work with
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'lacuna-'));
+    // Resolve to absolute path to avoid relative path issues
+    const absTmpDir = path.resolve(tmpDir);
+
+    try {
+      // Write the input code as a JS file
+      const scriptFile = path.join(absTmpDir, 'input.js');
+      await fs.writeFile(scriptFile, code, 'utf8');
+
+      // Create a package.json for analyzers that need it (like jelly)
+      const packageJson = {
+        name: 'lacuna-temp',
+        version: '1.0.0',
+        type: 'module'
+      };
+      await fs.writeFile(path.join(absTmpDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
+
+      // Create an HTML entry file that references the JS file
+      // Lacuna requires an HTML entry point
+      const entryHtml = path.join(absTmpDir, 'index.html');
+      const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <script src="./input.js"></script>
+</head>
+<body>
+</body>
+</html>`;
+      await fs.writeFile(entryHtml, htmlContent, 'utf8');
+
+      // Import and run Lacuna
+      const lacunaPath = path.join('/home/xyf/Lacuna', 'lacuna_runner.js'); // Adjust this path as necessary 
+      const { run } = await import(lacunaPath);
+
+      // Prepare analyzer configuration
+      const analyzerConfig: Record<string, string> = {};
+      for (const [analyzer, threshold] of Object.entries(lacunaAnalyzers)) {
+        analyzerConfig[analyzer] = threshold.toString();
+      }
+
+      // Change to the temp directory before running Lacuna
+      // This helps Lacuna resolve paths correctly
+      const originalCwd = process.cwd();
+      process.chdir(absTmpDir);
+
+      try {
+        // Run Lacuna with specified options
+        const runOptions = {
+          directory: absTmpDir,
+          entry: 'index.html', // HTML entry file
+          analyzer: JSON.stringify(analyzerConfig),
+          olevel: lacunaOLevel, // 0: no optimization, 1: lazy load, 2: empty body, 3: replace with null
+          force: true,
+          destination: null,
+        };
+
+        // Run Lacuna and wait for completion
+        await new Promise((resolve, reject) => {
+          try {
+            run(runOptions, (log: any) => {
+              if (log) {
+                resolve(log);
+              } else {
+                reject(new Error('Lacuna optimization failed'));
+              }
+            });
+          } catch (error) {
+            reject(error);
+          }
+        });
+      } finally {
+        // Restore original working directory
+        process.chdir(originalCwd);
+      }
+
+      // Read the optimized code back from the JS file
+      const optimizedCode = await fs.readFile(scriptFile, 'utf8');
+      return optimizedCode;
+
+    } finally {
+      // Clean up temporary directory
+      await fs.rm(absTmpDir, { recursive: true, force: true });
+    }
   },
 }

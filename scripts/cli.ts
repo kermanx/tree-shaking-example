@@ -12,19 +12,35 @@ async function main() {
       bundler: { type: 'string', short: 'b' },
       optimizers: { type: 'string', short: 'o' },
       zip: { type: 'boolean', short: 'z' },
-
       cjs: { type: 'boolean' },
+
+      // Lacuna-specific options
+      lacunaAnalyzer: { type: 'string' },  // e.g., "static:0.6,acg:0.5"
+      lacunaLevel: { type: 'string' },     // e.g., "2"
     },
   });
 
   const [name] = args.positionals;
-  const { bundler, optimizers, zip, cjs } = args.values;
+  const { bundler, optimizers, zip, cjs, lacunaAnalyzer, lacunaLevel } = args.values;
 
   const allNames = readdirSync('./src')
     .filter(file => file.endsWith('.js'))
     .map(file => file.replace('.js', ''));
 
   const names = !name ? allNames : [name];
+
+  // Parse Lacuna analyzer configuration
+  let lacunaAnalyzers: Record<string, number> | undefined;
+  if (lacunaAnalyzer) {
+    lacunaAnalyzers = {};
+    const analyzerPairs = lacunaAnalyzer.split(',');
+    for (const pair of analyzerPairs) {
+      const [analyzer, threshold] = pair.split(':');
+      lacunaAnalyzers[analyzer.trim()] = parseFloat(threshold || '0.5');
+    }
+  }
+
+  const lacunaOLevel = lacunaLevel ? parseInt(lacunaLevel) : undefined;
 
   const sizes: Record<string, number> = {};
   await Promise.all(names.map(name => run({
@@ -36,6 +52,8 @@ async function main() {
     zip,
     sizes,
     cjs: cjs || false,
+    lacunaAnalyzers,
+    lacunaOLevel,
   })));
 
   const oldSizes = existsSync('./sizes.json') ? JSON.parse(readFileSync('./sizes.json', 'utf-8')) : {};
