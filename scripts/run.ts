@@ -1,6 +1,5 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { basename } from 'node:path';
 import { bundlers } from './bundle.ts';
 import { Optimizers } from './optimizer.ts';
 
@@ -13,8 +12,6 @@ export async function run({
   sizes,
   zip,
   cjs,
-  lacunaAnalyzers,
-  lacunaOLevel,
 }: {
   name: string;
   entry: string;
@@ -24,8 +21,6 @@ export async function run({
   zip?: boolean;
   sizes: Record<string, number>;
   cjs: boolean;
-  lacunaAnalyzers?: Record<string, number>;
-  lacunaOLevel?: number;
 }) {
   let filename = [name, bundler, ...optimizers].join('_');
   let code = await bundlers[bundler]({ name, entry, env: env as 'browser' | 'node', cjs });
@@ -36,8 +31,6 @@ export async function run({
       name,
       code,
       env: env as 'browser' | 'node',
-      lacunaAnalyzers,
-      lacunaOLevel,
     });
     console.log(`Optimized (${optimizer}): ${code.length}B`);
   }

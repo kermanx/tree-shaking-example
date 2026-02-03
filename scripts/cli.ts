@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 import { run } from './run.ts';
-import { existsSync, readdir, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 export const summary: any = {};
 
@@ -21,26 +21,13 @@ async function main() {
   });
 
   const [name] = args.positionals;
-  const { bundler, optimizers, zip, cjs, lacunaAnalyzer, lacunaLevel } = args.values;
+  const { bundler, optimizers, zip, cjs } = args.values;
 
   const allNames = readdirSync('./src')
     .filter(file => file.endsWith('.js'))
     .map(file => file.replace('.js', ''));
 
   const names = !name ? allNames : [name];
-
-  // Parse Lacuna analyzer configuration
-  let lacunaAnalyzers: Record<string, number> | undefined;
-  if (lacunaAnalyzer) {
-    lacunaAnalyzers = {};
-    const analyzerPairs = lacunaAnalyzer.split(',');
-    for (const pair of analyzerPairs) {
-      const [analyzer, threshold] = pair.split(':');
-      lacunaAnalyzers[analyzer.trim()] = parseFloat(threshold || '0.5');
-    }
-  }
-
-  const lacunaOLevel = lacunaLevel ? parseInt(lacunaLevel) : undefined;
 
   const resolvedOptimizers = resolveOptimizers(optimizers);
   for (const optimizers of resolvedOptimizers) {
@@ -54,8 +41,6 @@ async function main() {
       zip,
       sizes,
       cjs: cjs || false,
-      lacunaAnalyzers,
-      lacunaOLevel,
     })));
 
     const oldSizes = existsSync('./sizes.json') ? JSON.parse(readFileSync('./sizes.json', 'utf-8')) : {};

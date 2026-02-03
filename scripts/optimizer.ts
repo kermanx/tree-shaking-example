@@ -1,3 +1,4 @@
+// @ts-ignore
 import { prepackSources } from 'prepack/lib/prepack-standalone.js'
 import { gcc } from './cc.ts';
 import assert from 'assert';
@@ -6,8 +7,6 @@ export interface OptimizeOptions {
   name: string
   code: string
   env: 'browser' | 'node';
-  lacunaAnalyzers?: Record<string, number>; // e.g., { "static": 0.6, "acg": 0.5 }
-  lacunaOLevel?: number; // 0-3, optimization level
 }
 
 export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<string>> = {
@@ -144,9 +143,11 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     })
     return res.code;
   },
-  async lacuna({ code, lacunaAnalyzers = { jelly: 0.5 }, lacunaOLevel = 2 }) {
+  async lacuna({ code }) {
+    const lacunaAnalyzers = { jelly: 0.5 }; // e.g., { "static": 0.6, "acg": 0.5 }
+    const lacunaOLevel = 2; // 0-3, optimization level
+
     const fs = await import('node:fs/promises');
-    const fsSync = await import('node:fs');
     const path = await import('node:path');
     const os = await import('node:os');
 
