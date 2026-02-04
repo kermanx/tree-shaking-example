@@ -12,3 +12,6 @@ onlyBuiltDependencies:
   - msgpackr-extract
   - puppeteer
   - v8-profiler-next
+
+overrides:
+  esprima-ast-utils: 0.0.7

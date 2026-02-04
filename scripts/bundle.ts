@@ -56,6 +56,12 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
         correctVarValueBeforeDeclaration: true,
         unknownGlobalSideEffects: false,
       },
+      onwarn(warning, warn) {
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE' || warning.code === 'THIS_IS_UNDEFINED') {
+          return;
+        }
+        warn(warning);
+      }
     });
     const { output } = await bundle.generate({
       format: cjs ? 'cjs' : 'esm',

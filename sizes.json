@@ -1,6 +1,8 @@
 {
+  "antd_rollup": 832104,
   "antd_rollup_jsshaker": 657852,
   "antd_rollup_jsshaker.gz": 142133,
+  "antd_rollup.gz": 167375,
   "glob_rollup_jsshaker": 205881,
   "glob_rollup_jsshaker.gz": 53725,
   "js-yaml_rollup_jsshaker": 63247,
@@ -13,6 +15,8 @@
   "material-ui_rollup_jsshaker.gz": 73582,
   "novnc_rollup_jsshaker": 427840,
   "novnc_rollup_jsshaker.gz": 110926,
+  "rambda_rollup_heuristic": 2494,
+  "rambda_rollup_heuristic.gz": 875,
   "rambda_rollup_jsshaker": 2222,
   "rambda_rollup_jsshaker.gz": 807,
   "rambdax_rollup_jsshaker": 5711,
