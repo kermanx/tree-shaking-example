@@ -1,6 +1,6 @@
 {
-  "antd_rollup_jsshaker": 657417,
-  "antd_rollup_jsshaker.gz": 142060,
+  "antd_rollup_jsshaker": 657852,
+  "antd_rollup_jsshaker.gz": 142133,
   "glob_rollup_jsshaker": 205881,
   "glob_rollup_jsshaker.gz": 53725,
   "js-yaml_rollup_jsshaker": 63247,
@@ -9,8 +9,8 @@
   "lodash_rollup_jsshaker.gz": 94209,
   "lodash-es_rollup_jsshaker": 57590,
   "lodash-es_rollup_jsshaker.gz": 14230,
-  "material-ui_rollup_jsshaker": 331192,
-  "material-ui_rollup_jsshaker.gz": 73557,
+  "material-ui_rollup_jsshaker": 331285,
+  "material-ui_rollup_jsshaker.gz": 73582,
   "novnc_rollup_jsshaker": 427840,
   "novnc_rollup_jsshaker.gz": 110926,
   "rambda_rollup_jsshaker": 2222,
@@ -25,10 +25,10 @@
   "remeda_rollup_jsshaker.gz": 1729,
   "rxjs_rollup_jsshaker": 17596,
   "rxjs_rollup_jsshaker.gz": 4152,
-  "sentry_rollup_jsshaker": 270837,
-  "sentry_rollup_jsshaker.gz": 76270,
+  "sentry_rollup_jsshaker": 271312,
+  "sentry_rollup_jsshaker.gz": 76425,
   "test-simple_rollup_jsshaker": 47,
   "test-simple_rollup_jsshaker.gz": 61,
-  "vuetify_rollup_jsshaker": 275752,
-  "vuetify_rollup_jsshaker.gz": 70500
+  "vuetify_rollup_jsshaker": 275842,
+  "vuetify_rollup_jsshaker.gz": 70520
 }

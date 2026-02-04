@@ -10,6 +10,5 @@ onlyBuiltDependencies:
   - esbuild
   - lmdb
   - msgpackr-extract
-  - phantomjs-prebuilt-that-works
   - puppeteer
   - v8-profiler-next

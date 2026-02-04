@@ -3999,6 +3999,7 @@ function requireReactDomClient_production() {
 			inst = inst._reactInternals;
 			var lane = requestUpdateLane(), update = createUpdate(lane);
 			update.payload = payload;
+			void 0 !== callback && null !== callback && (update.callback = callback);
 			payload = enqueueUpdate(inst, update, lane);
 			null !== payload && (scheduleUpdateOnFiber(payload, inst, lane), entangleTransitions(payload, inst, lane));
 		},
@@ -4007,6 +4008,7 @@ function requireReactDomClient_production() {
 			var lane = requestUpdateLane(), update = createUpdate(lane);
 			update.tag = 1;
 			update.payload = payload;
+			void 0 !== callback && null !== callback && (update.callback = callback);
 			payload = enqueueUpdate(inst, update, lane);
 			null !== payload && (scheduleUpdateOnFiber(payload, inst, lane), entangleTransitions(payload, inst, lane));
 		},
@@ -4014,6 +4016,7 @@ function requireReactDomClient_production() {
 			inst = inst._reactInternals;
 			var lane = requestUpdateLane(), update = createUpdate(lane);
 			update.tag = 2;
+			void 0 !== callback && null !== callback && (update.callback = callback);
 			callback = enqueueUpdate(inst, update, lane);
 			null !== callback && (scheduleUpdateOnFiber(callback, inst, lane), entangleTransitions(callback, inst, lane));
 		}
@@ -8728,6 +8731,7 @@ function requireReactDomClient_production() {
 			isDehydrated: false,
 			cache: tag
 		};
+		initializeUpdateQueue(isStrictMode);
 		return containerInfo;
 	}
 	function getContextForSubtree() {
@@ -13700,11 +13704,19 @@ function makePrefixMap(styleProp, eventName) {
 	prefixes[`O${styleProp}`] = `o${eventName.toLowerCase()}`;
 	return prefixes;
 }
-function getVendorPrefixes(__unused_DEF9, win) {
+function getVendorPrefixes(domSupport, win) {
 	const prefixes = {
 		a: makePrefixMap("Animation", "AnimationEnd"),
 		b: makePrefixMap("Transition", "TransitionEnd")
 	};
+	if (domSupport) {
+		if (!("AnimationEvent" in win)) {
+			delete prefixes.a.animation;
+		}
+		if (!("TransitionEvent" in win)) {
+			delete prefixes.b.transition;
+		}
+	}
 	return prefixes;
 }
 const vendorPrefixes = getVendorPrefixes(canUseDom(), typeof window !== "undefined" ? window : {});

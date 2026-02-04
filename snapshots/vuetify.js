@@ -2005,6 +2005,7 @@ function withCtx(fn, ctx = currentRenderingInstance) {
 		return res;
 	};
 	renderFnWithContext._n = true;
+	renderFnWithContext._c = true;
 	renderFnWithContext._d = true;
 	return renderFnWithContext;
 }
@@ -9504,6 +9505,9 @@ function genDefaults() {
 function createIcons(options) {
 	const sets = genDefaults();
 	const defaultSet = options?.defaultSet ?? "mdi";
+	if (defaultSet === "mdi" && true) {
+		sets.mdi = mdi;
+	}
 	return mergeDeep({
 		defaultSet,
 		sets,

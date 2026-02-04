@@ -6367,6 +6367,9 @@ function eventFromException(stackParser, exception, hint, attachStacktrace) {
 	const event = eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace);
 	addExceptionMechanism(event);
 	event.level = "error";
+	if (hint?.event_id) {
+		event.event_id = hint.event_id;
+	}
 	return resolvedSyncPromise(event);
 }
 /**
@@ -6377,6 +6380,9 @@ function eventFromMessage(stackParser, message, level = "info", hint, attachStac
 	const syntheticException = hint?.syntheticException || void 0;
 	const event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
 	event.level = level;
+	if (hint?.event_id) {
+		event.event_id = hint.event_id;
+	}
 	return resolvedSyncPromise(event);
 }
 /**
@@ -6405,6 +6411,13 @@ function eventFromUnknownInput(stackParser, exception, syntheticException, attac
 			const message = domException.message ? `${name}: ${domException.message}` : name;
 			event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
 			addExceptionTypeValue(event, message);
+		}
+		if ("code" in domException) {
+			// eslint-disable-next-line deprecation/deprecation
+			event.tags = {
+				...(event.tags, void 0),
+				"DOMException.code": `${domException.code}`
+			};
 		}
 		return event;
 	}
@@ -6509,6 +6522,15 @@ class BrowserClient extends Client {
 		const opts = applyDefaultOptions(options);
 		const sdkSource = WINDOW$1.SENTRY_SDK_SOURCE || "npm";
 		applySdkMetadata(opts, 0, ["browser"], sdkSource);
+		// Only allow IP inferral by Relay if sendDefaultPii is true
+		{
+			{
+				opts._metadata.sdk.settings = {
+					infer_ip: "never",
+					...void 0
+				};
+			}
+		}
 		super(opts);
 		const { sendDefaultPii, sendClientReports, enableLogs, _experiments, enableMetrics: enableMetricsOption } = this._options;
 		// todo(v11): Remove the experimental flag

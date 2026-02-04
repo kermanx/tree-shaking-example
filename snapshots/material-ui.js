@@ -3267,6 +3267,9 @@ function supportedProperty(prop, options) {
 	if (cache[prop] != null) {
 		return cache[prop];
 	}
+	if (prop === "transition" || prop === "transform") {
+		options[prop] = prop in el.style;
+	}
 	for (var i = 0; i < propertyDetectors.length; i++) {
 		cache[prop] = propertyDetectors[i](prop, el.style, options);
 		if (cache[prop]) break;
