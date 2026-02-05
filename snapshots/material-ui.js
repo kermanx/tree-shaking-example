@@ -20,21 +20,21 @@ var grey = {
 	A700: "#616161"
 };
 var grey$1 = grey;
-function _extends$1() {
-	return _extends$1 = Object.assign.bind(), _extends$1.apply(0, arguments);
+function _extends() {
+	return _extends = Object.assign.bind(), _extends.apply(null, arguments);
 }
-function _typeof$2(o) {
+function _typeof$1(o) {
 	"@babel/helpers - typeof";
-	return _typeof$2 = function(o) {
+	return _typeof$1 = function(o) {
 		return typeof o;
-	}, _typeof$2(o);
+	}, _typeof$1(o);
 }
 function isPlainObject(item) {
-	return item && _typeof$2(item) === "object" && item.constructor === Object;
+	return item && _typeof$1(item) === "object" && item.constructor === Object;
 }
 function deepmerge(target, source) {
 	var options = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : { clone: true };
-	var output = options.clone ? _extends$1({}, target) : target;
+	var output = options.clone ? _extends({}, target) : target;
 	if (isPlainObject(target) && isPlainObject(source)) {
 		Object.keys(source).forEach(function(key) {
 			// Avoid prototype pollution
@@ -53,22 +53,22 @@ function deepmerge(target, source) {
 function getDefaultExportFromCjs(x) {
 	return x;
 }
-function toPrimitive$1(t) {
-	if ("object" != _typeof$2(t) || !t) return t;
+function toPrimitive(t) {
+	if ("object" != _typeof$1(t) || !t) return t;
 	var e = t[Symbol.toPrimitive];
 	if (void 0 !== e) {
 		var i = e.call(t, "string");
-		if ("object" != _typeof$2(i)) return i;
+		if ("object" != _typeof$1(i)) return i;
 		throw new TypeError("@@toPrimitive must return a primitive value.");
 	}
 	return String(t);
 }
-function toPropertyKey$1(t) {
-	var i = toPrimitive$1(t);
-	return "symbol" == _typeof$2(i) ? i : i + "";
+function toPropertyKey(t) {
+	var i = toPrimitive(t);
+	return "symbol" == _typeof$1(i) ? i : i + "";
 }
 function _defineProperty(e, r, t) {
-	return (r = toPropertyKey$1(r)) in e ? Object.defineProperty(e, r, {
+	return (r = toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
 		value: t,
 		enumerable: true,
 		configurable: true,
@@ -286,7 +286,7 @@ function lighten(color, coefficient) {
 	}
 	return recomposeColor(color);
 }
-function _objectWithoutPropertiesLoose$1(r, e) {
+function _objectWithoutPropertiesLoose(r, e) {
 	if (null == r) return {};
 	var t = {};
 	for (var n in r) if ({}.hasOwnProperty.call(r, n)) {
@@ -297,7 +297,7 @@ function _objectWithoutPropertiesLoose$1(r, e) {
 }
 function _objectWithoutProperties(e, t) {
 	if (null == e) return {};
-	var o, r, i = _objectWithoutPropertiesLoose$1(e, t);
+	var o, r, i = _objectWithoutPropertiesLoose(e, t);
 	if (Object.getOwnPropertySymbols) {
 		var n = Object.getOwnPropertySymbols(e);
 		for (r = 0; r < n.length; r++) o = n[r], -1 === t.indexOf(o) && {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]);
@@ -352,7 +352,7 @@ function createBreakpoints(breakpoints) {
 	function width(key) {
 		return values[key];
 	}
-	return _extends$1({
+	return _extends({
 		keys,
 		values,
 		up,
@@ -364,7 +364,7 @@ function createBreakpoints(breakpoints) {
 }
 function createMixins(breakpoints, spacing, mixins) {
 	var _toolbar;
-	return _extends$1({
+	return _extends({
 		gutters: function() {
 			var styles = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : {};
 			console.warn([
@@ -372,10 +372,10 @@ function createMixins(breakpoints, spacing, mixins) {
 				"You can use the source of the mixin directly:",
 				"\n      paddingLeft: theme.spacing(2),\n      paddingRight: theme.spacing(2),\n      [theme.breakpoints.up('sm')]: {\n        paddingLeft: theme.spacing(3),\n        paddingRight: theme.spacing(3),\n      },\n      "
 			].join("\n"));
-			return _extends$1({
+			return _extends({
 				paddingLeft: spacing(2),
 				paddingRight: spacing(2)
-			}, styles, _defineProperty({}, breakpoints.up("sm"), _extends$1({
+			}, styles, _defineProperty({}, breakpoints.up("sm"), _extends({
 				paddingLeft: spacing(3),
 				paddingRight: spacing(3)
 			}, styles[breakpoints.up("sm")])));
@@ -497,7 +497,7 @@ function createPalette(palette) {
 		var mainShade = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : 500;
 		var lightShade = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : 300;
 		var darkShade = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : 700;
-		color = _extends$1({}, color);
+		color = _extends({}, color);
 		if (!color.main && color[mainShade]) {
 			color.main = color[mainShade];
 		}
@@ -518,7 +518,7 @@ function createPalette(palette) {
 		dark,
 		light
 	};
-	var paletteOutput = deepmerge(_extends$1({
+	var paletteOutput = deepmerge(_extends({
 		common: common$1,
 		type,
 		primary: augmentColor(primary),
@@ -564,7 +564,7 @@ function createTypography(palette, typography) {
 		return "".concat(size / htmlFontSize * coef, "rem");
 	};
 	var buildVariant = function(fontWeight, size, lineHeight, letterSpacing, casing) {
-		return _extends$1({
+		return _extends({
 			fontFamily,
 			fontWeight,
 			fontSize: pxToRem(size),
@@ -586,7 +586,7 @@ function createTypography(palette, typography) {
 		caption: buildVariant(fontWeightRegular, 12, 1.66, .4),
 		overline: buildVariant(fontWeightRegular, 12, 2.66, 1, caseAllCaps)
 	};
-	return deepmerge(_extends$1({
+	return deepmerge(_extends({
 		htmlFontSize,
 		pxToRem,
 		round: roundWithDeprecationWarning,
@@ -638,6 +638,30 @@ var shadows = [
 var shadows$1 = shadows;
 var shape = { borderRadius: 4 };
 var shape$1 = shape;
+function _arrayLikeToArray(r, a) {
+	a = r.length;
+	for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+	return n;
+}
+function _arrayWithoutHoles(r) {
+	if (Array.isArray(r)) return _arrayLikeToArray(r);
+}
+function _iterableToArray(r) {
+	if (null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r);
+}
+function _unsupportedIterableToArray(r) {
+	if (r) {
+		if ("string" == typeof r) return _arrayLikeToArray(r);
+		var t = {}.toString.call(r).slice(8, -1);
+		return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r) : void 0;
+	}
+}
+function _nonIterableSpread() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _toConsumableArray(r) {
+	return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread();
+}
 function createUnarySpacing(theme) {
 	var themeSpacing = theme.a || 8;
 	if (typeof themeSpacing === "number") {
@@ -857,34 +881,11 @@ function getThemeProps(params) {
 	}
 	return props;
 }
-function _extends() {
-	return _extends = Object.assign.bind(), _extends.apply(null, arguments);
-}
-var _typeof$1 = function(obj) {
+var _typeof = function(obj) {
 	return typeof obj;
 };
-var isBrowser = (typeof window === "undefined" ? "undefined" : _typeof$1(window)) === "object" && (typeof document === "undefined" ? "undefined" : _typeof$1(document)) === "object" && document.nodeType === 9;
+var isBrowser = (typeof window === "undefined" ? "undefined" : _typeof(window)) === "object" && (typeof document === "undefined" ? "undefined" : _typeof(document)) === "object" && document.nodeType === 9;
 var isInBrowser = isBrowser;
-function _typeof(o) {
-	"@babel/helpers - typeof";
-	return _typeof = function(o) {
-		return typeof o;
-	}, _typeof(o);
-}
-function toPrimitive(t) {
-	if ("object" != _typeof(t) || !t) return t;
-	var e = t[Symbol.toPrimitive];
-	if (void 0 !== e) {
-		var i = e.call(t, "string");
-		if ("object" != _typeof(i)) return i;
-		throw new TypeError("@@toPrimitive must return a primitive value.");
-	}
-	return String(t);
-}
-function toPropertyKey(t) {
-	var i = toPrimitive(t);
-	return "symbol" == _typeof(i) ? i : i + "";
-}
 function _defineProperties(e, r) {
 	for (var t = 0; t < 1; t++) {
 		var o = r[t];
@@ -905,15 +906,6 @@ function _inheritsLoose(t, o) {
 function _assertThisInitialized(e) {
 	if (void 0 === e) throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
 	return e;
-}
-function _objectWithoutPropertiesLoose(r, e) {
-	if (null == r) return {};
-	var t = {};
-	for (var n in r) if ({}.hasOwnProperty.call(r, n)) {
-		if (-1 !== e.indexOf(n)) continue;
-		t[n] = r[n];
-	}
-	return t;
 }
 var plainObjectConstrurctor = {}.constructor;
 function cloneStyle(style) {
@@ -2882,30 +2874,6 @@ function defaultUnit() {
 		onChangeValue
 	};
 }
-function _arrayLikeToArray(r, a) {
-	a = r.length;
-	for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
-	return n;
-}
-function _arrayWithoutHoles(r) {
-	if (Array.isArray(r)) return _arrayLikeToArray(r);
-}
-function _iterableToArray(r) {
-	if (null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r);
-}
-function _unsupportedIterableToArray(r) {
-	if (r) {
-		if ("string" == typeof r) return _arrayLikeToArray(r);
-		var t = {}.toString.call(r).slice(8, -1);
-		return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r) : void 0;
-	}
-}
-function _nonIterableSpread() {
-	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _toConsumableArray(r) {
-	return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread();
-}
 // Export javascript style and css style vendor prefixes.
 var js = "";
 var css = "";
@@ -3595,7 +3563,7 @@ function mergeClasses() {
 	if (!newClasses) {
 		return baseClasses;
 	}
-	var nextClasses = _extends$1({}, baseClasses);
+	var nextClasses = _extends({}, baseClasses);
 	Object.keys(newClasses).forEach(function(key) {
 		if (newClasses[key]) {
 			nextClasses[key] = "".concat(baseClasses[key], " ").concat(newClasses[key]);
@@ -3674,7 +3642,7 @@ function getStylesCreator(stylesOrCreator) {
 			return styles;
 		}
 		var overrides = theme.overrides[name];
-		var stylesWithOverrides = _extends$1({}, styles);
+		var stylesWithOverrides = _extends({}, styles);
 		Object.keys(overrides).forEach(function(key) {
 			stylesWithOverrides[key] = deepmerge(stylesWithOverrides[key], overrides[key]);
 		});
@@ -3726,7 +3694,7 @@ function attach(_ref2, props) {
 		};
 		multiKeyStore$1.a(stylesOptions.sheetsManager, stylesCreator, theme, sheetManager);
 	}
-	var options = _extends$1({}, stylesCreator.options, stylesOptions, {
+	var options = _extends({}, stylesCreator.options, stylesOptions, {
 		theme,
 		flip: typeof stylesOptions.flip === "boolean" ? stylesOptions.flip : theme.direction === "rtl"
 	});
@@ -3739,7 +3707,7 @@ function attach(_ref2, props) {
 		}
 		var styles = stylesCreator.create(theme, name);
 		if (!staticSheet) {
-			staticSheet = stylesOptions.jss.createStyleSheet(styles, _extends$1({ link: false }, options));
+			staticSheet = stylesOptions.jss.createStyleSheet(styles, _extends({ link: false }, options));
 			staticSheet.attach();
 			if (stylesOptions.sheetsCache) {
 				multiKeyStore$1.a(stylesOptions.sheetsCache, stylesCreator, theme, staticSheet);
@@ -3752,7 +3720,7 @@ function attach(_ref2, props) {
 		sheetManager.dynamicStyles = getDynamicStyles(styles);
 	}
 	if (sheetManager.dynamicStyles) {
-		var dynamicSheet = stylesOptions.jss.createStyleSheet(sheetManager.dynamicStyles, _extends$1({ link: true }, options));
+		var dynamicSheet = stylesOptions.jss.createStyleSheet(sheetManager.dynamicStyles, _extends({ link: true }, options));
 		dynamicSheet.update(props);
 		dynamicSheet.attach();
 		state.dynamicSheet = dynamicSheet;
@@ -3834,7 +3802,7 @@ function makeStyles(stylesOrCreator) {
 	var useStyles = function() {
 		var props = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : {};
 		var theme = useTheme() || defaultTheme;
-		var stylesOptions = _extends$1({}, React.z(StylesContext), stylesOptions2);
+		var stylesOptions = _extends({}, React.z(StylesContext), stylesOptions2);
 		var instance = React.L();
 		var shouldUpdate = React.L();
 		useSynchronousEffect(function() {
@@ -4019,7 +3987,7 @@ var withStyles$1 = function(stylesOrCreator) {
 			"name"
 		]);
 		var classNamePrefix = name;
-		var useStyles = makeStyles(stylesOrCreator, _extends$1({
+		var useStyles = makeStyles(stylesOrCreator, _extends({
 			defaultTheme,
 			Component,
 			name: name || void 0,
@@ -4029,7 +3997,7 @@ var withStyles$1 = function(stylesOrCreator) {
 			var innerRef = props.innerRef, other = _objectWithoutProperties(props, ["classes", "innerRef"]);
 			// the actual props Component might receive due to merging with defaultProps.
 			// So copying it here would give us the same result in the wrapper as well.
-			var classes = useStyles(_extends$1({}, Component.defaultProps, props));
+			var classes = useStyles(_extends({}, Component.defaultProps, props));
 			var theme;
 			var more = other;
 			if (typeof name === "string" || withTheme) {
@@ -4048,7 +4016,7 @@ var withStyles$1 = function(stylesOrCreator) {
 					more.theme = theme;
 				}
 			}
-			return React.o(Component, _extends$1({
+			return React.o(Component, _extends({
 				ref: innerRef || ref,
 				classes
 			}, more));
@@ -4061,7 +4029,7 @@ var withStylesWithoutDefault = withStyles$1;
 var defaultTheme = createTheme();
 var defaultTheme$1 = defaultTheme;
 function withStyles(stylesOrCreator, options) {
-	return withStylesWithoutDefault(stylesOrCreator, _extends$1({ defaultTheme: defaultTheme$1 }, options));
+	return withStylesWithoutDefault(stylesOrCreator, _extends({ defaultTheme: defaultTheme$1 }, options));
 }
 function requireReactDom() {
 	function checkDCE() {
@@ -4090,7 +4058,7 @@ var styles = function(theme) {
 	theme.shadows.forEach(function(shadow, index) {
 		elevations["elevation".concat(index)] = { boxShadow: shadow };
 	});
-	return _extends$1({
+	return _extends({
 		root: {
 			backgroundColor: theme.palette.background.paper,
 			color: theme.palette.text.primary,
@@ -4109,7 +4077,7 @@ var Paper = reactExports.q(function(props, ref) {
 		"elevation",
 		"variant"
 	]);
-	return reactExports.o(Component, _extends$1({
+	return reactExports.o(Component, _extends({
 		className: clsx(classes.root, className, variant === "outlined" ? classes.outlined : classes["elevation".concat(elevation)], !square && classes.rounded),
 		ref
 	}, other));

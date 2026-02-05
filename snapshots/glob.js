@@ -109,7 +109,7 @@ function expand(str) {
 	if (str.slice(0, 2) === "{}") {
 		str = "\\{\\}" + str.slice(2);
 	}
-	return expand_(escapeBraces(str), true).map(unescapeBraces);
+	return expand_(escapeBraces(str), 1e5, true).map(unescapeBraces);
 }
 function embrace(str) {
 	return "{" + str + "}";
@@ -123,16 +123,16 @@ function lte(i, y) {
 function gte(i, y) {
 	return i >= y;
 }
-function expand_(str, isTop) {
+function expand_(str, max, isTop) {
 	/** @type {string[]} */
 	const expansions = [];
 	const m = balanced(0, 0, str);
 	if (!m) return [str];
 	// no need to expand pre, since it is guaranteed to be free of brace-sets
 	const pre = m.pre;
-	const post = m.post.length ? expand_(m.post, false) : [""];
+	const post = m.post.length ? expand_(m.post, max, false) : [""];
 	if (/\$$/.test(m.pre)) {
-		for (let k = 0; k < post.length; k++) {
+		for (let k = 0; k < post.length && k < max; k++) {
 			const expansion = pre + "{" + m.body + "}" + post[k];
 			expansions.push(expansion);
 		}
@@ -145,7 +145,7 @@ function expand_(str, isTop) {
 			// {a},b}
 			if (m.post.match(/,(?!,).*\}/)) {
 				str = m.pre + "{" + m.body + escClose + m.post;
-				return expand_(str);
+				return expand_(str, max, true);
 			}
 			return [str];
 		}
@@ -156,7 +156,7 @@ function expand_(str, isTop) {
 			n = parseCommaParts(m.body);
 			if (n.length === 1 && n[0] !== void 0) {
 				// x{{a,b}}y ==> x{a}y x{b}y
-				n = expand_(n[0], false).map(embrace);
+				n = expand_(n[0], max, false).map(embrace);
 				//XXX is this necessary? Can't seem to hit it in tests.
 				/* c8 ignore start */
 				if (n.length === 1) {
@@ -206,11 +206,11 @@ function expand_(str, isTop) {
 		} else {
 			N = [];
 			for (let j = 0; j < n.length; j++) {
-				N.push.apply(N, expand_(n[j], false));
+				N.push.apply(N, expand_(n[j], max, false));
 			}
 		}
 		for (let j = 0; j < N.length; j++) {
-			for (let k = 0; k < post.length; k++) {
+			for (let k = 0; k < post.length && expansions.length < max; k++) {
 				const expansion = pre + N[j] + post[k];
 				if (!isTop || isSequence || expansion) {
 					expansions.push(expansion);

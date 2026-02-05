@@ -13353,7 +13353,7 @@ function useToken() {
 		prefix: ctxCssVar?.prefix ?? "ant",
 		key: ctxCssVar?.key ?? "css-var-root"
 	};
-	const salt = `${"6.2.2"}-${hashed || ""}`;
+	const salt = `${"6.2.3"}-${hashed || ""}`;
 	const mergedTheme = theme || defaultTheme;
 	const [token, hashId, realToken] = useCacheToken(mergedTheme, [seedToken, rootDesignToken], {
 		a: salt,
@@ -14789,7 +14789,7 @@ const generateColor = () => {
 	return new Color("#1677ff");
 };
 generateColor();
-const toHexFormat = (value, alpha) => value?.replace(/[^\w/]/g, "").slice(0, alpha ? 8 : 6) || "";
+const toHexFormat = (value, alpha) => value?.replace(/[^0-9a-f]/gi, "").slice(0, alpha ? 8 : 6) || "";
 const getHex = (value, alpha) => value ? toHexFormat(value, alpha) : "";
 let AggregationColor = function() {
 	function AggregationColor(color) {
@@ -15145,9 +15145,9 @@ const genVariantStyle = (token) => {
 				[varName("color-light")]: token.colorFillTertiary,
 				[varName("color-light-hover")]: token.colorFillSecondary,
 				[varName("color-light-active")]: token.colorFill,
-				[varName("text-color")]: token.colorText,
-				[varName("text-color-hover")]: token.defaultHoverBorderColor,
-				[varName("text-color-active")]: token.defaultActiveBorderColor,
+				[varName("text-color")]: token.defaultColor,
+				[varName("text-color-hover")]: token.defaultHoverColor,
+				[varName("text-color-active")]: token.defaultActiveColor,
 				[varName("shadow")]: token.defaultShadow,
 				[`&${componentCls}-variant-solid`]: {
 					[varName("text-color")]: token.solidTextColor,
@@ -15159,6 +15159,10 @@ const genVariantStyle = (token) => {
 					[varName("text-color-active")]: varRef("text-color")
 				},
 				[`&${componentCls}-variant-outlined, &${componentCls}-variant-dashed`]: {
+					[varName("text-color")]: token.defaultColor,
+					[varName("text-color-hover")]: token.defaultHoverColor,
+					[varName("text-color-active")]: token.defaultActiveColor,
+					[varName("bg-color-container")]: token.defaultBg,
 					[varName("bg-color-hover")]: token.defaultHoverBg,
 					[varName("bg-color-active")]: token.defaultActiveBg
 				},
@@ -15419,29 +15423,39 @@ function genCompactItemVerticalStyle(token) {
 	} };
 }
 const genButtonCompactStyle = (token) => {
-	const { componentCls, colorPrimaryHover, lineWidth, calc } = token;
+	const { antCls, componentCls, lineWidth, calc, colorBgContainer } = token;
+	const solidSelector = `${componentCls}-variant-solid:not([disabled])`;
 	const insetOffset = calc(lineWidth).mul(-1).equal();
+	const [varName, varRef] = genCssVar(antCls, "btn");
 	const getCompactBorderStyle = (vertical) => {
 		const itemCls = `${componentCls}-compact${vertical ? "-vertical" : ""}-item`;
-		const selector = `${itemCls}${componentCls}-primary:not([disabled])`;
-		return {
-			[itemCls]: { transition: "none" },
-			[`${selector} + ${selector}::before`]: {
-				position: "absolute",
-				top: vertical ? insetOffset : 0,
-				insetInlineStart: vertical ? 0 : insetOffset,
-				backgroundColor: colorPrimaryHover,
-				content: "\"\"",
-				width: vertical ? "100%" : lineWidth,
-				height: vertical ? lineWidth : "100%"
+		return { [itemCls]: {
+			[varName("compact-connect-border-color")]: varRef("bg-color-hover"),
+			[`&${solidSelector}`]: {
+				transition: "none",
+				[`& + ${solidSelector}:before`]: [{
+					position: "absolute",
+					backgroundColor: varRef("compact-connect-border-color"),
+					content: "\"\""
+				}, vertical ? {
+					top: insetOffset,
+					insetInline: insetOffset,
+					height: lineWidth
+				} : {
+					insetBlock: insetOffset,
+					insetInlineStart: insetOffset,
+					width: lineWidth
+				}],
+				"&:hover:before": { display: "none" }
 			}
-		};
+		} };
 	};
-	// Special styles for Primary Button
-	return {
-		...getCompactBorderStyle(),
-		...getCompactBorderStyle(true)
-	};
+	// Special styles for solid Button
+	return [
+		getCompactBorderStyle(),
+		getCompactBorderStyle(true),
+		{ [`${solidSelector}${componentCls}-color-default`]: { [varName("compact-connect-border-color")]: `color-mix(in srgb, ${varRef("bg-color-hover")} 75%, ${colorBgContainer})` } }
+	];
 };
 // ============================== Export ==============================
 var Compact = genSubStyleComponent(["Button", "compact"], (token) => {
