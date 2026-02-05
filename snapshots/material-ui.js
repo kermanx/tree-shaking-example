@@ -1887,7 +1887,7 @@ var sheets = new SheetsRegistry();
 *
 * https://github.com/zloirock/core-js/issues/86#issuecomment-115759028
 */
-var globalThis$1 = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" && window.Math === Math ? window : typeof self !== "undefined" && self.Math === Math ? self : Function("return this")();
+var globalThis$1 = globalThis;
 var ns = "2f1acc6c3a606b082e5eef5e54414ffb";
 if (globalThis$1[ns] == null) globalThis$1[ns] = 0;
 // the current version with just one short number and use it for classes generation
@@ -5994,7 +5994,7 @@ function requireReactDomServerLegacy_browser_production() {
 						Object.defineProperty(Fake.prototype, "props", { set: function() {
 							throw Error();
 						} });
-						if ("object" === typeof Reflect && Reflect.construct) {
+						if (Reflect.construct) {
 							try {
 								Reflect.construct(Fake, []);
 							} catch (x) {

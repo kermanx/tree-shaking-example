@@ -851,41 +851,6 @@ function isIndex(value, length) {
 	length = length == null ? MAX_SAFE_INTEGER$1 : length;
 	return !!length && (type == "number" || type != "symbol" && reIsUint.test(value)) && value > -1 && value % 1 == 0 && value < length;
 }
-/**
-* Performs a
-* [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
-* comparison between two values to determine if they are equivalent.
-*
-* @static
-* @memberOf _
-* @since 4.0.0
-* @category Lang
-* @param {*} value The value to compare.
-* @param {*} other The other value to compare.
-* @returns {boolean} Returns `true` if the values are equivalent, else `false`.
-* @example
-*
-* var object = { 'a': 1 };
-* var other = { 'a': 1 };
-*
-* _.eq(object, object);
-* // => true
-*
-* _.eq(object, other);
-* // => false
-*
-* _.eq('a', 'a');
-* // => true
-*
-* _.eq('a', Object('a'));
-* // => false
-*
-* _.eq(NaN, NaN);
-* // => true
-*/
-function eq(value, other) {
-	return value === other || value !== value && other !== other;
-}
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeMax$1 = Math.max;
 /**
@@ -1250,126 +1215,13 @@ function keys(object) {
 /* Built-in method references that are verified to be native. */
 var __unused_137B = getNative(Object, "create");
 /**
-* Removes all key-value entries from the list cache.
-*
-* @private
-* @name clear
-* @memberOf ListCache
-*/
-function listCacheClear() {
-	this.__data__ = [];
-	this.size = 0;
-}
-/**
-* Gets the index at which the `key` is found in `array` of key-value pairs.
-*
-* @private
-* @param {Array} array The array to inspect.
-* @param {*} key The key to search for.
-* @returns {number} Returns the index of the matched value, else `-1`.
-*/
-function assocIndexOf(array, key) {
-	var length = array.length;
-	while (length--) {
-		if (eq(array[length][0], key)) {
-			return length;
-		}
-	}
-	return -1;
-}
-/** Used for built-in method references. */
-var arrayProto = Array.prototype;
-/** Built-in value references. */
-var splice = arrayProto.splice;
-/**
-* Removes `key` and its value from the list cache.
-*
-* @private
-* @name delete
-* @memberOf ListCache
-* @param {string} key The key of the value to remove.
-* @returns {boolean} Returns `true` if the entry was removed, else `false`.
-*/
-function listCacheDelete(key) {
-	var data = this.__data__, index = assocIndexOf(data, key);
-	if (index < 0) {
-		return false;
-	}
-	var lastIndex = data.length - 1;
-	if (index == lastIndex) {
-		data.pop();
-	} else {
-		splice.call(data, index, 1);
-	}
-	--this.size;
-	return true;
-}
-/**
-* Gets the list cache value for `key`.
-*
-* @private
-* @name get
-* @memberOf ListCache
-* @param {string} key The key of the value to get.
-* @returns {*} Returns the entry value.
-*/
-function listCacheGet(key) {
-	var data = this.__data__, index = assocIndexOf(data, key);
-	return index < 0 ? void 0 : data[index][1];
-}
-/**
-* Checks if a list cache value for `key` exists.
-*
-* @private
-* @name has
-* @memberOf ListCache
-* @param {string} key The key of the entry to check.
-* @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
-*/
-function listCacheHas(key) {
-	return assocIndexOf(this.__data__, key) > -1;
-}
-/**
-* Sets the list cache `key` to `value`.
-*
-* @private
-* @name set
-* @memberOf ListCache
-* @param {string} key The key of the value to set.
-* @param {*} value The value to set.
-* @returns {Object} Returns the list cache instance.
-*/
-function listCacheSet(key, value) {
-	var data = this.__data__, index = assocIndexOf(data, key);
-	if (index < 0) {
-		++this.size;
-		data.push([key, value]);
-	} else {
-		data[index][1] = value;
-	}
-	return this;
-}
-/**
 * Creates an list cache object.
 *
 * @private
 * @constructor
 * @param {Array} [entries] The key-value pairs to cache.
 */
-function ListCache(entries) {
-	var index = -1, length = entries == null ? 0 : entries.length;
-	this.clear();
-	while (++index < length) {
-		var entry = entries[index];
-		this.set(entry[0], entry[1]);
-	}
-}
-// Add methods to `ListCache`.
-ListCache.prototype.clear = listCacheClear;
-ListCache.prototype["delete"] = listCacheDelete;
-ListCache.prototype.get = listCacheGet;
-ListCache.prototype.has = listCacheHas;
-ListCache.prototype.set = listCacheSet;
+function ListCache() {}
 /* Built-in method references that are verified to be native. */
 var Map = getNative(root$1, "Map");
 var Map$1 = Map;

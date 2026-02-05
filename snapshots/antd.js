@@ -240,6 +240,7 @@ function requireScheduler_production() {
 			var diff = a.sortIndex - b.sortIndex;
 			return 0 !== diff ? diff : a.id - b.id;
 		}
+		exports$1.a = void 0;
 		if ("object" === typeof performance && "function" === typeof performance.now) {
 			var localPerformance = performance;
 			exports$1.a = function() {
@@ -585,7 +586,7 @@ function requireReactDomClient_production() {
 						Object.defineProperty(Fake.prototype, "props", { set: function() {
 							throw Error();
 						} });
-						if ("object" === typeof Reflect && Reflect.construct) {
+						if (Reflect.construct) {
 							try {
 								Reflect.construct(Fake, []);
 							} catch (x) {
@@ -5340,7 +5341,7 @@ function requireReactDomClient_production() {
 			captureCommitPhaseError(finishedWork, finishedWork.return, error);
 		}
 	}
-	var offscreenSubtreeIsHidden = false, offscreenSubtreeWasHidden = false, needsFormReset = false, PossiblyWeakSet = "function" === typeof WeakSet ? WeakSet : Set, nextEffect = null;
+	var offscreenSubtreeIsHidden = false, offscreenSubtreeWasHidden = false, needsFormReset = false, PossiblyWeakSet = Set, nextEffect = null;
 	function commitBeforeMutationEffects(root, firstChild) {
 		root = root.containerInfo;
 		eventsEnabled = _enabled;
@@ -6307,7 +6308,7 @@ function requireReactDomClient_production() {
 		cacheSignal: function() {
 			return readContext(CacheContext).controller.signal;
 		}
-	}, PossiblyWeakMap = "function" === typeof WeakMap ? WeakMap : Map, executionContext = 0, workInProgressRoot = null, workInProgress = null, workInProgressRootRenderLanes = 0, workInProgressSuspendedReason = 0, workInProgressThrownValue = null, workInProgressRootDidSkipSuspendedSiblings = false, workInProgressRootIsPrerendering = false, workInProgressRootDidAttachPingListener = false, entangledRenderLanes = 0, workInProgressRootExitStatus = 0, workInProgressRootSkippedLanes = 0, workInProgressRootInterleavedUpdatedLanes = 0, workInProgressRootPingedLanes = 0, workInProgressDeferredLane = 0, workInProgressSuspendedRetryLanes = 0, workInProgressRootConcurrentErrors = null, workInProgressRootRecoverableErrors = null, workInProgressRootDidIncludeRecursiveRenderUpdate = false, globalMostRecentFallbackTime = 0, globalMostRecentTransitionTime = 0, workInProgressRootRenderTargetTime = Infinity, workInProgressTransitions = null, legacyErrorBoundariesThatAlreadyFailed = null, pendingEffectsStatus = 0, pendingEffectsRoot = null, pendingFinishedWork = null, pendingEffectsLanes = 0, pendingEffectsRemainingLanes = 0, pendingRecoverableErrors = null, nestedUpdateCount = 0, rootWithNestedUpdates = null;
+	}, PossiblyWeakMap = Map, executionContext = 0, workInProgressRoot = null, workInProgress = null, workInProgressRootRenderLanes = 0, workInProgressSuspendedReason = 0, workInProgressThrownValue = null, workInProgressRootDidSkipSuspendedSiblings = false, workInProgressRootIsPrerendering = false, workInProgressRootDidAttachPingListener = false, entangledRenderLanes = 0, workInProgressRootExitStatus = 0, workInProgressRootSkippedLanes = 0, workInProgressRootInterleavedUpdatedLanes = 0, workInProgressRootPingedLanes = 0, workInProgressDeferredLane = 0, workInProgressSuspendedRetryLanes = 0, workInProgressRootConcurrentErrors = null, workInProgressRootRecoverableErrors = null, workInProgressRootDidIncludeRecursiveRenderUpdate = false, globalMostRecentFallbackTime = 0, globalMostRecentTransitionTime = 0, workInProgressRootRenderTargetTime = Infinity, workInProgressTransitions = null, legacyErrorBoundariesThatAlreadyFailed = null, pendingEffectsStatus = 0, pendingEffectsRoot = null, pendingFinishedWork = null, pendingEffectsLanes = 0, pendingEffectsRemainingLanes = 0, pendingRecoverableErrors = null, nestedUpdateCount = 0, rootWithNestedUpdates = null;
 	function requestUpdateLane() {
 		return 0 !== (executionContext & 2) && 0 !== workInProgressRootRenderLanes ? workInProgressRootRenderLanes & -workInProgressRootRenderLanes : null !== ReactSharedInternals.T ? requestTransitionLane() : resolveUpdatePriority();
 	}
@@ -8183,14 +8184,7 @@ function requireReactDomClient_production() {
 		currentPopstateTransitionEvent = null;
 		return false;
 	}
-	var scheduleTimeout = "function" === typeof setTimeout ? setTimeout : void 0, cancelTimeout = "function" === typeof clearTimeout ? clearTimeout : void 0, localPromise = "function" === typeof Promise ? Promise : void 0, scheduleMicrotask = "function" === typeof queueMicrotask ? queueMicrotask : "undefined" !== typeof localPromise ? function(callback) {
-		return localPromise.resolve(null).then(callback).catch(handleErrorInNextTick);
-	} : scheduleTimeout;
-	function handleErrorInNextTick(error) {
-		setTimeout(function() {
-			throw error;
-		});
-	}
+	var scheduleTimeout = "function" === typeof setTimeout ? setTimeout : void 0, cancelTimeout = "function" === typeof clearTimeout ? clearTimeout : void 0, scheduleMicrotask = "function" === typeof queueMicrotask ? queueMicrotask : scheduleTimeout;
 	function isSingletonScope(type) {
 		return "head" === type;
 	}
@@ -11016,7 +11010,7 @@ function useStyleRegister(info, styleFn) {
 			];
 		},
 		// Remove cache if no need
-		0,
+		() => 0,
 		// Effect: Inject style here
 		(cacheValue) => {
 			const [styleStr, styleId, effectStyle, , priority] = cacheValue;
@@ -11210,7 +11204,7 @@ function _assertThisInitialized(e) {
 }
 function _setPrototypeOf(t, e) {
 	return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function(t, e) {
-		return t.__proto__ = e, t;
+		return t.__proto__ = e;
 	}, _setPrototypeOf(t, e);
 }
 function _inherits(t, e) {
@@ -11499,12 +11493,14 @@ function merge() {
 }
 /** @internal Internal Usage. Not use in your production. */
 var statistic = {};
+/* istanbul ignore next */
+function noop() {}
 /** Statistic token usage case. Should use `merge` function if you do not want spread record. */
 var statisticToken = function(token) {
 	var tokenKeys;
 	var proxy = token;
-	var flush;
-	if (enableStatistic && typeof Proxy !== "undefined") {
+	var flush = noop;
+	if (enableStatistic && true) {
 		tokenKeys = new Set();
 		proxy = new Proxy(token, { get: function(obj, prop) {
 			if (recording) {

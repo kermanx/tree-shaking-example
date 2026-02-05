@@ -2127,10 +2127,6 @@ const SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE = "sentry.sample_rate";
 */
 const SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE = "sentry.previous_trace_sample_rate";
 /**
-* Use this attribute to represent the origin of a span.
-*/
-const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = "sentry.origin";
-/**
 * The id of the profile that this span occurred in.
 */
 const SEMANTIC_ATTRIBUTE_PROFILE_ID = "sentry.profile_id";
@@ -2446,7 +2442,7 @@ function convertSpanLinksForEnvelope(links) {
 			...restContext
 		}));
 	} else {
-		return void 0;
+		return;
 	}
 }
 /**
@@ -2454,23 +2450,16 @@ function convertSpanLinksForEnvelope(links) {
 */
 function spanTimeInputToSeconds(input) {
 	if (typeof input === "number") {
-		return ensureTimestampInSeconds(input);
+		return;
 	}
 	if (Array.isArray(input)) {
 		// See {@link HrTime} for the array-based time format
-		return input[0] + input[1] / 1e9;
+		return;
 	}
 	if (input instanceof Date) {
-		return ensureTimestampInSeconds(input.getTime());
+		return input.getTime();
 	}
 	return timestampInSeconds();
-}
-/**
-* Converts a timestamp to second, if it was in milliseconds, or keeps it as second.
-*/
-function ensureTimestampInSeconds(timestamp) {
-	const isMs = timestamp > 9999999999;
-	return isMs ? timestamp / 1e3 : timestamp;
 }
 /**
 * Convert a span to a JSON representation.
@@ -2482,37 +2471,27 @@ function spanToJSON(span) {
 	if (spanIsSentrySpan(span)) {
 		return span.getSpanJSON();
 	}
-	const { spanId: span_id, traceId: trace_id } = span.spanContext();
+	const __unused_1026 = span.spanContext();
 	// Handle a span from @opentelemetry/sdk-base-trace's `Span` class
 	if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-		const { attributes, startTime, name, endTime, status, links } = span;
+		const { attributes, startTime, name, endTime, links } = span;
 		// In preparation for the next major of OpenTelemetry, we want to support
 		// looking up the parent span id according to the new API
 		// In OTel v1, the parent span id is accessed as `parentSpanId`
 		// In OTel v2, the parent span id is accessed as `spanId` on the `parentSpanContext`
 		const parentSpanId = "parentSpanId" in span ? span.parentSpanId : "parentSpanContext" in span ? span.parentSpanContext?.spanId : void 0;
 		return {
-			span_id,
-			trace_id,
 			data: attributes,
 			description: name,
 			parent_span_id: parentSpanId,
 			start_timestamp: spanTimeInputToSeconds(startTime),
-			timestamp: spanTimeInputToSeconds(endTime) || void 0,
-			status: getStatusMessage(status),
-			op: attributes["sentry.op"],
-			origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN],
+			timestamp: spanTimeInputToSeconds(endTime),
 			links: convertSpanLinksForEnvelope(links)
 		};
 	}
 	// Finally, at least we have `spanContext()`....
 	// This should not actually happen in reality, but we need to handle it for type safety.
-	return {
-		span_id,
-		trace_id,
-		start_timestamp: 0,
-		data: {}
-	};
+	return { data: {} };
 }
 function spanIsOpenTelemetrySdkTraceBaseSpan(span) {
 	const castSpan = span;
@@ -2537,16 +2516,6 @@ function spanIsSampled(span) {
 	// So we also check for sampled the same way they do.
 	const { traceFlags } = span.spanContext();
 	return traceFlags === 1;
-}
-/** Get the status message to use for a JSON representation of a span. */
-function getStatusMessage(status) {
-	if (!status || status.code === 0) {
-		return void 0;
-	}
-	if (status.code === 1) {
-		return "ok";
-	}
-	return status.message || "internal_error";
 }
 const ROOT_SPAN_FIELD = "_sentryRootSpan";
 /**

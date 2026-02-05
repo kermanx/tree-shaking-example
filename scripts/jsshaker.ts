@@ -2,16 +2,15 @@ import { summary } from './cli.ts';
 import type { OptimizeOptions } from './optimizer.ts';
 import { shakeSingleModule, type Options } from 'jsshaker';
 
-const options: Options = {
+
+export async function jsshaker({ name, code }: OptimizeOptions, options: Options = {
   preset: "smallest",
   jsx: "react",
   // maxRecursionDepth: 2,
   // rememberExhaustedVariables: false,
   // eagerExhaustiveCallbacks: true,
   // enableFnCache: false,
-};
-
-export async function jsshaker({ name, code }: OptimizeOptions) {
+}) {
   console.log(`[${name}] Running jsshaker...`);
 
   const startTime = performance.now();

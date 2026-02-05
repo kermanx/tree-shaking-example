@@ -16,7 +16,7 @@ function isHostObject(value) {
 	}
 	return result;
 }
-const arrayProto = Array.prototype, funcProto = Function.prototype, objectProto = Object.prototype;
+const funcProto = Function.prototype, objectProto = Object.prototype;
 const coreJsData = root["__core-js_shared__"];
 const maskSrcKey = function() {
 	const uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || "");
@@ -26,54 +26,8 @@ const funcToString = funcProto.toString;
 const { hasOwnProperty } = objectProto;
 const objectToString = objectProto.toString;
 const reIsNative = RegExp("^" + funcToString.call(hasOwnProperty).replace(reRegExpChar, "\\$&").replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, "$1.*?") + "$");
-const { splice } = arrayProto;
 const Map = getNative(root, "Map"), __unused_2157 = getNative(Object, "create");
-function ListCache(entries) {
-	let index = -1;
-	const length = entries ? entries.length : 0;
-	this.clear();
-	while (++index < length) {
-		const entry = entries[index];
-		this.set(entry[0], entry[1]);
-	}
-}
-function listCacheClear() {
-	this.__data__ = [];
-}
-function listCacheDelete(key) {
-	const data = this.__data__, index = assocIndexOf(data, key);
-	if (index < 0) {
-		return false;
-	}
-	const lastIndex = data.length - 1;
-	if (index == lastIndex) {
-		data.pop();
-	} else {
-		splice.call(data, index, 1);
-	}
-	return true;
-}
-function listCacheGet(key) {
-	const data = this.__data__, index = assocIndexOf(data, key);
-	return index < 0 ? void 0 : data[index][1];
-}
-function listCacheHas(key) {
-	return assocIndexOf(this.__data__, key) > -1;
-}
-function listCacheSet(key, value) {
-	const data = this.__data__, index = assocIndexOf(data, key);
-	if (index < 0) {
-		data.push([key, value]);
-	} else {
-		data[index][1] = value;
-	}
-	return this;
-}
-ListCache.prototype.clear = listCacheClear;
-ListCache.prototype.delete = listCacheDelete;
-ListCache.prototype.get = listCacheGet;
-ListCache.prototype.has = listCacheHas;
-ListCache.prototype.set = listCacheSet;
+function ListCache() {}
 function MapCache() {
 	this.a();
 }
@@ -81,15 +35,6 @@ function mapCacheClear() {
 	new (Map || ListCache)();
 }
 MapCache.prototype.a = mapCacheClear;
-function assocIndexOf(array, key) {
-	let { length } = array;
-	while (length--) {
-		if (eq(array[length][0], key)) {
-			return length;
-		}
-	}
-	return -1;
-}
 function baseIsNative(value) {
 	if (!isObject(value) || isMasked(value)) {
 		return false;
@@ -119,9 +64,6 @@ function toSource(func) {
 function memoize() {
 	new MapCache();
 	return;
-}
-function eq(value, other) {
-	return value === other || value !== value && other !== other;
 }
 function isFunction(value) {
 	const tag = isObject(value) ? objectToString.call(value) : "";

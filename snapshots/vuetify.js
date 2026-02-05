@@ -84,7 +84,7 @@ const looseToNumber = (val) => {
 };
 let _globalThis;
 const getGlobalThis = () => {
-	return _globalThis || (_globalThis = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : {});
+	return _globalThis || (_globalThis = globalThis);
 };
 function normalizeStyle(value) {
 	if (isArray(value)) {
@@ -2306,7 +2306,6 @@ function invalidatePendingSetRef(rawRef) {
 		pendingSetRefMap.delete(rawRef);
 	}
 }
-getGlobalThis();
 getGlobalThis();
 const isAsyncWrapper = (i) => !!i.type.__asyncLoader;
 const isKeepAlive = (vnode) => vnode.type.__isKeepAlive;
