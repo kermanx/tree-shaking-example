@@ -4,6 +4,7 @@ import { prepackSources } from 'prepack/lib/prepack-standalone.js'
 import { gcc } from './cc.ts';
 import assert from 'assert';
 import { heuristic } from './heuristic.ts';
+import { jsshaker } from './jsshaker.ts';
 
 export interface OptimizeOptions {
   name: string
@@ -12,18 +13,7 @@ export interface OptimizeOptions {
 }
 
 export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<string>> = {
-  async jsshaker({ name, code }) {
-    const { shakeSingleModule } = await import('jsshaker');
-    console.log(`[${name}] Running jsshaker...`);
-    const result = shakeSingleModule(code, {
-      preset: "smallest",
-      jsx: "react",
-    });
-    for (const msg of result.diagnostics) {
-      console.log(`[${name}] [jsshaker]`, msg);
-    }
-    return result.output.code;
-  },
+  jsshaker,
   async rollup({ code }) {
     const { rollup } = await import('rollup');
     const { default: virtual } = await import('@rollup/plugin-virtual');

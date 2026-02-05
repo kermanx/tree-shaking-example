@@ -6737,7 +6737,7 @@ function requireReactDomServerLegacy_browser_production() {
 											request = task.blockedBoundary;
 											type = x;
 											props = logRecoverableError(key, type, props);
-											abortRemainingReplayNodes(key, request, childNodes, name, type, props);
+											abortRemainingReplayNodes(key, request, childNodes, name, 0, props);
 										}
 										task.replay = replay;
 									} else {
@@ -6858,7 +6858,7 @@ function requireReactDomServerLegacy_browser_production() {
 						children = getThrownInfo(task.componentStack);
 						var boundary = task.blockedBoundary, error = x;
 						children = logRecoverableError(request, error, children);
-						abortRemainingReplayNodes(request, boundary, childIndex, node, error, children);
+						abortRemainingReplayNodes(request, boundary, childIndex, node, 0, children);
 					}
 					task.replay = replay;
 					replayNodes.splice(j, 1);
@@ -7029,10 +7029,10 @@ function requireReactDomServerLegacy_browser_production() {
 		var boundary = task.blockedBoundary, segment = task.blockedSegment;
 		null !== segment && (segment.status = 3, finishedTask(this, boundary, task.row, segment));
 	}
-	function abortRemainingReplayNodes(request$jscomp$0, boundary, nodes, slots, error, errorDigest$jscomp$0) {
+	function abortRemainingReplayNodes(request$jscomp$0, boundary, nodes, slots, __unused_0227, errorDigest$jscomp$0) {
 		for (var i = 0; i < nodes.length; i++) {
 			var node = nodes[i];
-			if (4 === node.length) abortRemainingReplayNodes(request$jscomp$0, boundary, node[2], node[3], error, errorDigest$jscomp$0);
+			if (4 === node.length) abortRemainingReplayNodes(request$jscomp$0, boundary, node[2], node[3], 0, errorDigest$jscomp$0);
 			else {
 				node = node[5];
 				var request = request$jscomp$0, errorDigest = errorDigest$jscomp$0, resumedBoundary = createSuspenseBoundary(0, null, new Set());
@@ -7065,7 +7065,7 @@ function requireReactDomServerLegacy_browser_production() {
 					return;
 				}
 				boundary.pendingTasks--;
-				0 === boundary.pendingTasks && 0 < boundary.nodes.length && (segment = logRecoverableError(request, error, errorInfo), abortRemainingReplayNodes(request, null, boundary.nodes, boundary.slots, error, segment));
+				0 === boundary.pendingTasks && 0 < boundary.nodes.length && (segment = logRecoverableError(request, error, errorInfo), abortRemainingReplayNodes(request, null, boundary.nodes, boundary.slots, 0, segment));
 				request.pendingRootTasks--;
 				0 === request.pendingRootTasks && completeShell(request);
 			}
@@ -7211,7 +7211,7 @@ function requireReactDomServerLegacy_browser_production() {
 									request = void 0;
 									var request$jscomp$1 = request$jscomp$0, boundary = task.blockedBoundary, error$jscomp$0 = 12 === request$jscomp$0.status ? request$jscomp$0.fatalError : x, replayNodes = task.replay.nodes, resumeSlots = task.replay.slots;
 									request = logRecoverableError(request$jscomp$1, error$jscomp$0, errorInfo);
-									abortRemainingReplayNodes(request$jscomp$1, boundary, replayNodes, resumeSlots, error$jscomp$0, request);
+									abortRemainingReplayNodes(request$jscomp$1, boundary, replayNodes, resumeSlots, 0, request);
 									request$jscomp$0.pendingRootTasks--;
 									0 === request$jscomp$0.pendingRootTasks && completeShell(request$jscomp$0);
 									request$jscomp$0.allPendingTasks--;

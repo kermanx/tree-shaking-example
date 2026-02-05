@@ -99,7 +99,7 @@ function requireReact_production() {
 		if (null == children) return children;
 		var result = [], count = 0;
 		mapIntoArray(children, result, "", "", function(child) {
-			return func.call(void 0, child, count++);
+			return func.call(0, child, count++);
 		});
 		return result;
 	}
@@ -107,7 +107,7 @@ function requireReact_production() {
 		a: mapChildren,
 		b: function(children, forEachFunc) {
 			mapChildren(children, function() {
-				forEachFunc.apply(this, arguments);
+				forEachFunc.apply(0, arguments);
 			});
 		}
 	};
@@ -3237,7 +3237,7 @@ function requireReactDomClient_production() {
 	}
 	function forceStoreRerender(fiber) {
 		var root = enqueueConcurrentRenderForLane(fiber, 2);
-		null !== root && scheduleUpdateOnFiber(root, fiber, 2);
+		null !== root && scheduleUpdateOnFiber(root, 0, 2);
 	}
 	function mountStateImpl(initialState) {
 		var hook = mountWorkInProgressHook();
@@ -3393,7 +3393,7 @@ function requireReactDomClient_production() {
 		ssrFormState = dispatchSetState.bind(0, currentlyRenderingFiber, JSCompiler_inline_result);
 		JSCompiler_inline_result.dispatch = ssrFormState;
 		JSCompiler_inline_result = mountStateImpl(false);
-		inRootOrSingleton = dispatchOptimisticSetState.bind(null, currentlyRenderingFiber, false, JSCompiler_inline_result.queue);
+		inRootOrSingleton = dispatchOptimisticSetState.bind(0, currentlyRenderingFiber, false, JSCompiler_inline_result.queue);
 		JSCompiler_inline_result = mountWorkInProgressHook();
 		JSCompiler_inline_result$jscomp$0 = {
 			state: initialStateProp,
@@ -3658,7 +3658,7 @@ function requireReactDomClient_production() {
 					var lane = requestUpdateLane();
 					fiber = createUpdate(lane);
 					var root$69 = enqueueUpdate(provider, fiber, lane);
-					null !== root$69 && (scheduleUpdateOnFiber(root$69, provider, lane), entangleTransitions(root$69, provider, lane));
+					null !== root$69 && (scheduleUpdateOnFiber(root$69, 0, lane), entangleTransitions(root$69, provider, lane));
 					provider = { cache: createCache() };
 					fiber.payload = provider;
 					return;
@@ -3677,7 +3677,7 @@ function requireReactDomClient_production() {
 			eagerState: null,
 			next: null
 		};
-		isRenderPhaseUpdate(fiber) ? enqueueRenderPhaseUpdate(queue, action) : (action = enqueueConcurrentHookUpdate(fiber, queue, action, lane), null !== action && (scheduleUpdateOnFiber(action, fiber, lane), entangleTransitionUpdate(action, queue, lane)));
+		isRenderPhaseUpdate(fiber) ? enqueueRenderPhaseUpdate(queue, action) : (action = enqueueConcurrentHookUpdate(fiber, queue, action, lane), null !== action && (scheduleUpdateOnFiber(action, 0, lane), entangleTransitionUpdate(action, queue, lane)));
 	}
 	function dispatchSetState(fiber, queue, action) {
 		var lane = requestUpdateLane();
@@ -3703,7 +3703,7 @@ function requireReactDomClient_production() {
 				if (objectIs(eagerState, currentState)) return enqueueUpdate$1(fiber, queue, update, 0), null === workInProgressRoot && finishQueueingConcurrentUpdates();
 			} catch {}
 			action = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
-			if (null !== action) return scheduleUpdateOnFiber(action, fiber, lane), entangleTransitionUpdate(action, queue, lane);
+			if (null !== action) return scheduleUpdateOnFiber(action, 0, lane), entangleTransitionUpdate(action, queue, lane);
 		}
 		return;
 	}
@@ -3719,7 +3719,7 @@ function requireReactDomClient_production() {
 		};
 		if (isRenderPhaseUpdate(fiber)) {
 			if (throwIfDuringRender) throw Error(formatProdErrorMessage(479));
-		} else throwIfDuringRender = enqueueConcurrentHookUpdate(fiber, queue, action, 2), null !== throwIfDuringRender && scheduleUpdateOnFiber(throwIfDuringRender, fiber, 2);
+		} else throwIfDuringRender = enqueueConcurrentHookUpdate(fiber, queue, action, 2), null !== throwIfDuringRender && scheduleUpdateOnFiber(throwIfDuringRender, 0, 2);
 	}
 	function isRenderPhaseUpdate(fiber) {
 		var alternate = fiber.alternate;
@@ -3843,7 +3843,7 @@ function requireReactDomClient_production() {
 		},
 		useTransition: function() {
 			var stateHook = mountStateImpl(false);
-			stateHook = startTransition.bind(null, currentlyRenderingFiber, stateHook.queue, true, false);
+			stateHook = startTransition.bind(0, currentlyRenderingFiber, stateHook.queue, true, false);
 			mountWorkInProgressHook().memoizedState = stateHook;
 			return [false, stateHook];
 		},
@@ -3895,7 +3895,7 @@ function requireReactDomClient_production() {
 				lastRenderedState: null
 			};
 			hook.queue = queue;
-			hook = dispatchOptimisticSetState.bind(null, currentlyRenderingFiber, true, queue);
+			hook = dispatchOptimisticSetState.bind(0, currentlyRenderingFiber, true, queue);
 			queue.dispatch = hook;
 			return [passthrough, hook];
 		},
@@ -4001,7 +4001,7 @@ function requireReactDomClient_production() {
 			update.payload = payload;
 			void 0 !== callback && null !== callback && (update.callback = callback);
 			payload = enqueueUpdate(inst, update, lane);
-			null !== payload && (scheduleUpdateOnFiber(payload, inst, lane), entangleTransitions(payload, inst, lane));
+			null !== payload && (scheduleUpdateOnFiber(payload, 0, lane), entangleTransitions(payload, inst, lane));
 		},
 		enqueueReplaceState: function(inst, payload, callback) {
 			inst = inst._reactInternals;
@@ -4010,7 +4010,7 @@ function requireReactDomClient_production() {
 			update.payload = payload;
 			void 0 !== callback && null !== callback && (update.callback = callback);
 			payload = enqueueUpdate(inst, update, lane);
-			null !== payload && (scheduleUpdateOnFiber(payload, inst, lane), entangleTransitions(payload, inst, lane));
+			null !== payload && (scheduleUpdateOnFiber(payload, 0, lane), entangleTransitions(payload, inst, lane));
 		},
 		enqueueForceUpdate: function(inst, callback) {
 			inst = inst._reactInternals;
@@ -4018,7 +4018,7 @@ function requireReactDomClient_production() {
 			update.tag = 2;
 			void 0 !== callback && null !== callback && (update.callback = callback);
 			callback = enqueueUpdate(inst, update, lane);
-			null !== callback && (scheduleUpdateOnFiber(callback, inst, lane), entangleTransitions(callback, inst, lane));
+			null !== callback && (scheduleUpdateOnFiber(callback, 0, lane), entangleTransitions(callback, inst, lane));
 		}
 	};
 	function checkShouldComponentUpdate(workInProgress, ctor, oldProps, newProps, oldState, newState, nextContext) {
@@ -4299,7 +4299,7 @@ function requireReactDomClient_production() {
 			else throw Error(formatProdErrorMessage(558));
 			else if (didReceiveUpdate || propagateParentContextChanges(0, workInProgress, renderLanes, false), didSuspend = 0 !== (renderLanes & current.childLanes), didReceiveUpdate || didSuspend) {
 				nextProps = workInProgressRoot;
-				if (null !== nextProps && (dehydrated = getBumpedLaneForHydration(nextProps, renderLanes), 0 !== dehydrated && dehydrated !== prevState.retryLane)) throw prevState.retryLane = dehydrated, enqueueConcurrentRenderForLane(current, dehydrated), scheduleUpdateOnFiber(nextProps, current, dehydrated), SelectiveHydrationException;
+				if (null !== nextProps && (dehydrated = getBumpedLaneForHydration(nextProps, renderLanes), 0 !== dehydrated && dehydrated !== prevState.retryLane)) throw prevState.retryLane = dehydrated, enqueueConcurrentRenderForLane(current, dehydrated), scheduleUpdateOnFiber(nextProps, 0, dehydrated), SelectiveHydrationException;
 				renderDidSuspendDelayIfPossible();
 				workInProgress = retryActivityComponentWithoutHydrating(current, workInProgress, renderLanes);
 			} else current = prevState.treeContext, nextHydratableInstance = getNextHydratable(dehydrated.nextSibling), hydrationParentFiber = workInProgress, isHydrating = true, hydrationErrors = null, rootOrSingletonContext = false, null !== current && restoreSuspendedTreeContext(workInProgress, current), workInProgress = mountActivityChildren(workInProgress, nextProps), workInProgress.flags |= 4096;
@@ -4487,7 +4487,7 @@ function requireReactDomClient_production() {
 				workInProgress = retrySuspenseComponentWithoutHydrating(current, workInProgress, renderLanes);
 			} else if (didReceiveUpdate || propagateParentContextChanges(0, workInProgress, renderLanes, false), JSCompiler_temp = 0 !== (renderLanes & current.childLanes), didReceiveUpdate || JSCompiler_temp) {
 				JSCompiler_temp = workInProgressRoot;
-				if (null !== JSCompiler_temp && (nextProps = getBumpedLaneForHydration(JSCompiler_temp, renderLanes), 0 !== nextProps && nextProps !== prevState.retryLane)) throw prevState.retryLane = nextProps, enqueueConcurrentRenderForLane(current, nextProps), scheduleUpdateOnFiber(JSCompiler_temp, current, nextProps), SelectiveHydrationException;
+				if (null !== JSCompiler_temp && (nextProps = getBumpedLaneForHydration(JSCompiler_temp, renderLanes), 0 !== nextProps && nextProps !== prevState.retryLane)) throw prevState.retryLane = nextProps, enqueueConcurrentRenderForLane(current, nextProps), scheduleUpdateOnFiber(JSCompiler_temp, 0, nextProps), SelectiveHydrationException;
 				isSuspenseInstancePending(nextPrimaryChildren) || renderDidSuspendDelayIfPossible();
 				workInProgress = retrySuspenseComponentWithoutHydrating(current, workInProgress, renderLanes);
 			} else isSuspenseInstancePending(nextPrimaryChildren) ? (workInProgress.flags |= 192, workInProgress.child = current.child, workInProgress = null) : (current = prevState.treeContext, nextHydratableInstance = getNextHydratable(nextPrimaryChildren.nextSibling), hydrationParentFiber = workInProgress, isHydrating = true, hydrationErrors = null, rootOrSingletonContext = false, null !== current && restoreSuspendedTreeContext(workInProgress, current), workInProgress = mountSuspensePrimaryChildren(workInProgress, nextProps.children), workInProgress.flags |= 4096);
@@ -6071,28 +6071,28 @@ function requireReactDomClient_production() {
 		finishedWork = finishedWork.memoizedState.cache;
 		finishedWork !== current && (finishedWork.refCount++, null != current && releaseCache(current));
 	}
-	function recursivelyTraversePassiveMountEffects(root, parentFiber, committedLanes, committedTransitions) {
-		if (parentFiber.subtreeFlags & 10256) for (parentFiber = parentFiber.child; null !== parentFiber;) commitPassiveMountOnFiber(root, parentFiber, committedLanes, committedTransitions), parentFiber = parentFiber.sibling;
+	function recursivelyTraversePassiveMountEffects(root, parentFiber) {
+		if (parentFiber.subtreeFlags & 10256) for (parentFiber = parentFiber.child; null !== parentFiber;) commitPassiveMountOnFiber(root, parentFiber), parentFiber = parentFiber.sibling;
 	}
-	function commitPassiveMountOnFiber(finishedRoot, finishedWork, committedLanes, committedTransitions) {
+	function commitPassiveMountOnFiber(finishedRoot, finishedWork) {
 		var flags = finishedWork.flags;
 		switch (finishedWork.tag) {
 			case 0:
 			case 11:
 			case 15:
-				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 				flags & 2048 && commitHookEffectListMount(9, finishedWork);
 				break;
 			case 1:
-				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 				break;
 			case 3:
-				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 				flags & 2048 && (finishedRoot = null, null !== finishedWork.alternate && (finishedRoot = finishedWork.alternate.memoizedState.cache), finishedWork = finishedWork.memoizedState.cache, finishedWork !== finishedRoot && (finishedWork.refCount++, null != finishedRoot && releaseCache(finishedRoot)));
 				break;
 			case 12:
 				if (flags & 2048) {
-					recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+					recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 					finishedRoot = finishedWork.stateNode;
 					try {
 						var _finishedWork$memoize2 = finishedWork.memoizedProps, id = _finishedWork$memoize2.id, onPostCommit = _finishedWork$memoize2.onPostCommit;
@@ -6100,95 +6100,95 @@ function requireReactDomClient_production() {
 					} catch (error) {
 						captureCommitPhaseError(finishedWork, finishedWork.return, error);
 					}
-				} else recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+				} else recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 				break;
 			case 31:
-				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 				break;
 			case 13:
-				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 				break;
 			case 23: break;
 			case 22:
 				_finishedWork$memoize2 = finishedWork.stateNode;
 				id = finishedWork.alternate;
-				null !== finishedWork.memoizedState ? _finishedWork$memoize2._visibility & 2 ? recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions) : recursivelyTraverseAtomicPassiveEffects(finishedRoot, finishedWork) : _finishedWork$memoize2._visibility & 2 ? recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions) : (_finishedWork$memoize2._visibility |= 2, recursivelyTraverseReconnectPassiveEffects(finishedRoot, finishedWork, committedLanes, committedTransitions, 0 !== (finishedWork.subtreeFlags & 10256) || false));
+				null !== finishedWork.memoizedState ? _finishedWork$memoize2._visibility & 2 ? recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork) : recursivelyTraverseAtomicPassiveEffects(0, finishedWork) : _finishedWork$memoize2._visibility & 2 ? recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork) : (_finishedWork$memoize2._visibility |= 2, recursivelyTraverseReconnectPassiveEffects(0, finishedWork, 0, 0, 0 !== (finishedWork.subtreeFlags & 10256) || false));
 				flags & 2048 && commitOffscreenPassiveMountEffects(id, finishedWork);
 				break;
 			case 24:
-				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+				recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 				flags & 2048 && commitCachePassiveMountEffect(0, finishedWork);
 				break;
-			default: recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork, committedLanes, committedTransitions);
+			default: recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 		}
 	}
-	function recursivelyTraverseReconnectPassiveEffects(finishedRoot$jscomp$0, parentFiber, committedLanes$jscomp$0, committedTransitions$jscomp$0, includeWorkInProgressEffects) {
+	function recursivelyTraverseReconnectPassiveEffects(__unused_E330, parentFiber, __unused_A503, __unused_E58D, includeWorkInProgressEffects) {
 		includeWorkInProgressEffects = includeWorkInProgressEffects && (0 !== (parentFiber.subtreeFlags & 10256) || false);
 		for (parentFiber = parentFiber.child; null !== parentFiber;) {
-			var finishedRoot = finishedRoot$jscomp$0, finishedWork = parentFiber, committedLanes = committedLanes$jscomp$0, committedTransitions = committedTransitions$jscomp$0, flags = finishedWork.flags;
+			var finishedWork = parentFiber, flags = finishedWork.flags;
 			switch (finishedWork.tag) {
 				case 0:
 				case 11:
 				case 15:
-					recursivelyTraverseReconnectPassiveEffects(finishedRoot, finishedWork, committedLanes, committedTransitions, includeWorkInProgressEffects);
+					recursivelyTraverseReconnectPassiveEffects(0, finishedWork, 0, 0, includeWorkInProgressEffects);
 					commitHookEffectListMount(8, finishedWork);
 					break;
 				case 23: break;
 				case 22:
 					var instance = finishedWork.stateNode;
-					null !== finishedWork.memoizedState ? instance._visibility & 2 ? recursivelyTraverseReconnectPassiveEffects(finishedRoot, finishedWork, committedLanes, committedTransitions, includeWorkInProgressEffects) : recursivelyTraverseAtomicPassiveEffects(finishedRoot, finishedWork) : (instance._visibility |= 2, recursivelyTraverseReconnectPassiveEffects(finishedRoot, finishedWork, committedLanes, committedTransitions, includeWorkInProgressEffects));
+					null !== finishedWork.memoizedState ? instance._visibility & 2 ? recursivelyTraverseReconnectPassiveEffects(0, finishedWork, 0, 0, includeWorkInProgressEffects) : recursivelyTraverseAtomicPassiveEffects(0, finishedWork) : (instance._visibility |= 2, recursivelyTraverseReconnectPassiveEffects(0, finishedWork, 0, 0, includeWorkInProgressEffects));
 					includeWorkInProgressEffects && flags & 2048 && commitOffscreenPassiveMountEffects(finishedWork.alternate, finishedWork);
 					break;
 				case 24:
-					recursivelyTraverseReconnectPassiveEffects(finishedRoot, finishedWork, committedLanes, committedTransitions, includeWorkInProgressEffects);
+					recursivelyTraverseReconnectPassiveEffects(0, finishedWork, 0, 0, includeWorkInProgressEffects);
 					includeWorkInProgressEffects && flags & 2048 && commitCachePassiveMountEffect(0, finishedWork);
 					break;
-				default: recursivelyTraverseReconnectPassiveEffects(finishedRoot, finishedWork, committedLanes, committedTransitions, includeWorkInProgressEffects);
+				default: recursivelyTraverseReconnectPassiveEffects(0, finishedWork, 0, 0, includeWorkInProgressEffects);
 			}
 			parentFiber = parentFiber.sibling;
 		}
 	}
-	function recursivelyTraverseAtomicPassiveEffects(finishedRoot$jscomp$0, parentFiber) {
+	function recursivelyTraverseAtomicPassiveEffects(__unused_E330_0, parentFiber) {
 		if (parentFiber.subtreeFlags & 10256) for (parentFiber = parentFiber.child; null !== parentFiber;) {
-			var finishedRoot = finishedRoot$jscomp$0, finishedWork = parentFiber, flags = finishedWork.flags;
+			var finishedWork = parentFiber, flags = finishedWork.flags;
 			switch (finishedWork.tag) {
 				case 22:
-					recursivelyTraverseAtomicPassiveEffects(finishedRoot, finishedWork);
+					recursivelyTraverseAtomicPassiveEffects(0, finishedWork);
 					flags & 2048 && commitOffscreenPassiveMountEffects(finishedWork.alternate, finishedWork);
 					break;
 				case 24:
-					recursivelyTraverseAtomicPassiveEffects(finishedRoot, finishedWork);
+					recursivelyTraverseAtomicPassiveEffects(0, finishedWork);
 					flags & 2048 && commitCachePassiveMountEffect(0, finishedWork);
 					break;
-				default: recursivelyTraverseAtomicPassiveEffects(finishedRoot, finishedWork);
+				default: recursivelyTraverseAtomicPassiveEffects(0, finishedWork);
 			}
 			parentFiber = parentFiber.sibling;
 		}
 	}
 	var suspenseyCommitFlag = 8192;
-	function recursivelyAccumulateSuspenseyCommit(parentFiber, committedLanes, suspendedState) {
-		if (parentFiber.subtreeFlags & suspenseyCommitFlag) for (parentFiber = parentFiber.child; null !== parentFiber;) accumulateSuspenseyCommitOnFiber(parentFiber, committedLanes, suspendedState), parentFiber = parentFiber.sibling;
+	function recursivelyAccumulateSuspenseyCommit(parentFiber, __unused_DD38_1, suspendedState) {
+		if (parentFiber.subtreeFlags & suspenseyCommitFlag) for (parentFiber = parentFiber.child; null !== parentFiber;) accumulateSuspenseyCommitOnFiber(parentFiber, 0, suspendedState), parentFiber = parentFiber.sibling;
 	}
-	function accumulateSuspenseyCommitOnFiber(fiber, committedLanes, suspendedState) {
+	function accumulateSuspenseyCommitOnFiber(fiber, __unused_DD38_2, suspendedState) {
 		switch (fiber.tag) {
 			case 26:
-				recursivelyAccumulateSuspenseyCommit(fiber, committedLanes, suspendedState);
+				recursivelyAccumulateSuspenseyCommit(fiber, 0, suspendedState);
 				fiber.flags & suspenseyCommitFlag && null !== fiber.memoizedState && suspendResource(suspendedState, currentHoistableRoot, fiber.memoizedState, fiber.memoizedProps);
 				break;
 			case 5:
-				recursivelyAccumulateSuspenseyCommit(fiber, committedLanes, suspendedState);
+				recursivelyAccumulateSuspenseyCommit(fiber, 0, suspendedState);
 				break;
 			case 3:
 			case 4:
 				var previousHoistableRoot = currentHoistableRoot;
 				currentHoistableRoot = getHoistableRoot(fiber.stateNode.containerInfo);
-				recursivelyAccumulateSuspenseyCommit(fiber, committedLanes, suspendedState);
+				recursivelyAccumulateSuspenseyCommit(fiber, 0, suspendedState);
 				currentHoistableRoot = previousHoistableRoot;
 				break;
 			case 22:
-				null === fiber.memoizedState && (previousHoistableRoot = fiber.alternate, null !== previousHoistableRoot && null !== previousHoistableRoot.memoizedState ? (previousHoistableRoot = suspenseyCommitFlag, suspenseyCommitFlag = 16777216, recursivelyAccumulateSuspenseyCommit(fiber, committedLanes, suspendedState), suspenseyCommitFlag = previousHoistableRoot) : recursivelyAccumulateSuspenseyCommit(fiber, committedLanes, suspendedState));
+				null === fiber.memoizedState && (previousHoistableRoot = fiber.alternate, null !== previousHoistableRoot && null !== previousHoistableRoot.memoizedState ? (previousHoistableRoot = suspenseyCommitFlag, suspenseyCommitFlag = 16777216, recursivelyAccumulateSuspenseyCommit(fiber, 0, suspendedState), suspenseyCommitFlag = previousHoistableRoot) : recursivelyAccumulateSuspenseyCommit(fiber, 0, suspendedState));
 				break;
-			default: recursivelyAccumulateSuspenseyCommit(fiber, committedLanes, suspendedState);
+			default: recursivelyAccumulateSuspenseyCommit(fiber, 0, suspendedState);
 		}
 	}
 	function detachAlternateSiblings(parentFiber) {
@@ -6307,7 +6307,7 @@ function requireReactDomClient_production() {
 		cacheSignal: function() {
 			return readContext(CacheContext).controller.signal;
 		}
-	}, PossiblyWeakMap = "function" === typeof WeakMap ? WeakMap : Map, executionContext = 0, workInProgressRoot = null, workInProgress = null, workInProgressRootRenderLanes = 0, workInProgressSuspendedReason = 0, workInProgressThrownValue = null, workInProgressRootDidSkipSuspendedSiblings = false, workInProgressRootIsPrerendering = false, workInProgressRootDidAttachPingListener = false, entangledRenderLanes = 0, workInProgressRootExitStatus = 0, workInProgressRootSkippedLanes = 0, workInProgressRootInterleavedUpdatedLanes = 0, workInProgressRootPingedLanes = 0, workInProgressDeferredLane = 0, workInProgressSuspendedRetryLanes = 0, workInProgressRootConcurrentErrors = null, workInProgressRootRecoverableErrors = null, workInProgressRootDidIncludeRecursiveRenderUpdate = false, globalMostRecentFallbackTime = 0, globalMostRecentTransitionTime = 0, workInProgressRootRenderTargetTime = Infinity, workInProgressTransitions = null, legacyErrorBoundariesThatAlreadyFailed = null, pendingEffectsStatus = 0, pendingEffectsRoot = null, pendingFinishedWork = null, pendingEffectsLanes = 0, pendingEffectsRemainingLanes = 0, pendingPassiveTransitions = null, pendingRecoverableErrors = null, nestedUpdateCount = 0, rootWithNestedUpdates = null;
+	}, PossiblyWeakMap = "function" === typeof WeakMap ? WeakMap : Map, executionContext = 0, workInProgressRoot = null, workInProgress = null, workInProgressRootRenderLanes = 0, workInProgressSuspendedReason = 0, workInProgressThrownValue = null, workInProgressRootDidSkipSuspendedSiblings = false, workInProgressRootIsPrerendering = false, workInProgressRootDidAttachPingListener = false, entangledRenderLanes = 0, workInProgressRootExitStatus = 0, workInProgressRootSkippedLanes = 0, workInProgressRootInterleavedUpdatedLanes = 0, workInProgressRootPingedLanes = 0, workInProgressDeferredLane = 0, workInProgressSuspendedRetryLanes = 0, workInProgressRootConcurrentErrors = null, workInProgressRootRecoverableErrors = null, workInProgressRootDidIncludeRecursiveRenderUpdate = false, globalMostRecentFallbackTime = 0, globalMostRecentTransitionTime = 0, workInProgressRootRenderTargetTime = Infinity, workInProgressTransitions = null, legacyErrorBoundariesThatAlreadyFailed = null, pendingEffectsStatus = 0, pendingEffectsRoot = null, pendingFinishedWork = null, pendingEffectsLanes = 0, pendingEffectsRemainingLanes = 0, pendingRecoverableErrors = null, nestedUpdateCount = 0, rootWithNestedUpdates = null;
 	function requestUpdateLane() {
 		return 0 !== (executionContext & 2) && 0 !== workInProgressRootRenderLanes ? workInProgressRootRenderLanes & -workInProgressRootRenderLanes : null !== ReactSharedInternals.T ? requestTransitionLane() : resolveUpdatePriority();
 	}
@@ -6420,7 +6420,7 @@ function requireReactDomClient_production() {
 				waitingForViewTransition: false,
 				unsuspend: noop$1
 			};
-			accumulateSuspenseyCommitOnFiber(finishedWork, lanes, suspendedCommitReason);
+			accumulateSuspenseyCommitOnFiber(finishedWork, 0, suspendedCommitReason);
 			var timeoutOffset = (lanes & 62914560) === lanes ? globalMostRecentFallbackTime - now() : (lanes & 4194048) === lanes ? globalMostRecentTransitionTime - now() : 0;
 			timeoutOffset = waitForCommitToBeReady(suspendedCommitReason, timeoutOffset);
 			if (null !== timeoutOffset) {
@@ -6788,7 +6788,6 @@ function requireReactDomClient_production() {
 			pendingEffectsRoot = root;
 			pendingEffectsLanes = lanes;
 			pendingEffectsRemainingLanes = didIncludeRenderPhaseUpdate;
-			pendingPassiveTransitions = transitions;
 			pendingRecoverableErrors = recoverableErrors;
 			0 !== (finishedWork.subtreeFlags & 10256) || 0 !== (finishedWork.flags & 10256) ? (root.callbackNode = null, root.callbackPriority = 0, scheduleCallback$1(0, function() {
 				flushPassiveEffects();
@@ -6942,9 +6941,7 @@ function requireReactDomClient_production() {
 		try {
 			ReactDOMSharedInternals.a = 32 > renderPriority ? 32 : renderPriority;
 			ReactSharedInternals.T = null;
-			renderPriority = pendingPassiveTransitions;
-			pendingPassiveTransitions = null;
-			var root$jscomp$0 = pendingEffectsRoot, lanes = pendingEffectsLanes;
+			var root$jscomp$0 = pendingEffectsRoot;
 			pendingEffectsStatus = 0;
 			pendingFinishedWork = pendingEffectsRoot = null;
 			pendingEffectsLanes = 0;
@@ -6952,7 +6949,7 @@ function requireReactDomClient_production() {
 			var prevExecutionContext = executionContext;
 			executionContext |= 4;
 			commitPassiveUnmountOnFiber(root$jscomp$0.current);
-			commitPassiveMountOnFiber(root$jscomp$0, root$jscomp$0.current, lanes, renderPriority);
+			commitPassiveMountOnFiber(root$jscomp$0, root$jscomp$0.current);
 			executionContext = prevExecutionContext;
 			flushSyncWorkAcrossRoots_impl(0);
 			if (injectedHook && "function" === typeof injectedHook.onPostCommitFiberRoot) try {
@@ -6995,7 +6992,7 @@ function requireReactDomClient_production() {
 			var threadIDs = new Set();
 			pingCache.set(wakeable, threadIDs);
 		} else threadIDs = pingCache.get(wakeable), void 0 === threadIDs && (threadIDs = new Set(), pingCache.set(wakeable, threadIDs));
-		threadIDs.has(lanes) || (workInProgressRootDidAttachPingListener = true, threadIDs.add(lanes), root = pingSuspendedRoot.bind(null, root, wakeable, lanes), wakeable.then(root, root));
+		threadIDs.has(lanes) || (workInProgressRootDidAttachPingListener = true, threadIDs.add(lanes), root = pingSuspendedRoot.bind(0, root, wakeable, lanes), wakeable.then(root, root));
 	}
 	function pingSuspendedRoot(root, wakeable, pingedLanes) {
 		var pingCache = root.pingCache;
@@ -7113,7 +7110,7 @@ function requireReactDomClient_production() {
 					break;
 				default: suspendedLanes = 3;
 			}
-			pingedLanes = performWorkOnRootViaSchedulerTask.bind(null, root);
+			pingedLanes = performWorkOnRootViaSchedulerTask.bind(0, root);
 			suspendedLanes = scheduleCallback$3(suspendedLanes, pingedLanes);
 			root.callbackPriority = currentTime;
 			root.callbackNode = suspendedLanes;
@@ -7133,7 +7130,7 @@ function requireReactDomClient_production() {
 		if (0 === workInProgressRootRenderLanes$jscomp$0) return null;
 		performWorkOnRoot(root, workInProgressRootRenderLanes$jscomp$0, didTimeout);
 		scheduleTaskForRootDuringMicrotask(root, now());
-		return null != root.callbackNode && root.callbackNode === originalCallbackNode ? performWorkOnRootViaSchedulerTask.bind(null, root) : null;
+		return null != root.callbackNode && root.callbackNode === originalCallbackNode ? performWorkOnRootViaSchedulerTask.bind(0, root) : null;
 	}
 	function performSyncWorkOnRoot(root, lanes) {
 		performWorkOnRoot(root, lanes, true);
@@ -8745,7 +8742,7 @@ function requireReactDomClient_production() {
 		container = createUpdate(lane);
 		container.payload = { element };
 		element = enqueueUpdate(rootFiber, container, lane);
-		null !== element && (scheduleUpdateOnFiber(element, rootFiber, lane), entangleTransitions(element, rootFiber, lane));
+		null !== element && (scheduleUpdateOnFiber(element, 0, lane), entangleTransitions(element, rootFiber, lane));
 	}
 	function markRetryLaneImpl(fiber, retryLane) {
 		fiber = fiber.memoizedState;
@@ -8761,7 +8758,7 @@ function requireReactDomClient_production() {
 	function attemptContinuousHydration(fiber) {
 		if (13 === fiber.tag || 31 === fiber.tag) {
 			var root = enqueueConcurrentRenderForLane(fiber, 67108864);
-			null !== root && scheduleUpdateOnFiber(root, fiber, 67108864);
+			null !== root && scheduleUpdateOnFiber(root, 0, 67108864);
 			markRetryLaneIfNotHydrated(fiber, 67108864);
 		}
 	}
@@ -8813,7 +8810,7 @@ function requireReactDomClient_production() {
 							}
 							break;
 						case 31:
-						case 13: root = enqueueConcurrentRenderForLane(fiber, 2), null !== root && scheduleUpdateOnFiber(root, fiber, 2), flushSyncWork$1(), markRetryLaneIfNotHydrated(fiber, 2);
+						case 13: root = enqueueConcurrentRenderForLane(fiber, 2), null !== root && scheduleUpdateOnFiber(root, 0, 2), flushSyncWork$1(), markRetryLaneIfNotHydrated(fiber, 2);
 					}
 					fiber = findInstanceBlockingEvent(nativeEvent);
 					null === fiber && dispatchEventForPluginEventSystem(domEventName, eventSystemFlags, nativeEvent, return_targetInst, targetContainer);
@@ -14183,7 +14180,7 @@ const mergeClassNames = (schema, ...classNames) => {
 	}, {});
 };
 const useSemanticClassNames = (schema, ...classNames) => {
-	return reactExports.I(() => mergeClassNames.apply(void 0, [schema].concat(classNames)), [schema].concat(classNames));
+	return reactExports.I(() => mergeClassNames.apply(0, [schema].concat(classNames)), [schema].concat(classNames));
 };
 // =========================== Styles ===========================
 const mergeStyles = (...styles) => {

@@ -6483,10 +6483,7 @@ function useToggleScope(source, fn) {
 	let scope;
 	function start() {
 		scope = effectScope();
-		scope.run(() => fn.length ? fn(() => {
-			scope?.stop();
-			start();
-		}) : fn());
+		scope.run(() => fn.length ? fn() : fn());
 	}
 	watch(source, (active) => {
 		if (active && !scope) {
