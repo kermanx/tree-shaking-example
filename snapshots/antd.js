@@ -252,7 +252,7 @@ function requireScheduler_production() {
 				return localDate.now() - initialTime;
 			};
 		}
-		var taskQueue = [], timerQueue = [], taskIdCounter = 1, currentTask = null, currentPriorityLevel = 3, isPerformingWork = false, isHostCallbackScheduled = false, isHostTimeoutScheduled = false, needsPaint = false, localSetTimeout = "function" === typeof setTimeout ? setTimeout : null, localClearTimeout = "function" === typeof clearTimeout ? clearTimeout : null, localSetImmediate = "undefined" !== typeof setImmediate ? setImmediate : null;
+		var taskQueue = [], timerQueue = [], taskIdCounter = 1, currentTask = null, currentPriorityLevel = 3, isPerformingWork = false, isHostCallbackScheduled = false, isHostTimeoutScheduled = false, needsPaint = false, localSetTimeout = setTimeout, localClearTimeout = clearTimeout, localSetImmediate = setImmediate;
 		function advanceTimers(currentTime) {
 			for (var timer = peek(timerQueue); null !== timer;) {
 				if (null === timer.callback) pop(timerQueue);
@@ -326,18 +326,11 @@ function requireScheduler_production() {
 			}
 		}
 		var schedulePerformWorkUntilDeadline;
-		if ("function" === typeof localSetImmediate) schedulePerformWorkUntilDeadline = function() {
-			localSetImmediate(performWorkUntilDeadline);
-		};
-		else if ("undefined" !== typeof MessageChannel) {
-			var channel = new MessageChannel(), port = channel.port2;
-			channel.port1.onmessage = performWorkUntilDeadline;
+		{
 			schedulePerformWorkUntilDeadline = function() {
-				port.postMessage(null);
+				localSetImmediate(performWorkUntilDeadline);
 			};
-		} else schedulePerformWorkUntilDeadline = function() {
-			localSetTimeout(performWorkUntilDeadline, 0);
-		};
+		}
 		function requestHostTimeout(callback, ms) {
 			taskTimeoutID = localSetTimeout(function() {
 				callback(exports$1.a());
@@ -5341,7 +5334,7 @@ function requireReactDomClient_production() {
 			captureCommitPhaseError(finishedWork, finishedWork.return, error);
 		}
 	}
-	var offscreenSubtreeIsHidden = false, offscreenSubtreeWasHidden = false, needsFormReset = false, PossiblyWeakSet = Set, nextEffect = null;
+	var offscreenSubtreeIsHidden = false, offscreenSubtreeWasHidden = false, needsFormReset = false, PossiblyWeakSet = WeakSet, nextEffect = null;
 	function commitBeforeMutationEffects(root, firstChild) {
 		root = root.containerInfo;
 		eventsEnabled = _enabled;
@@ -6308,7 +6301,7 @@ function requireReactDomClient_production() {
 		cacheSignal: function() {
 			return readContext(CacheContext).controller.signal;
 		}
-	}, PossiblyWeakMap = Map, executionContext = 0, workInProgressRoot = null, workInProgress = null, workInProgressRootRenderLanes = 0, workInProgressSuspendedReason = 0, workInProgressThrownValue = null, workInProgressRootDidSkipSuspendedSiblings = false, workInProgressRootIsPrerendering = false, workInProgressRootDidAttachPingListener = false, entangledRenderLanes = 0, workInProgressRootExitStatus = 0, workInProgressRootSkippedLanes = 0, workInProgressRootInterleavedUpdatedLanes = 0, workInProgressRootPingedLanes = 0, workInProgressDeferredLane = 0, workInProgressSuspendedRetryLanes = 0, workInProgressRootConcurrentErrors = null, workInProgressRootRecoverableErrors = null, workInProgressRootDidIncludeRecursiveRenderUpdate = false, globalMostRecentFallbackTime = 0, globalMostRecentTransitionTime = 0, workInProgressRootRenderTargetTime = Infinity, workInProgressTransitions = null, legacyErrorBoundariesThatAlreadyFailed = null, pendingEffectsStatus = 0, pendingEffectsRoot = null, pendingFinishedWork = null, pendingEffectsLanes = 0, pendingEffectsRemainingLanes = 0, pendingRecoverableErrors = null, nestedUpdateCount = 0, rootWithNestedUpdates = null;
+	}, PossiblyWeakMap = WeakMap, executionContext = 0, workInProgressRoot = null, workInProgress = null, workInProgressRootRenderLanes = 0, workInProgressSuspendedReason = 0, workInProgressThrownValue = null, workInProgressRootDidSkipSuspendedSiblings = false, workInProgressRootIsPrerendering = false, workInProgressRootDidAttachPingListener = false, entangledRenderLanes = 0, workInProgressRootExitStatus = 0, workInProgressRootSkippedLanes = 0, workInProgressRootInterleavedUpdatedLanes = 0, workInProgressRootPingedLanes = 0, workInProgressDeferredLane = 0, workInProgressSuspendedRetryLanes = 0, workInProgressRootConcurrentErrors = null, workInProgressRootRecoverableErrors = null, workInProgressRootDidIncludeRecursiveRenderUpdate = false, globalMostRecentFallbackTime = 0, globalMostRecentTransitionTime = 0, workInProgressRootRenderTargetTime = Infinity, workInProgressTransitions = null, legacyErrorBoundariesThatAlreadyFailed = null, pendingEffectsStatus = 0, pendingEffectsRoot = null, pendingFinishedWork = null, pendingEffectsLanes = 0, pendingEffectsRemainingLanes = 0, pendingRecoverableErrors = null, nestedUpdateCount = 0, rootWithNestedUpdates = null;
 	function requestUpdateLane() {
 		return 0 !== (executionContext & 2) && 0 !== workInProgressRootRenderLanes ? workInProgressRootRenderLanes & -workInProgressRootRenderLanes : null !== ReactSharedInternals.T ? requestTransitionLane() : resolveUpdatePriority();
 	}
@@ -8184,7 +8177,7 @@ function requireReactDomClient_production() {
 		currentPopstateTransitionEvent = null;
 		return false;
 	}
-	var scheduleTimeout = "function" === typeof setTimeout ? setTimeout : void 0, cancelTimeout = "function" === typeof clearTimeout ? clearTimeout : void 0, scheduleMicrotask = "function" === typeof queueMicrotask ? queueMicrotask : scheduleTimeout;
+	var scheduleTimeout = setTimeout, cancelTimeout = clearTimeout, scheduleMicrotask = queueMicrotask;
 	function isSingletonScope(type) {
 		return "head" === type;
 	}
