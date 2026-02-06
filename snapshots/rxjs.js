@@ -636,5 +636,4 @@ function range() {
 }
 let answer = [];
 range().pipe(filter((x) => x % 2 === 1), map((x) => x + x)).subscribe((x) => answer.push(x));
-answer = answer.join(",");
-export { answer };
+console.log(answer.join(","));

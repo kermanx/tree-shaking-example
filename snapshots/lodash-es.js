@@ -1764,5 +1764,4 @@ function isOdd(x) {
 function fn() {
 	return flowRight$1([(x) => filter(x, isOdd), (x) => range$1(0, x)])(10);
 }
-const answer = fn().join(",");
-export { answer };
+console.log(fn().join(","));

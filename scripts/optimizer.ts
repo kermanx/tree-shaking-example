@@ -113,6 +113,7 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
         compilationLevel: 'SIMPLE',
         languageIn: 'ECMASCRIPT_NEXT',
         languageOut: 'ECMASCRIPT_NEXT',
+        chunk_output_type: 'ES_MODULES',
         // warningLevel: 'QUIET',
       });
     } catch (e) {
@@ -126,6 +127,7 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
         compilationLevel: 'ADVANCED',
         languageIn: 'ECMASCRIPT_NEXT',
         languageOut: 'ECMASCRIPT_NEXT',
+        chunk_output_type: 'ES_MODULES',
         // warningLevel: 'QUIET',
       });
     } catch (e) {

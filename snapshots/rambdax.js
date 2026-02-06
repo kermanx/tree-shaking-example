@@ -148,5 +148,4 @@ function isOdd(x) {
 function fn() {
 	return compose(filter(isOdd), range(2))(10);
 }
-const answer = fn().join(",");
-export { answer };
+console.log(fn().join(","));

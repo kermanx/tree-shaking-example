@@ -110,5 +110,4 @@ var FaBeer = function() {
 		}]
 	})();
 };
-const answer = "FaBeer" + FaBeer().props.children[0].props.d;
-export { answer };
+console.log("FaBeer" + FaBeer().props.children[0].props.d);

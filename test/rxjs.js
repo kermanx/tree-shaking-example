@@ -4,23 +4,28 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const bundlePath = process.argv[2];
-if (!bundlePath) { console.error('Usage: node test/rxjs.js <path-to-bundled-file>'); process.exit(1); }
-try {
-  const bundled = await import(path.resolve(bundlePath));
-  
-  // For rxjs, we can't import the source file directly due to directory import issues
-  // So we just verify the bundled file has the expected export and it's a string
-  if (bundled.answer === undefined) {
-    console.error('❌ Test failed: "answer" export not found');
-    process.exit(1);
+if (!bundlePath) { console.error('Usage: node file.js <path-to-bundled-file>'); process.exit(1); }
+async function captureConsoleOutput(modulePath) {
+  let output = [];
+  const originalLog = console.log;
+  console.log = (...args) => { output.push(args); };
+  try {
+    await import(modulePath + '?t=' + Date.now());
+    return output;
+  } finally {
+    console.log = originalLog;
   }
-  
-  if (typeof bundled.answer === 'string' && bundled.answer.length > 0) {
+}
+try {
+  const expected = await captureConsoleOutput(path.join(__dirname, '../dist/rxjs_rollup.js'));
+  const actual = await captureConsoleOutput(path.resolve(bundlePath));
+  if (JSON.stringify(expected) === JSON.stringify(actual)) {
     console.log('✅ Test passed');
     process.exit(0);
   } else {
-    console.error('❌ Test failed: answer is not a valid string');
-    console.error('Got:', bundled.answer);
+    console.error('❌ Test failed');
+    console.error('Expected:', JSON.stringify(expected, null, 2));
+    console.error('Got:', JSON.stringify(actual, null, 2));
     process.exit(1);
   }
 } catch (error) {

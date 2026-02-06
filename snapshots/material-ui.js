@@ -7838,5 +7838,4 @@ function requireServer_browser() {
 }
 var server_browserExports = requireServer_browser();
 var ReactDOMServer = getDefaultExportFromCjs(server_browserExports);
-const answer = ReactDOMServer.b(React.o(Paper$1, null, "Hello"));
-export { answer };
+console.log(ReactDOMServer.b(React.o(Paper$1, null, "Hello")));

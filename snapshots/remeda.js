@@ -221,5 +221,4 @@ function isOdd(x) {
 function fn() {
 	return pipe(10, (x) => range(2, x), (x) => filter(x, isOdd));
 }
-const answer = fn().join(",");
-export { answer };
+console.log(fn().join(","));

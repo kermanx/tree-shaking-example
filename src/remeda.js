@@ -12,4 +12,4 @@ function fn(x) {
 	);
 }
 
-export const answer = fn(10).join(',');
+console.log(fn(10).join(','))

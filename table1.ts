@@ -8,6 +8,11 @@ const TOOLCHAINS: Record<string, string> = {
   "rollup_lacuna_terser": "Lacuna",
 };
 
+// Flags for specific toolchains (optional)
+const FAILS: Record<string, boolean> = {
+  "rollup_lacuna_terser": true,
+};
+
 interface ToolchainData {
   size: number;
   gz_size: number;
@@ -92,12 +97,13 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
     const baselineGzSize = testcaseData[baselineToolchain]?.gz_size || 0;
 
     // First pass: calculate all reduction percentages to find the best
-    const reductions: Array<{ index: number; value: number; failed: boolean }> = [];
+    const reductions: Array<{ index: number; value: number; failed: boolean; allFail: boolean }> = [];
     for (let i = 1; i < toolchainKeys.length; i++) {
       const toolchain = toolchainKeys[i];
+      const isAllFail = FAILS[toolchain];
 
       if (!testcaseData[toolchain]) {
-        reductions.push({ index: i, value: -Infinity, failed: false });
+        reductions.push({ index: i, value: -Infinity, failed: false, allFail: isAllFail });
         continue;
       }
 
@@ -106,18 +112,21 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
       const size = toolchainData.size;
 
       if (size <= 20) {
-        reductions.push({ index: i, value: -Infinity, failed: true });
+        reductions.push({ index: i, value: -Infinity, failed: true, allFail: isAllFail });
       } else if (baselineGzSize > 0) {
         const reductionPercent = ((baselineGzSize - gzSize) / baselineGzSize) * 100;
-        reductions.push({ index: i, value: reductionPercent, failed: false });
+        reductions.push({ index: i, value: reductionPercent, failed: false, allFail: isAllFail });
       } else {
-        reductions.push({ index: i, value: -Infinity, failed: false });
+        reductions.push({ index: i, value: -Infinity, failed: false, allFail: isAllFail });
       }
     }
 
-    // Find the best (maximum) reduction
-    const maxReduction = Math.max(...reductions.map(r => r.value));
-    const bestIndex = reductions.findIndex(r => r.value === maxReduction && r.value > -Infinity);
+    // Find the best (maximum) reduction, excluding ALL_FAIL toolchains
+    const eligibleReductions = reductions.filter(r => !r.allFail);
+    const maxReduction = eligibleReductions.length > 0
+      ? Math.max(...eligibleReductions.map(r => r.value))
+      : -Infinity;
+    const bestIndex = reductions.findIndex(r => !r.allFail && r.value === maxReduction && r.value > -Infinity);
 
     // Escape underscores in testcase name for LaTeX
     const escapedTestcase = testcase.replace(/_/g, '\\_');
@@ -142,11 +151,13 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
         latex += ' & \\textit{Failed}';
       } else if (reduction.value > -Infinity) {
         const valueStr = `${reduction.value.toFixed(1)}\\%`;
-        // Mark the best result with bold
-        if (reductionIdx === bestIndex) {
-          latex += ` & \\textbf{${valueStr}}`;
+        // Apply strikethrough if ALL_FAIL
+        const formattedValue = reduction.allFail ? `\\sout{${valueStr}}` : valueStr;
+        // Mark the best result with bold (only if not ALL_FAIL)
+        if (reductionIdx === bestIndex && !reduction.allFail) {
+          latex += ` & \\textbf{${formattedValue}}`;
         } else {
-          latex += ` & ${valueStr}`;
+          latex += ` & ${formattedValue}`;
         }
       } else {
         latex += ' & ---';
