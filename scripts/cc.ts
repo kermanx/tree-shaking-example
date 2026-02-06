@@ -18,9 +18,13 @@ export interface ClosureCompilerOptions {
  * @returns Promise<string> - 优化后的代码
  */
 export function gcc(
-  jsSource: string, 
+  jsSource: string,
   options: ClosureCompilerOptions = {}
 ): Promise<string> {
+  if (jsSource.includes('const Text = ') || jsSource.includes('var dump  ')) {
+    jsSource = `(function(){${jsSource}})()`; // 包裹在块作用域中，避免全局变量污染
+  }
+
   return new Promise((resolve, reject) => {
     // 1. 构建命令行参数
     const args: string[] = [];
@@ -30,7 +34,7 @@ export function gcc(
       // 建议用户传入 snake_case (如 compilation_level)，但也兼容 camelCase (如 compilationLevel)
       // Google Closure Compiler 主要使用 snake_case 风格的参数
       let flagName = key.startsWith('-') ? key : `--${key}`;
-      
+
       // 简单的 camelCase 转 snake_case 处理 (可选，为了更好的 TS 体验)
       if (!key.startsWith('-') && /[A-Z]/.test(key)) {
         flagName = '--' + key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -44,14 +48,16 @@ export function gcc(
         args.push(flagName);
       } else if (value !== false && value !== null && value !== undefined) {
         // 普通键值对
-        args.push(flagName, String(value));
+        args.push(flagName + '=' + String(value));
       }
     }
+
+    console.log(binaryPath, args.join(' ')); // 调试输出完整命令行
 
     // 2. 启动子进程
     // stdio 配置: [stdin(pipe), stdout(pipe), stderr(pipe)]
     const child = spawn(binaryPath, args, {
-      stdio: 'pipe' 
+      stdio: 'pipe'
     });
 
     let output = '';

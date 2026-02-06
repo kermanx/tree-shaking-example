@@ -1,0 +1,4 @@
+{
+  "diffEditor.renderIndicators": false,
+  "diffEditor.diffAlgorithm": "legacy"
+}

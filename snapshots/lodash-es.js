@@ -1053,10 +1053,13 @@ var nativeIsBuffer = Buffer ? Buffer.isBuffer : void 0;
 */
 var isBuffer = nativeIsBuffer || stubFalse;
 var isBuffer$1 = isBuffer;
+/** `Object#toString` result references. */
+var argsTag$1 = "[object Arguments]", arrayTag$1 = "[object Array]", boolTag$1 = "[object Boolean]", dateTag$1 = "[object Date]", errorTag$1 = "[object Error]", funcTag = "[object Function]", numberTag$1 = "[object Number]", objectTag$2 = "[object Object]", regexpTag$1 = "[object RegExp]", stringTag$1 = "[object String]", weakMapTag$1 = "[object WeakMap]";
+var arrayBufferTag$1 = "[object ArrayBuffer]", dataViewTag$2 = "[object DataView]", float32Tag = "[object Float32Array]", float64Tag = "[object Float64Array]", int8Tag = "[object Int8Array]", int16Tag = "[object Int16Array]", int32Tag = "[object Int32Array]", uint8Tag = "[object Uint8Array]", uint8ClampedTag = "[object Uint8ClampedArray]", uint16Tag = "[object Uint16Array]", uint32Tag = "[object Uint32Array]";
 /** Used to identify `toStringTag` values of typed arrays. */
 var typedArrayTags = {};
 typedArrayTags[float32Tag] = (typedArrayTags[float64Tag] = (typedArrayTags[int8Tag] = (typedArrayTags[int16Tag] = (typedArrayTags[int32Tag] = (typedArrayTags[uint8Tag] = (typedArrayTags[uint8ClampedTag] = (typedArrayTags[uint16Tag] = typedArrayTags[uint32Tag] = true, true), true), true), true), true), true), true);
-typedArrayTags[argsTag$1] = (typedArrayTags[arrayTag$1] = (typedArrayTags[arrayBufferTag$1] = (typedArrayTags[boolTag$1] = (typedArrayTags[dataViewTag$2] = (typedArrayTags[dateTag$1] = (typedArrayTags[errorTag$1] = (typedArrayTags[funcTag] = (typedArrayTags[mapTag$2] = (typedArrayTags[numberTag$1] = (typedArrayTags[objectTag$2] = (typedArrayTags[regexpTag$1] = (typedArrayTags[setTag$2] = (typedArrayTags[stringTag$1] = typedArrayTags[weakMapTag$1] = false, false), false), false), false), false), false), false), false), false), false), false), false), false);
+typedArrayTags[argsTag$1] = (typedArrayTags[arrayTag$1] = (typedArrayTags[arrayBufferTag$1] = (typedArrayTags[boolTag$1] = (typedArrayTags[dataViewTag$2] = (typedArrayTags[dateTag$1] = (typedArrayTags[errorTag$1] = (typedArrayTags[funcTag] = (typedArrayTags["[object Map]"] = (typedArrayTags[numberTag$1] = (typedArrayTags[objectTag$2] = (typedArrayTags[regexpTag$1] = (typedArrayTags["[object Set]"] = (typedArrayTags[stringTag$1] = typedArrayTags[weakMapTag$1] = false, false), false), false), false), false), false), false), false), false), false), false), false), false);
 /**
 * The base implementation of `_.isTypedArray` without Node.js optimizations.
 *

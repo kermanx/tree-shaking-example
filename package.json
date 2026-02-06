@@ -36,6 +36,7 @@
 		"glob": "^13.0.0",
 		"google-closure-compiler-linux": "^20260128.0.0",
 		"js-yaml": "^4.1.1",
+		"jsdom": "^28.0.0",
 		"jsshaker": "link:../jsshaker/packages/napi",
 		"memfs": "^4.56.10",
 		"oxc-minify": "^0.111.0",
@@ -53,6 +54,7 @@
 		"webpack": "^5.104.1"
 	},
 	"scripts": {
-		"test": "node --experimental-strip-types scripts/cli.ts"
+		"test": "node --experimental-strip-types scripts/cli.ts",
+		"verify": "node --experimental-strip-types scripts/verify.ts"
 	}
 }

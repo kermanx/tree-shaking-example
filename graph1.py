@@ -6,8 +6,8 @@ import matplotlib.patches as mpatches
 TOOLCHAINS = {
     "rollup_terser": "Rollup + Terser",
     "rollup_jsshaker_terser": "Rollup + JsShaker + Terser",
-    "rollup_gccAdv_terser": "Rollup + CC + Terser",
-    "rollup_jsshaker_gccAdv_terser": "Rollup + JsShaker + CC + Terser",
+    "rollup_gcc_terser": "Rollup + CC + Terser",
+    "rollup_jsshaker_gcc_terser": "Rollup + JsShaker + CC + Terser",
 }
 
 def load_sizes(filename: str = "sizes.json") -> dict:
@@ -42,12 +42,15 @@ def parse_data(sizes: dict, toolchains: dict) -> dict:
 
     return data
 
-def create_chart(data: dict, toolchains: dict, output_file: str = "chart.png"):
+def create_chart(data: dict, toolchains: dict, output_file: str = "graph1.png"):
     """Create horizontal bar chart with grouped test cases."""
     # Prepare data for plotting
     testcases = sorted(data.keys())
     num_testcases = len(testcases)
     num_toolchains = len(toolchains)
+
+    # Get the first toolchain (baseline for percentage calculation)
+    baseline_toolchain = list(toolchains.keys())[0]
 
     # Calculate positions
     bar_height = 0.3
@@ -66,53 +69,59 @@ def create_chart(data: dict, toolchains: dict, output_file: str = "chart.png"):
     # Start with larger spacing at top (2x group_spacing)
     current_y = -group_spacing
 
-    # Colors for different toolchains - professional color scheme for papers
-    # Using a more elegant color palette suitable for academic publications
+    # Professional color palette for academic papers (OOPSLA)
+    # Using ColorBrewer-inspired colors that work well in print and are colorblind-friendly
     color_palette = [
-        '#2E86AB',  # Deep Blue
-        '#A23B72',  # Magenta
-        '#F18F01',  # Orange
-        '#C73E1D',  # Red
-        '#6A994E',  # Green
-        '#BC4B51',  # Rose
+        '#1f77b4',  # Blue
+        '#ff7f0e',  # Orange
+        '#2ca02c',  # Green
+        '#d62728',  # Red
+        '#9467bd',  # Purple
+        '#8c564b',  # Brown
     ]
     colors = [color_palette[i % len(color_palette)] for i in range(num_toolchains)]
 
     for testcase_idx, testcase in enumerate(testcases):
         testcase_y_positions = []
 
+        # Get baseline gz size for this testcase
+        baseline_gz_size = data[testcase].get(baseline_toolchain, {}).get('gz_size', 0)
+
         for i, (toolchain, display_name) in enumerate(toolchains.items()):
+            # Skip the baseline toolchain (first one)
+            if i == 0:
+                continue
+
             if toolchain not in data[testcase]:
                 continue
 
             size = data[testcase][toolchain]['size']
             gz_size = data[testcase][toolchain]['gz_size']
 
-            y_pos = current_y - i * (bar_height + bar_spacing)
+            # Adjust y position since we're skipping the first toolchain
+            y_pos = current_y - (i - 1) * (bar_height + bar_spacing)
 
             # Check if optimization failed (size <= 20)
             if size <= 20:
                 # Draw a red X to indicate optimization failure
-                x_position = 2000
+                x_position = 20
                 ax.plot(x_position, y_pos, marker='x', markersize=10, color='red',
                        markeredgewidth=2, zorder=10)
-                ax.text(x_position + 3000, y_pos, 'CC Optimization Failed',
+                ax.text(x_position + 5, y_pos, 'CC Optimization Failed',
                        va='center', fontsize=8, color='red', style='italic')
             else:
-                # Draw the full bar (non-gzipped size) with lighter color
-                import matplotlib.colors as mcolors
-                # Convert hex to RGB and add transparency
-                rgb = mcolors.to_rgb(colors[i])
-                light_color = (*rgb, 0.4)  # Make it semi-transparent
-                ax.barh(y_pos, size, bar_height, color=light_color,
-                       edgecolor=colors[i], linewidth=1.5)
+                # Calculate percentage relative to baseline
+                if baseline_gz_size > 0:
+                    percentage = (gz_size / baseline_gz_size) * 100
+                else:
+                    percentage = 0
 
-                # Draw the gzipped size bar (darker color) on top
-                ax.barh(y_pos, gz_size, bar_height, color=colors[i])
+                # Draw the bar showing percentage
+                ax.barh(y_pos, percentage, bar_height, color=colors[i])
 
-                # Add size labels
-                label_x = size + max(size * 0.02, 1000)
-                ax.text(label_x, y_pos, f'{gz_size:,} ({size:,})',
+                # Add percentage label (without size in parentheses)
+                label_x = percentage + 2
+                ax.text(label_x, y_pos, f'{percentage:.1f}%',
                         va='center', fontsize=8, family='monospace')
 
             y_positions.append(y_pos)
@@ -123,77 +132,31 @@ def create_chart(data: dict, toolchains: dict, output_file: str = "chart.png"):
             # Calculate the center y position of the group
             center_y = sum(testcase_y_positions) / len(testcase_y_positions)
             # Add label at center position (closer to the edge)
-            ax.text(-1500, center_y, testcase, ha='right', va='center', fontsize=9,
+            ax.text(-5, center_y, testcase, ha='right', va='center', fontsize=9,
                    family='sans-serif', weight='normal')
 
-        current_y -= (num_toolchains * (bar_height + bar_spacing) + group_spacing)
+        current_y -= ((num_toolchains - 1) * (bar_height + bar_spacing) + group_spacing)
 
     # Set y-axis limits: top padding = group_spacing, bottom padding = group_spacing/3
     ax.set_ylim(current_y - group_spacing / 3, group_spacing)
 
     # Customize the plot
     ax.tick_params(axis='y', which='both', left=False, labelleft=False)
-    ax.set_xlabel('Size (bytes)', fontsize=11)
-    ax.set_title('Bundle Sizes by Test Case and Toolchain', fontsize=13, fontweight='bold')
+    ax.set_xlabel('Percentage of Baseline (Gzipped Size)', fontsize=11)
+    ax.set_title('Bundle Sizes by Test Case and Toolchain (% of Baseline)', fontsize=13, fontweight='bold')
     ax.grid(axis='x', alpha=0.3, linestyle='--')
 
-    # Add legend
-    import matplotlib.colors as mcolors
-    from matplotlib.patches import Rectangle
-    from matplotlib.legend_handler import HandlerBase
-    from matplotlib.text import Text
-
-    # Custom handler to draw a split rectangle with text on top
-    class SplitRectHandler(HandlerBase):
-        def create_artists(self, legend, orig_handle, xdescent, ydescent,
-                          width, height, fontsize, trans):
-            # Make the rectangle much wider and taller
-            full_width = width * 12
-            full_height = height * 2.5
-
-            # Shift down to avoid exceeding the top border
-            y_offset = -full_height * 0.5
-
-            # Left half - dark (gzipped)
-            left_rect = Rectangle((xdescent, ydescent + y_offset), full_width/2, full_height,
-                                 facecolor=orig_handle.get_facecolor(),
-                                 edgecolor='black', linewidth=0.5,
-                                 transform=trans)
-            # Right half - light (non-gzipped)
-            rgb = mcolors.to_rgb(orig_handle.get_facecolor())
-            right_rect = Rectangle((xdescent + full_width/2, ydescent + y_offset), full_width/2, full_height,
-                                  facecolor=(*rgb, 0.4),
-                                  edgecolor='black', linewidth=0.5,
-                                  transform=trans)
-
-            # Add text labels on top of rectangles
-            left_text = Text(xdescent + full_width/4, ydescent + y_offset + full_height/2,
-                           'Gzipped Size', ha='center', va='center',
-                           fontsize=7, color='white', weight='bold',
-                           transform=trans)
-            right_text = Text(xdescent + full_width*3/4, ydescent + y_offset + full_height/2,
-                            'Non-gzipped Size', ha='center', va='center',
-                            fontsize=7, color='black', weight='bold',
-                            transform=trans)
-
-            return [left_rect, right_rect, left_text, right_text]
-
+    # Add legend - simplified since we only show gz sizes
     legend_elements = []
 
-    # Add explanation patch with split colors (empty label since text is on the patch)
-    split_patch = mpatches.Patch(color=colors[0], label='')
-    legend_elements.append(split_patch)
-
-    # Add separator (empty label)
-    legend_elements.append(mpatches.Patch(color='none', label=''))
-
-    # Add toolchain colors
+    # Add toolchain colors (skip the baseline)
     for i, (toolchain, display_name) in enumerate(toolchains.items()):
+        if i == 0:  # Skip baseline
+            continue
         patch = mpatches.Patch(color=colors[i], label=display_name)
         legend_elements.append(patch)
 
-    ax.legend(handles=legend_elements, loc='lower right', fontsize=8,
-             handler_map={split_patch: SplitRectHandler()})
+    ax.legend(handles=legend_elements, loc='lower right', fontsize=8)
 
     # Adjust layout - minimal padding
     plt.tight_layout(pad=0.1)
