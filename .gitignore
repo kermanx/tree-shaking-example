@@ -4,3 +4,5 @@ dist
 .nyc_output
 .parcel-cache/
 sizes.json
+maxRecursionDepth.json
+time.json

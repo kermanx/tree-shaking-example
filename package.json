@@ -55,6 +55,7 @@
 	},
 	"scripts": {
 		"test": "node --experimental-strip-types scripts/cli.ts",
-		"verify": "node --experimental-strip-types scripts/verify.ts"
+		"verify": "node --experimental-strip-types scripts/verify.ts",
+		"performance": "node --experimental-strip-types scripts/performance.ts"
 	}
 }

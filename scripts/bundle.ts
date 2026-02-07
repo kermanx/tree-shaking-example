@@ -2,7 +2,6 @@ import assert from 'node:assert';
 import { existsSync } from 'node:fs';
 import { cwd } from 'node:process';
 import { countTotalLines } from './cloc.ts';
-import { summary } from './cli.ts';
 
 interface BundleOptions {
   name: string;
@@ -212,6 +211,8 @@ function ClocPlugin(name: string) {
       }
     },
     async generateBundle() {
+      const { summary } = await import('./cli.ts');
+
       const result = await countTotalLines(files);
       summary[name] = result;
 

@@ -12,7 +12,7 @@ export interface ClosureCompilerOptions {
 
 /**
  * 使用 Google Closure Compiler 优化 JavaScript 代码
- * 
+ *
  * @param jsSource - 需要优化的原始 JavaScript 源码字符串
  * @param options - 编译器配置对象 (例如: { compilation_level: 'ADVANCED', language_out: 'ECMASCRIPT5' })
  * @returns Promise<string> - 优化后的代码
@@ -21,9 +21,25 @@ export function gcc(
   jsSource: string,
   options: ClosureCompilerOptions = {}
 ): Promise<string> {
+  return gccWithTiming(jsSource, options).then(result => result.code);
+}
+
+/**
+ * 使用 Google Closure Compiler 优化 JavaScript 代码，并返回计时信息
+ *
+ * @param jsSource - 需要优化的原始 JavaScript 源码字符串
+ * @param options - 编译器配置对象
+ * @returns Promise<{code: string, time: number}> - 优化后的代码和执行时间(ms)
+ */
+export function gccWithTiming(
+  jsSource: string,
+  options: ClosureCompilerOptions = {}
+): Promise<{ code: string; time: number }> {
   if (jsSource.includes('const Text = ') || jsSource.includes('var dump  ')) {
     jsSource = `(function(){${jsSource}})()`; // 包裹在块作用域中，避免全局变量污染
   }
+
+  const startTime = performance.now();
 
   return new Promise((resolve, reject) => {
     // 1. 构建命令行参数
@@ -80,8 +96,11 @@ export function gcc(
 
     // 6. 进程结束处理
     child.on('close', (code) => {
+      const endTime = performance.now();
+      const time = endTime - startTime;
+
       if (code === 0) {
-        resolve(output);
+        resolve({ code: output, time });
       } else {
         // 即使退出码非0，有时 stdout 也有内容，但通常意味着失败
         reject(new Error(`Closure Compiler failed (exit code ${code}):\n${errorOutput}`));
