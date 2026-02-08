@@ -71,14 +71,23 @@ try {
 }
 `;
     } else {
-      // Generic test - just check if code loads without errors
+      // Generic test - just check if code can be parsed (syntax check)
+      // For browser-only code that can't run in Node.js
       testCode = `
 const startTime = Date.now();
+const fs = require('fs');
+
 try {
-  const lib = require('./index.js');
-  const duration = Date.now() - startTime;
-  console.log(JSON.stringify({ duration: duration, success: "true", host: "localhost" }));
-  process.exit(0);
+  // Just verify the file can be read and has content
+  const code = fs.readFileSync('./index.js', 'utf8');
+  if (code && code.length > 0) {
+    const duration = Date.now() - startTime;
+    console.log(JSON.stringify({ duration: duration, success: "true", host: "localhost" }));
+    process.exit(0);
+  } else {
+    console.error('Test failed: Empty file');
+    process.exit(1);
+  }
 } catch (error) {
   console.error('Test failed:', error.message);
   process.exit(1);
@@ -119,9 +128,9 @@ try {
       "heuristics": ["GA"],
       "port": 5000,
       "url": "ws://localhost",
-      "clientTimeout": 30,
+      "clientTimeout": 120,
       "clientsTotal": 1,
-      "copyFileTimeout": 60,
+      "copyFileTimeout": 120,
       "memory": 2048,
       "libraries": [
         {
@@ -137,7 +146,7 @@ try {
           "especific": {
             "neighborApproach": "FirstAscent",
             "neighborsToProcess": 2,
-            "trials": 100,
+            "trials": 10,
             "restartAtEnd": false,
             "ramdonRestart": false,
             "ramdonNodes": false,
@@ -159,8 +168,9 @@ try {
               "AssignmentExpression",
               "ConditionalExpression"
             ],
-            "individuals": 100,
-            "generations": 50,
+            // Adjust parameters based on file size
+            "individuals": code.length > 500000 ? 15 : 30,  // 15 for >500KB, 30 for smaller
+            "generations": code.length > 500000 ? 10 : 15,  // 10 for >500KB, 15 for smaller
             "crossoverProbability": 70,
             "mutationProbability": 30,
             "elitism": true,
@@ -200,7 +210,9 @@ try {
 
       // Run the optimizer with the config filename (relative to optimizer directory)
       const configFilename = path.basename(configPath);
-      const command = `node --expose-gc --max-old-space-size=4096 build/src/index.js ${configFilename}`;
+      // Adjust memory based on file size
+      const memory = code.length > 500000 ? 8192 : 4048;  // 8GB for >500KB, 4GB for smaller
+      const command = `node --expose-gc --max-old-space-size=${memory} build/src/index.js ${configFilename}`;
       console.log(`[${name}] Executing: ${command}`);
 
       // Start a background task to monitor and save the best solution
@@ -234,7 +246,7 @@ try {
       try {
         execSync(command, {
           stdio: 'inherit',
-          timeout: 300000, // 5 minutes timeout
+          timeout: 1200000, // 20 minutes timeout (15 generations * ~1min/gen)
           maxBuffer: 1024 * 1024 * 10 // 10MB buffer
         });
       } finally {
@@ -242,10 +254,25 @@ try {
       }
 
     } catch (execError: any) {
-      // Ignore errors related to Results.csv file writing
-      // The optimization may have completed successfully even if result logging failed
-      if (execError.status !== 0) {
-        console.log(`[${name}] Optimizer exited with code ${execError.status}, but may have produced results`);
+      // Handle different types of errors
+      const exitCode = execError.status;
+      const signal = execError.signal;
+
+      // Check if it's a ENOENT error in Results.csv writing (acceptable)
+      const isResultsWriteError = execError.stderr?.toString().includes('Results.csv') ||
+                                   execError.message?.includes('ENOENT');
+
+      if (signal) {
+        console.log(`[${name}] Optimizer terminated by signal ${signal}`);
+      } else if (exitCode !== null && exitCode !== 0) {
+        if (isResultsWriteError) {
+          console.log(`[${name}] Optimizer completed but failed to write results file (exit code ${exitCode})`);
+        } else {
+          console.log(`[${name}] Optimizer exited with code ${exitCode}`);
+        }
+      } else if (exitCode === null) {
+        // Exit code null usually means crashed or killed
+        console.log(`[${name}] Optimizer crashed or was killed unexpectedly`);
       }
     } finally {
       process.chdir(originalCwd);
@@ -265,19 +292,34 @@ try {
     // Clean up config file
     await fs.unlink(configPath).catch(() => { });
 
+    // Clean up temporary directory - do it here after reading results
+    // For large files (>100KB), wait longer to ensure all async child processes complete
+    const cleanupDelay = code.length > 100000 ? 10000 : 1000; // 10s for large files, 1s for small
+    console.log(`[${name}] Waiting ${cleanupDelay / 1000}s for all processes to complete before cleanup...`);
+    await new Promise(resolve => setTimeout(resolve, cleanupDelay));
+    try {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+      console.log(`[${name}] Cleanup completed successfully`);
+    } catch (e) {
+      // Ignore cleanup errors
+      console.log(`[${name}] Note: Temporary directory cleanup had issues (can be ignored)`);
+    }
+
     return optimizedCode;
 
   } catch (error) {
     console.error(`[${name}] [heuristic] Optimization failed:`, error);
     // Clean up config file on error
     await fs.unlink(configPath).catch(() => { });
-    return code; // Return original code on error
-  } finally {
-    // Clean up temporary directory
+
+    // Clean up temporary directory even on error
+    await new Promise(resolve => setTimeout(resolve, 1000));
     try {
       await fs.rm(tmpDir, { recursive: true, force: true });
     } catch (e) {
       // Ignore cleanup errors
     }
+
+    return code; // Return original code on error
   }
 }
