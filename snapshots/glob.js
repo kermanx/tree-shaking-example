@@ -444,6 +444,7 @@ const regExpEscape$1 = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 // remove the \ chars that we added if we end up doing a nonmagic compare
 // const deslash = (s: string) => s.replace(/\\(.)/g, '$1')
 class AST {
+	type;
 	#root;
 	#hasMagic;
 	#uflag = false;
@@ -1022,6 +1023,23 @@ const braceExpand = (pattern, options = {}) => {
 const globMagic = /[?*]|[+@!]\(.*?\)|\[|\]/;
 const regExpEscape = (s) => s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 class Minimatch {
+	options;
+	set;
+	pattern;
+	windowsPathsNoEscape;
+	nonegate;
+	negate;
+	comment;
+	empty;
+	preserveMultipleSlashes;
+	partial;
+	globSet;
+	globParts;
+	nocase;
+	isWindows;
+	platform;
+	windowsNoMagicRoot;
+	regexp;
 	constructor(pattern, options = {}) {
 		assertValidPattern(pattern);
 		options = options || {};
@@ -1750,7 +1768,9 @@ let AS = globalThis.AbortSignal;
 if (typeof AC === "undefined") {
 	//@ts-ignore
 	AS = class {
+		onabort;
 		_onabort = [];
+		reason;
 		aborted = false;
 		addEventListener(__unused_C697, fn) {
 			this._onabort.push(fn);
@@ -1803,6 +1823,8 @@ class ZeroArray extends Array {
 	}
 }
 class Stack {
+	heap;
+	length;
 	// private constructor
 	static #a = false;
 	static b(max) {
@@ -1860,6 +1882,66 @@ class LRUCache {
 	get perf() {
 		return this.#perf;
 	}
+	/**
+	* {@link LRUCache.OptionsBase.ttl}
+	*/
+	ttl;
+	/**
+	* {@link LRUCache.OptionsBase.ttlResolution}
+	*/
+	ttlResolution;
+	/**
+	* {@link LRUCache.OptionsBase.ttlAutopurge}
+	*/
+	ttlAutopurge;
+	/**
+	* {@link LRUCache.OptionsBase.updateAgeOnGet}
+	*/
+	updateAgeOnGet;
+	/**
+	* {@link LRUCache.OptionsBase.updateAgeOnHas}
+	*/
+	updateAgeOnHas;
+	/**
+	* {@link LRUCache.OptionsBase.allowStale}
+	*/
+	allowStale;
+	/**
+	* {@link LRUCache.OptionsBase.noDisposeOnSet}
+	*/
+	noDisposeOnSet;
+	/**
+	* {@link LRUCache.OptionsBase.noUpdateTTL}
+	*/
+	noUpdateTTL;
+	/**
+	* {@link LRUCache.OptionsBase.maxEntrySize}
+	*/
+	maxEntrySize;
+	/**
+	* {@link LRUCache.OptionsBase.sizeCalculation}
+	*/
+	sizeCalculation;
+	/**
+	* {@link LRUCache.OptionsBase.noDeleteOnFetchRejection}
+	*/
+	noDeleteOnFetchRejection;
+	/**
+	* {@link LRUCache.OptionsBase.noDeleteOnStaleGet}
+	*/
+	noDeleteOnStaleGet;
+	/**
+	* {@link LRUCache.OptionsBase.allowStaleOnFetchAbort}
+	*/
+	allowStaleOnFetchAbort;
+	/**
+	* {@link LRUCache.OptionsBase.allowStaleOnFetchRejection}
+	*/
+	allowStaleOnFetchRejection;
+	/**
+	* {@link LRUCache.OptionsBase.ignoreFetchAbort}
+	*/
+	ignoreFetchAbort;
 	// computed properties
 	#size;
 	#calculatedSize;
@@ -3277,6 +3359,10 @@ class Minipass extends EventEmitter {
 	[PAUSED] = false;
 	[PIPES] = [];
 	[BUFFER] = [];
+	[OBJECTMODE];
+	[ENCODING];
+	[ASYNC];
+	[DECODER];
 	[EOF] = false;
 	[EMITTED_END] = false;
 	[EMITTING_END] = false;
@@ -3284,6 +3370,7 @@ class Minipass extends EventEmitter {
 	[EMITTED_ERROR] = null;
 	[BUFFERLENGTH] = 0;
 	[DESTROYED] = false;
+	[SIGNAL];
 	[ABORTED] = false;
 	[DATALISTENERS] = 0;
 	[DISCARDED] = false;
@@ -4147,6 +4234,39 @@ const setAsCwd = Symbol("PathScurry setAsCwd");
 * stack traces.
 */
 class PathBase {
+	/**
+	* the basename of this path
+	*
+	* **Important**: *always* test the path name against any test string
+	* usingthe {@link isNamed} method, and not by directly comparing this
+	* string. Otherwise, unicode path strings that the system sees as identical
+	* will not be properly treated as the same path, leading to incorrect
+	* behavior and possible security issues.
+	*/
+	name;
+	/**
+	* the Path entry corresponding to the path root.
+	*
+	* @internal
+	*/
+	root;
+	/**
+	* All roots found within the current PathScurry family
+	*
+	* @internal
+	*/
+	roots;
+	/**
+	* a reference to the parent path, or undefined in the case of root entries
+	*
+	* @internal
+	*/
+	parent;
+	/**
+	* boolean indicating whether paths are compared case-insensitively
+	* @internal
+	*/
+	nocase;
 	/**
 	* boolean indicating that this path is the current working directory
 	* of the PathScurry collection that contains it.
@@ -5170,9 +5290,27 @@ class PathPosix extends PathBase {
 * defaults to the current platform.
 */
 class PathScurryBase {
+	/**
+	* The root Path entry for the current working directory of this Scurry
+	*/
+	root;
+	/**
+	* The string path for the root of this Scurry's current working directory
+	*/
+	rootPath;
+	/**
+	* The Path entry corresponding to this PathScurry's current working directory.
+	*/
+	cwd;
 	#resolveCache;
 	#resolvePosixCache;
 	#children;
+	/**
+	* Perform path comparisons case-insensitively.
+	*
+	* Defaults true on Darwin and Windows systems, false elsewhere.
+	*/
+	nocase;
 	#fs;
 	/**
 	* This class should not be instantiated directly.
@@ -5828,6 +5966,7 @@ class Pattern {
 	#patternList;
 	#globList;
 	#index;
+	length;
 	#platform;
 	#rest;
 	#globString;
@@ -6182,6 +6321,7 @@ class SubWalks {
 class Processor {
 	matches = new MatchRecord();
 	subwalks = new SubWalks();
+	patterns;
 	constructor(opts, hasWalkedCache) {
 		this.opts = opts;
 		this.follow = !!opts.follow;
@@ -6370,6 +6510,8 @@ class GlobUtil {
 	#onResume = [];
 	#ignore;
 	#sep;
+	signal;
+	maxDepth;
 	constructor(patterns, path, opts) {
 		this.patterns = patterns;
 		this.path = path;
@@ -6642,6 +6784,7 @@ class GlobWalker extends GlobUtil {
 	}
 }
 class GlobStream extends GlobUtil {
+	results;
 	constructor(patterns, path, opts) {
 		super(patterns, path, opts);
 		this.results = new Minipass({
@@ -6681,6 +6824,19 @@ const defaultPlatform = typeof process === "object" && process && typeof process
 * An object that can perform glob pattern traversals.
 */
 class Glob {
+	nocase;
+	pattern;
+	platform;
+	scurry;
+	windowsPathsNoEscape;
+	/**
+	* The options provided to the constructor.
+	*/
+	opts;
+	/**
+	* An array of parsed immutable {@link Pattern} objects.
+	*/
+	patterns;
 	/**
 	* All options are stored as properties on the `Glob` object.
 	*

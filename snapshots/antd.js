@@ -9497,15 +9497,15 @@ function contains(root, n) {
 const APPEND_ORDER = "data-rc-order";
 const APPEND_PRIORITY = "data-rc-priority";
 const containerCache = new Map();
-function getMark({ mark }) {
+function getMark({ a: mark }) {
 	if (mark) {
 		return mark.startsWith("data-") ? mark : `data-${mark}`;
 	}
 	return "rc-util-key";
 }
 function getContainer(option) {
-	if (option.attachTo) {
-		return option.attachTo;
+	if (option.b) {
+		return option.b;
 	}
 	const head = document.querySelector("head");
 	return head || document.body;
@@ -9526,7 +9526,7 @@ function injectCSS(css, option) {
 	if (!canUseDom()) {
 		return null;
 	}
-	const { csp, prepend, priority = 0 } = option;
+	const { c: csp, d: prepend, e: priority = 0 } = option;
 	const mergedOrder = getOrder(prepend);
 	const isPrependQueue = mergedOrder === "prependQueue";
 	const styleNode = document.createElement("style");
@@ -9543,7 +9543,7 @@ function injectCSS(css, option) {
 	if (prepend) {
 		// If is queue `prepend`, it will prepend first style and then append rest style
 		if (isPrependQueue) {
-			const existStyle = (option.styles || findStyles(container)).filter((node) => {
+			const existStyle = (option.f || findStyles(container)).filter((node) => {
 				// Ignore style which not injected by rc-util with prepend
 				if (!["prepend", "prependQueue"].includes(node.getAttribute(APPEND_ORDER))) {
 					return false;
@@ -9565,7 +9565,7 @@ function injectCSS(css, option) {
 	return styleNode;
 }
 function findExistNode(key, option) {
-	let { styles } = option;
+	let { f: styles } = option;
 	styles ||= findStyles(getContainer(option));
 	return styles.find((node) => node.getAttribute(getMark(option)) === key);
 }
@@ -9594,14 +9594,14 @@ function updateCSS(css, key, originOption) {
 	const styles = findStyles(container);
 	const option = {
 		...originOption,
-		styles
+		f: styles
 	};
 	// Sync real parent
 	syncRealContainer(container, option);
 	const existNode = findExistNode(key, option);
 	if (existNode) {
-		if (option.csp?.nonce && existNode.nonce !== option.csp?.nonce) {
-			existNode.nonce = option.csp?.nonce;
+		if (option.c?.nonce && existNode.nonce !== option.c?.nonce) {
+			existNode.nonce = option.c?.nonce;
 		}
 		if (existNode.innerHTML !== css) {
 			existNode.innerHTML = css;
@@ -9743,6 +9743,8 @@ let uuid = 0;
 * Use `createTheme` first which will help to manage the theme instance cache.
 */
 class Theme {
+	derivatives;
+	id;
 	constructor(derivatives) {
 		this.derivatives = Array.isArray(derivatives) ? derivatives : [derivatives];
 		this.id = uuid;
@@ -10002,10 +10004,10 @@ function useCacheToken(theme, tokens, option) {
 			return;
 		}
 		const style = updateCSS(cssVarsStr, murmur2(`css-var-${themeKey}`), {
-			mark: ATTR_MARK,
-			prepend: "queue",
-			attachTo: container,
-			priority: -999
+			a: ATTR_MARK,
+			d: "queue",
+			b: container,
+			e: -999
 		});
 		style[CSS_IN_JS_INSTANCE] = instanceId;
 		// Used for `useCacheToken` to remove on batch when token removed
@@ -11009,14 +11011,14 @@ function useStyleRegister(info, styleFn) {
 			const [styleStr, styleId, effectStyle, , priority] = cacheValue;
 			if (isMergedClientSide && styleStr !== CSS_FILE_STYLE) {
 				const mergedCSSConfig = {
-					mark: ATTR_MARK,
-					prepend: enableLayer ? false : "queue",
-					attachTo: container,
-					priority
+					a: ATTR_MARK,
+					d: enableLayer ? false : "queue",
+					b: container,
+					e: priority
 				};
 				const nonceStr = typeof nonce === "function" ? nonce() : nonce;
 				if (nonceStr) {
-					mergedCSSConfig.csp = { nonce: nonceStr };
+					mergedCSSConfig.c = { nonce: nonceStr };
 				}
 				// ================= Split Effect Style =================
 				// We will split effectStyle here since @layer should be at the top level
@@ -11034,7 +11036,7 @@ function useStyleRegister(info, styleFn) {
 				effectLayerKeys.forEach((effectKey) => {
 					updateCSS(normalizeStyle(effectStyle[effectKey], autoPrefix || false), `_layer-${effectKey}`, {
 						...mergedCSSConfig,
-						prepend: true
+						d: true
 					});
 				});
 				// ==================== Inject Style ====================
@@ -11080,8 +11082,8 @@ const useCSSVarRegister = (config, fn) => {
 	}, ([, , styleId]) => {
 		if (isClientSide) {
 			removeCSS(styleId, {
-				mark: ATTR_MARK,
-				attachTo: container
+				a: ATTR_MARK,
+				b: container
 			});
 		}
 	}, ([, cssVarsStr, styleId]) => {
@@ -11089,10 +11091,10 @@ const useCSSVarRegister = (config, fn) => {
 			return;
 		}
 		const style = updateCSS(cssVarsStr, styleId, {
-			mark: ATTR_MARK,
-			prepend: "queue",
-			attachTo: container,
-			priority: -999
+			a: ATTR_MARK,
+			d: "queue",
+			b: container,
+			e: -999
 		});
 		style[CSS_IN_JS_INSTANCE] = instanceId;
 		// Used for `useCacheToken` to remove on batch when token removed
@@ -12110,6 +12112,16 @@ class FastColor {
 	* Alpha/Opacity, A in RGBA/HSLA
 	*/
 	a = 1;
+	// HSV privates
+	_h;
+	_hsl_s;
+	_hsv_s;
+	_l;
+	_v;
+	// intermediate variables to calculate HSL/HSV
+	_max;
+	_min;
+	_brightness;
 	constructor(input) {
 		/**
 		* Always check 3 char in the object to determine the format.
@@ -13557,9 +13569,9 @@ ${mergedStyleStr}
 		const ele = eleRef.current;
 		const shadowRoot = getShadowRoot(ele);
 		updateCSS(mergedStyleStr, "@ant-design-icons", {
-			prepend: !layer,
-			csp,
-			attachTo: shadowRoot
+			d: !layer,
+			c: csp,
+			b: shadowRoot
 		});
 	}, []);
 };
