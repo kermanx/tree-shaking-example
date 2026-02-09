@@ -4,14 +4,16 @@ import * as fs from 'fs';
 const TOOLCHAINS: Record<string, string> = {
   "rollup_terser": "Rollup + Terser",
   "rollup_jsshaker_terser": "JsShaker",
-  "rollup_gcc_terser": "Closure Compiler",
+  "rollup_gcc_terser": "CC",
+  "rollup_gccAdv_terser": "CC (Advanced)",
   "rollup_lacuna_terser": "Lacuna",
 };
 
 // Flags for specific toolchains (optional)
-const FAILS: Record<string, boolean> = {
-  "rollup_lacuna_terser": true,
-};
+const FAILS = [
+  /^rollup_lacuna_terser:/,
+  /^rollup_gccAdv_terser:(lodash|sentry|react-icons)$/
+];
 
 const SHOW_GZ = false;
 
@@ -74,15 +76,15 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
   const columnSpec = 'l' + 'r'.repeat(numColumns - 1);
 
   let latex = '\\begin{table}[t]\n';
-  latex += '\\scriptsize\n';
-  latex += '\\centering\n';
-  latex += '\\caption{Size improvement for target programs}\n';
-  latex += '\\label{tab:size-reduction}\n';
-  latex += `\\begin{tabular}{${columnSpec}}\n`;
-  latex += '\\toprule\n';
+  latex += '  \\scriptsize\n';
+  latex += '  \\centering\n';
+  latex += '  \\caption{Size improvement for target programs}\n';
+  latex += '  \\label{tab:size-reduction}\n';
+  latex += `  \\begin{tabular}{${columnSpec}}\n`;
+  latex += '    \\toprule\n';
 
   // Header row
-  latex += 'Program & Baseline (KB)';
+  latex += '    Program & Baseline (KB)';
   for (let i = 1; i < toolchainKeys.length; i++) {
     const displayName = toolchains[toolchainKeys[i]];
     // Escape special LaTeX characters
@@ -90,7 +92,14 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
     latex += ` & ${escapedName}`;
   }
   latex += ' \\\\\n';
-  latex += '\\midrule\n';
+  latex += '    \\midrule\n';
+
+  // Calculate max widths for alignment
+  const maxTestcaseWidth = Math.max(...testcases.map(t => t.replace(/_/g, '\\_').length));
+  const maxBaselineWidth = Math.max(...testcases.map(t => {
+    const baselineGzSize = data[t][baselineToolchain]?.gz_size || 0;
+    return (baselineGzSize / 1024).toFixed(2).length;
+  }));
 
   // Data rows
   for (const testcase of testcases) {
@@ -101,7 +110,8 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
     const reductions: Array<{ index: number; value: number; failed: boolean; allFail: boolean }> = [];
     for (let i = 1; i < toolchainKeys.length; i++) {
       const toolchain = toolchainKeys[i];
-      const isAllFail = FAILS[toolchain];
+      const combinedKey = `${toolchain}:${testcase}`;
+      const isAllFail = FAILS.some(pattern => pattern.test(combinedKey));
 
       if (!testcaseData[toolchain]) {
         reductions.push({ index: i, value: -Infinity, failed: false, allFail: isAllFail });
@@ -131,7 +141,8 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
 
     // Escape underscores in testcase name for LaTeX
     const escapedTestcase = testcase.replace(/_/g, '\\_');
-    latex += `${escapedTestcase} & ${(baselineGzSize / 1024).toFixed(2)}`;
+    const baselineStr = (baselineGzSize / 1024).toFixed(2);
+    latex += `    ${escapedTestcase.padEnd(maxTestcaseWidth)} & ${baselineStr.padStart(maxBaselineWidth)}`;
 
     // Second pass: output with formatting
     for (let i = 1; i < toolchainKeys.length; i++) {
@@ -143,8 +154,6 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
         latex += ' & ---';
         continue;
       }
-
-      const toolchainData = testcaseData[toolchain];
 
       // Check if optimization failed
       if (reduction.failed) {
@@ -167,8 +176,8 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
     latex += ' \\\\\n';
   }
 
-  latex += '\\bottomrule\n';
-  latex += '\\end{tabular}\n';
+  latex += '    \\bottomrule\n';
+  latex += '  \\end{tabular}\n';
   latex += '\\end{table}\n';
 
   return latex;

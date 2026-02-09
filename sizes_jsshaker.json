@@ -1,6 +1,6 @@
 {
-  "antd_rollup_jsshaker": 1108549,
-  "antd_rollup_jsshaker.gz": 233202,
+  "antd_rollup_jsshaker": 1108664,
+  "antd_rollup_jsshaker.gz": 233223,
   "glob_rollup_jsshaker": 208793,
   "glob_rollup_jsshaker.gz": 54419,
   "js-yaml_rollup_jsshaker": 63213,
@@ -9,8 +9,8 @@
   "lodash_rollup_jsshaker.gz": 94159,
   "lodash-es_rollup_jsshaker": 54588,
   "lodash-es_rollup_jsshaker.gz": 13515,
-  "material-ui_rollup_jsshaker": 324799,
-  "material-ui_rollup_jsshaker.gz": 71931,
+  "material-ui_rollup_jsshaker": 324980,
+  "material-ui_rollup_jsshaker.gz": 71962,
   "novnc_rollup_jsshaker": 419921,
   "novnc_rollup_jsshaker.gz": 109269,
   "react-icons_rollup_jsshaker": 3226,
@@ -19,8 +19,8 @@
   "remeda_rollup_jsshaker.gz": 1719,
   "rxjs_rollup_jsshaker": 17581,
   "rxjs_rollup_jsshaker.gz": 4146,
-  "sentry_rollup_jsshaker": 270290,
-  "sentry_rollup_jsshaker.gz": 76130,
+  "sentry_rollup_jsshaker": 270324,
+  "sentry_rollup_jsshaker.gz": 76147,
   "vuetify_rollup_jsshaker": 275293,
   "vuetify_rollup_jsshaker.gz": 70404
 }

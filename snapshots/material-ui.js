@@ -5977,7 +5977,8 @@ function requireReactDomServerLegacy_browser_production() {
 	function describeNativeComponentFrame(fn, construct) {
 		if (!fn || reentry) return "";
 		reentry = true;
-		var previousPrepareStackTrace;
+		var previousPrepareStackTrace = Error.prepareStackTrace;
+		Error.prepareStackTrace = void 0;
 		try {
 			var RunInRootFrame = { DetermineComponentFrameRoot: function() {
 				try {
@@ -6039,7 +6040,7 @@ function requireReactDomServerLegacy_browser_production() {
 				}
 			}
 		} finally {
-			reentry = false;
+			reentry = false, Error.prepareStackTrace = previousPrepareStackTrace;
 		}
 		return (previousPrepareStackTrace = fn ? fn.displayName || fn.name : "") ? describeBuiltInComponentFrame(previousPrepareStackTrace) : "";
 	}
@@ -6065,7 +6066,7 @@ function requireReactDomServerLegacy_browser_production() {
 					payload = type.name;
 					lazyComponent = type.env;
 					var location = type.debugLocation;
-					if (null != location && (type = Error.prepareStackTrace, location = location.stack, location.startsWith("Error: react-stack-top-frame\n") && (location = location.slice(29)), type = location.indexOf("\n"), -1 !== type && (location = location.slice(type + 1)), type = location.indexOf("react_stack_bottom_frame"), -1 !== type && (type = location.lastIndexOf("\n", type)), type = -1 !== type ? location = location.slice(0, type) : "", location = type.lastIndexOf("\n"), type = -1 === location ? type : type.slice(location + 1), -1 !== type.indexOf(payload))) {
+					if (null != location && (type = Error.prepareStackTrace, Error.prepareStackTrace = void 0, location = location.stack, Error.prepareStackTrace = type, location.startsWith("Error: react-stack-top-frame\n") && (location = location.slice(29)), type = location.indexOf("\n"), -1 !== type && (location = location.slice(type + 1)), type = location.indexOf("react_stack_bottom_frame"), -1 !== type && (type = location.lastIndexOf("\n", type)), type = -1 !== type ? location = location.slice(0, type) : "", location = type.lastIndexOf("\n"), type = -1 === location ? type : type.slice(location + 1), -1 !== type.indexOf(payload))) {
 						payload = "\n" + type;
 						break a;
 					}

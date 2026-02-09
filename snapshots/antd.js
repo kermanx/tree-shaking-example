@@ -814,7 +814,8 @@ function requireReactDomClient_production() {
 	function describeNativeComponentFrame(fn, construct) {
 		if (!fn || reentry) return "";
 		reentry = true;
-		var previousPrepareStackTrace;
+		var previousPrepareStackTrace = Error.prepareStackTrace;
+		Error.prepareStackTrace = void 0;
 		try {
 			var RunInRootFrame = { DetermineComponentFrameRoot: function() {
 				try {
@@ -876,7 +877,7 @@ function requireReactDomClient_production() {
 				}
 			}
 		} finally {
-			reentry = false;
+			reentry = false, Error.prepareStackTrace = previousPrepareStackTrace;
 		}
 		return (previousPrepareStackTrace = fn ? fn.displayName || fn.name : "") ? describeBuiltInComponentFrame(previousPrepareStackTrace) : "";
 	}

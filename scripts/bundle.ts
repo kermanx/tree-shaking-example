@@ -226,6 +226,21 @@ function ClocPlugin(name: string) {
       const size = await countTotalSize(files);
       summary['__size'] ??= {};
       summary['__size'][name] = size;
+
+      // 统计包数量
+      const packages = extractPackages(files);
+      summary['__packages'] ??= {};
+      summary['__packages'][name] = packages.size;
+
+      // 统计文件数量
+      summary['__files'] ??= {};
+      summary['__files'][name] = files.size;
+
+      // 收集全局文件列表用于合并统计
+      summary['__allFiles'] ??= new Set<string>();
+      for (const file of files) {
+        summary['__allFiles'].add(file);
+      }
     }
   } satisfies import('rollup').Plugin;
 }
@@ -239,6 +254,20 @@ async function countTotalSize(files: Set<string>) {
     })
   );
   return sizes.reduce((a, b) => a + b, 0);
+}
+
+function extractPackages(files: Set<string>): Set<string> {
+  const packages = new Set<string>();
+  for (const file of files) {
+    // 匹配所有 node_modules/ 后的包名，取最后一个（支持 pnpm 的 .pnpm 目录结构）
+    const matches = file.matchAll(/node_modules\/(@[^/]+\/[^/]+|[^/@]+)/g);
+    const matchArray = Array.from(matches);
+    if (matchArray.length > 0) {
+      const lastMatch = matchArray[matchArray.length - 1];
+      packages.add(lastMatch[1]);
+    }
+  }
+  return packages;
 }
 
 function SkipCSS() {
