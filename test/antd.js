@@ -39,11 +39,22 @@ async function runInDom(modulePath) {
     });
 
     // Mock getComputedStyle for antd
+    const getComputedStyleMock = () => ({
+      getPropertyValue: () => ''
+    });
     if (!dom.window.getComputedStyle) {
-      dom.window.getComputedStyle = () => ({
-        getPropertyValue: () => ''
-      });
+      dom.window.getComputedStyle = getComputedStyleMock;
     }
+    global.getComputedStyle = getComputedStyleMock;
+
+    // Mock HTMLElement
+    global.HTMLElement = dom.window.HTMLElement;
+
+    // Mock SVGElement
+    global.SVGElement = dom.window.SVGElement;
+
+    // Mock ShadowRoot
+    global.ShadowRoot = dom.window.ShadowRoot || class ShadowRoot {};
 
     // Load the module
     await import(modulePath);
@@ -65,6 +76,10 @@ async function runInDom(modulePath) {
     } else {
       delete global.navigator;
     }
+    delete global.getComputedStyle;
+    delete global.HTMLElement;
+    delete global.SVGElement;
+    delete global.ShadowRoot;
   }
 }
 

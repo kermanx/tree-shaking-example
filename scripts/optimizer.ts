@@ -221,6 +221,9 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
       const optimizedCode = await fs.readFile(scriptFile, 'utf8');
       return optimizedCode;
 
+    } catch (e) {
+      console.error('[lacuna] Optimization failed:', e);
+      return ''
     } finally {
       // Clean up temporary directory
       await fs.rm(absTmpDir, { recursive: true, force: true });

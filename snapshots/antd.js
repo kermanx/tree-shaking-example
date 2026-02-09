@@ -1,22 +1,72 @@
+function _mergeNamespaces(n, m) {
+	m.forEach(function(e) {
+		e && typeof e !== "string" && !Array.isArray(e) && Object.keys(e).forEach(function(k) {
+			if (k !== "default" && !(k in n)) {
+				var d = Object.getOwnPropertyDescriptor(e, k);
+				Object.defineProperty(n, k, d.get ? d : {
+					enumerable: true,
+					get: function() {
+						return e[k];
+					}
+				});
+			}
+		});
+	});
+	return Object.freeze(n);
+}
 function getDefaultExportFromCjs(x) {
 	return x;
 }
 var react = {};
 var react_production = {};
 function requireReact_production() {
-	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"), REACT_LAZY_TYPE = Symbol.for("react.lazy"), MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
+	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"), REACT_MEMO_TYPE = Symbol.for("react.memo"), REACT_LAZY_TYPE = Symbol.for("react.lazy"), REACT_ACTIVITY_TYPE = Symbol.for("react.activity"), MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
 	function getIteratorFn(maybeIterable) {
 		if (null === maybeIterable || "object" !== typeof maybeIterable) return null;
 		maybeIterable = maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
 		return "function" === typeof maybeIterable ? maybeIterable : null;
 	}
-	var assign = Object.assign;
+	var ReactNoopUpdateQueue = {
+		isMounted: function() {
+			return false;
+		},
+		enqueueForceUpdate: function() {},
+		enqueueReplaceState: function() {},
+		enqueueSetState: function() {}
+	}, assign = Object.assign, emptyObject = {};
+	function Component(props, context, updater) {
+		this.props = props;
+		this.context = context;
+		this.refs = emptyObject;
+		this.updater = updater || ReactNoopUpdateQueue;
+	}
+	Component.prototype.isReactComponent = {};
+	Component.prototype.setState = function(partialState, callback) {
+		if ("object" !== typeof partialState && "function" !== typeof partialState && null != partialState) throw Error("takes an object of state variables to update or a function which returns an object of state variables.");
+		this.updater.enqueueSetState(this, partialState, callback, "setState");
+	};
+	Component.prototype.forceUpdate = function(callback) {
+		this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
+	};
+	function ComponentDummy() {}
+	ComponentDummy.prototype = Component.prototype;
+	function PureComponent(props, context, updater) {
+		this.props = props;
+		this.context = context;
+		this.refs = emptyObject;
+		this.updater = updater || ReactNoopUpdateQueue;
+	}
+	var pureComponentPrototype = PureComponent.prototype = new ComponentDummy();
+	pureComponentPrototype.constructor = PureComponent;
+	assign(pureComponentPrototype, Component.prototype);
+	pureComponentPrototype.isPureReactComponent = true;
 	var isArrayImpl = Array.isArray;
 	function noop() {}
 	var ReactSharedInternals = {
 		H: null,
 		A: null,
-		T: null
+		T: null,
+		S: null
 	}, hasOwnProperty = Object.prototype.hasOwnProperty;
 	function ReactElement(type, key, props) {
 		var refProp = props.ref;
@@ -95,27 +145,90 @@ function requireReact_production() {
 		}
 		return invokeCallback;
 	}
-	function mapChildren(children, func) {
+	function mapChildren(children, func, context) {
 		if (null == children) return children;
 		var result = [], count = 0;
 		mapIntoArray(children, result, "", "", function(child) {
-			return func.call(0, child, count++);
+			return func.call(context, child, count++);
 		});
 		return result;
 	}
-	var Children = {
-		a: mapChildren,
-		b: function(children, forEachFunc) {
-			mapChildren(children, function() {
-				forEachFunc.apply(0, arguments);
+	function lazyInitializer(payload) {
+		if (-1 === payload._status) {
+			var ctor = payload._result;
+			ctor = ctor();
+			ctor.then(function(moduleObject) {
+				if (0 === payload._status || -1 === payload._status) payload._status = 1, payload._result = moduleObject;
+			}, function(error) {
+				if (0 === payload._status || -1 === payload._status) payload._status = 2, payload._result = error;
 			});
+			-1 === payload._status && (payload._status = 0, payload._result = ctor);
+		}
+		if (1 === payload._status) return payload._result.default;
+		throw payload._result;
+	}
+	var reportGlobalError = "function" === typeof reportError ? reportError : function(error) {
+		if ("object" === typeof window && "function" === typeof window.ErrorEvent) {
+			var event = new window.ErrorEvent("error", {
+				bubbles: true,
+				cancelable: true,
+				message: "object" === typeof error && null !== error && "string" === typeof error.message ? String(error.message) : String(error),
+				error
+			});
+			if (!window.dispatchEvent(event)) return;
+		} else if ("object" === typeof process && "function" === typeof process.emit) {
+			process.emit("uncaughtException", error);
+			return;
+		}
+		console.error(error);
+	}, Children = {
+		map: mapChildren,
+		forEach: function(children, forEachFunc, forEachContext) {
+			mapChildren(children, function() {
+				forEachFunc.apply(this, arguments);
+			}, forEachContext);
+		},
+		count: function(children) {
+			var n = 0;
+			mapChildren(children, function() {
+				n++;
+			});
+			return n;
+		},
+		toArray: function(children) {
+			return mapChildren(children, function(child) {
+				return child;
+			}) || [];
+		},
+		only: function(children) {
+			if (!isValidElement(children)) throw Error("React.Children.only expected to receive a single React element child.");
+			return children;
 		}
 	};
-	react_production.b = Children;
-	react_production.d = REACT_FRAGMENT_TYPE;
-	react_production.g = REACT_STRICT_MODE_TYPE;
-	react_production.i = ReactSharedInternals;
-	react_production.m = function(element, config, children) {
+	react_production.Activity = REACT_ACTIVITY_TYPE;
+	react_production.Children = Children;
+	react_production.Component = Component;
+	react_production.Fragment = REACT_FRAGMENT_TYPE;
+	react_production.Profiler = REACT_PROFILER_TYPE;
+	react_production.PureComponent = PureComponent;
+	react_production.StrictMode = REACT_STRICT_MODE_TYPE;
+	react_production.Suspense = REACT_SUSPENSE_TYPE;
+	react_production.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
+	react_production.__COMPILER_RUNTIME = {
+		__proto__: null,
+		c: function(size) {
+			return ReactSharedInternals.H.useMemoCache(size);
+		}
+	};
+	react_production.cache = function(fn) {
+		return function() {
+			return fn.apply(null, arguments);
+		};
+	};
+	react_production.cacheSignal = function() {
+		return null;
+	};
+	react_production.cloneElement = function(element, config, children) {
 		if (null === element || void 0 === element) throw Error("The argument must be a React element, but you passed " + element + ".");
 		var props = assign({}, element.props), key = element.key;
 		if (null != config) for (propName in void 0 !== config.key && (key = "" + config.key), config) !hasOwnProperty.call(config, propName) || "key" === propName || "__self" === propName || "__source" === propName || "ref" === propName && void 0 === config.ref || (props[propName] = config[propName]);
@@ -127,7 +240,7 @@ function requireReact_production() {
 		}
 		return ReactElement(element.type, key, props);
 	};
-	react_production.n = function(defaultValue) {
+	react_production.createContext = function(defaultValue) {
 		defaultValue = {
 			$$typeof: REACT_CONTEXT_TYPE,
 			_currentValue: defaultValue,
@@ -141,7 +254,7 @@ function requireReact_production() {
 		};
 		return defaultValue;
 	};
-	react_production.o = function(type, config, children) {
+	react_production.createElement = function(type, config, children) {
 		var propName, props = {}, key = null;
 		if (null != config) for (propName in void 0 !== config.key && (key = "" + config.key), config) hasOwnProperty.call(config, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (props[propName] = config[propName]);
 		var childrenLength = arguments.length - 2;
@@ -153,44 +266,105 @@ function requireReact_production() {
 		if (type && type.defaultProps) for (propName in childrenLength = type.defaultProps, childrenLength) void 0 === props[propName] && (props[propName] = childrenLength[propName]);
 		return ReactElement(type, key, props);
 	};
-	react_production.q = function(render) {
+	react_production.createRef = function() {
+		return { current: null };
+	};
+	react_production.forwardRef = function(render) {
 		return {
 			$$typeof: REACT_FORWARD_REF_TYPE,
 			render
 		};
 	};
-	react_production.r = isValidElement;
-	react_production.y = function(callback, deps) {
+	react_production.isValidElement = isValidElement;
+	react_production.lazy = function(ctor) {
+		return {
+			$$typeof: REACT_LAZY_TYPE,
+			_payload: {
+				_status: -1,
+				_result: ctor
+			},
+			_init: lazyInitializer
+		};
+	};
+	react_production.memo = function(type, compare) {
+		return {
+			$$typeof: REACT_MEMO_TYPE,
+			type,
+			compare: void 0 === compare ? null : compare
+		};
+	};
+	react_production.startTransition = function(scope) {
+		var prevTransition = ReactSharedInternals.T, currentTransition = {};
+		ReactSharedInternals.T = currentTransition;
+		try {
+			var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
+			null !== onStartTransitionFinish && onStartTransitionFinish(currentTransition, returnValue);
+			"object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && returnValue.then(noop, reportGlobalError);
+		} catch (error) {
+			reportGlobalError(error);
+		} finally {
+			null !== prevTransition && null !== currentTransition.types && (prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
+		}
+	};
+	react_production.unstable_useCacheRefresh = function() {
+		return ReactSharedInternals.H.useCacheRefresh();
+	};
+	react_production.use = function(usable) {
+		return ReactSharedInternals.H.use(usable);
+	};
+	react_production.useActionState = function(action, initialState, permalink) {
+		return ReactSharedInternals.H.useActionState(action, initialState, permalink);
+	};
+	react_production.useCallback = function(callback, deps) {
 		return ReactSharedInternals.H.useCallback(callback, deps);
 	};
-	react_production.z = function(Context) {
+	react_production.useContext = function(Context) {
 		return ReactSharedInternals.H.useContext(Context);
 	};
-	react_production.C = function(create, deps) {
+	react_production.useDebugValue = function() {};
+	react_production.useDeferredValue = function(value, initialValue) {
+		return ReactSharedInternals.H.useDeferredValue(value, initialValue);
+	};
+	react_production.useEffect = function(create, deps) {
 		return ReactSharedInternals.H.useEffect(create, deps);
 	};
-	react_production.F = function(ref, create, deps) {
+	react_production.useEffectEvent = function(callback) {
+		return ReactSharedInternals.H.useEffectEvent(callback);
+	};
+	react_production.useId = function() {
+		return ReactSharedInternals.H.useId();
+	};
+	react_production.useImperativeHandle = function(ref, create, deps) {
 		return ReactSharedInternals.H.useImperativeHandle(ref, create, deps);
 	};
-	react_production.G = function(create, deps) {
+	react_production.useInsertionEffect = function(create, deps) {
 		return ReactSharedInternals.H.useInsertionEffect(create, deps);
 	};
-	react_production.H = function(create, deps) {
+	react_production.useLayoutEffect = function(create, deps) {
 		return ReactSharedInternals.H.useLayoutEffect(create, deps);
 	};
-	react_production.I = function(create, deps) {
+	react_production.useMemo = function(create, deps) {
 		return ReactSharedInternals.H.useMemo(create, deps);
 	};
-	react_production.K = function(reducer) {
-		return ReactSharedInternals.H.useReducer(reducer, 0, void 0);
+	react_production.useOptimistic = function(passthrough, reducer) {
+		return ReactSharedInternals.H.useOptimistic(passthrough, reducer);
 	};
-	react_production.L = function(initialValue) {
+	react_production.useReducer = function(reducer, initialArg, init) {
+		return ReactSharedInternals.H.useReducer(reducer, initialArg, init);
+	};
+	react_production.useRef = function(initialValue) {
 		return ReactSharedInternals.H.useRef(initialValue);
 	};
-	react_production.M = function(initialState) {
+	react_production.useState = function(initialState) {
 		return ReactSharedInternals.H.useState(initialState);
 	};
-	react_production.P = "19.2.4";
+	react_production.useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
+		return ReactSharedInternals.H.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+	};
+	react_production.useTransition = function() {
+		return ReactSharedInternals.H.useTransition();
+	};
+	react_production.version = "19.2.4";
 	return react_production;
 }
 var hasRequiredReact;
@@ -204,7 +378,11 @@ function requireReact() {
 }
 var reactExports = requireReact();
 var React = getDefaultExportFromCjs(reactExports);
-var client = {};
+var React$1 = _mergeNamespaces({
+	__proto__: null,
+	default: React
+}, [reactExports]);
+var client = { a: {} };
 var reactDomClient_production = {};
 var scheduler = {};
 var scheduler_production = {};
@@ -388,11 +566,53 @@ function requireScheduler() {
 var reactDom = {};
 var reactDom_production = {};
 function requireReactDom_production() {
-	var Internals = { a: 0 };
+	var React = requireReact();
+	function formatProdErrorMessage(code) {
+		var url = "https://react.dev/errors/" + 299;
+		if (1 < arguments.length) {
+			url += "?args[]=" + encodeURIComponent(arguments[1]);
+			for (var i = 2; i < arguments.length; i++) url += "&args[]=" + encodeURIComponent(arguments[i]);
+		}
+		return "Minified React error #" + code + "; visit " + url + " for the full message or use the non-minified dev environment for full errors and additional helpful warnings.";
+	}
+	var Internals = { a: 0 }, REACT_PORTAL_TYPE = Symbol.for("react.portal");
+	function createPortal$1(children, containerInfo, implementation) {
+		var key = 3 < arguments.length && void 0 !== arguments[3] ? arguments[3] : null;
+		return {
+			$$typeof: REACT_PORTAL_TYPE,
+			key: null == key ? null : "" + key,
+			children,
+			containerInfo,
+			implementation
+		};
+	}
+	var ReactSharedInternals = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
 	reactDom_production.a = Internals;
+	reactDom_production.b = function(children, container) {
+		var key = 2 < arguments.length && void 0 !== arguments[2] ? arguments[2] : null;
+		if (!container || 1 !== container.nodeType && 9 !== container.nodeType && 11 !== container.nodeType) throw Error(formatProdErrorMessage(299));
+		return createPortal$1(children, container, null, key);
+	};
+	reactDom_production.c = function(fn) {
+		var previousTransition = ReactSharedInternals.T, previousUpdatePriority = Internals.a;
+		try {
+			{
+				ReactSharedInternals.T = null, Internals.a = 2;
+				return fn();
+			}
+		} finally {
+			ReactSharedInternals.T = previousTransition, Internals.a = previousUpdatePriority, Internals.b.a();
+		}
+	};
+	reactDom_production.k = function(fn) {
+		return fn();
+	};
 	return reactDom_production;
 }
+var hasRequiredReactDom;
 function requireReactDom() {
+	if (hasRequiredReactDom) return reactDom.a;
+	hasRequiredReactDom = 1;
 	function checkDCE() {
 		/* global __REACT_DEVTOOLS_GLOBAL_HOOK__ */
 		if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -496,7 +716,7 @@ function requireReactDomClient_production() {
 		}
 		return null;
 	}
-	var isArrayImpl = Array.isArray, ReactSharedInternals = React.i, ReactDOMSharedInternals = ReactDOM.a, sharedNotPendingObject = {
+	var isArrayImpl = Array.isArray, ReactSharedInternals = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, ReactDOMSharedInternals = ReactDOM.a, sharedNotPendingObject = {
 		pending: false,
 		data: null,
 		method: null,
@@ -1286,12 +1506,12 @@ function requireReactDomClient_production() {
 		}
 	}
 	var isInsideEventHandler = false;
-	function batchedUpdates$1(fn, a, b) {
-		if (isInsideEventHandler) return fn(a, b);
+	function batchedUpdates$1(fn, a) {
+		if (isInsideEventHandler) return fn(a, void 0);
 		isInsideEventHandler = true;
 		try {
-			var JSCompiler_inline_result = fn(a);
-			return JSCompiler_inline_result;
+			var __unused_5559 = fn(a);
+			return;
 		} finally {
 			if (isInsideEventHandler = false, null !== restoreTarget || null !== restoreQueue) {
 				if (flushSyncWork$1(), restoreTarget && (a = restoreTarget, fn = restoreQueue, restoreQueue = restoreTarget = null, restoreStateOfTarget(a), fn)) for (a = 0; a < fn.length; a++) restoreStateOfTarget(fn[a]);
@@ -2335,9 +2555,11 @@ function requireReactDomClient_production() {
 		});
 		return thenableWithOverride;
 	}
-	ReactSharedInternals.S = function(__unused_D195, returnValue) {
+	var prevOnStartTransitionFinish = ReactSharedInternals.S;
+	ReactSharedInternals.S = function(transition, returnValue) {
 		globalMostRecentTransitionTime = now();
 		"object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && entangleAsyncAction(0, returnValue);
+		null !== prevOnStartTransitionFinish && prevOnStartTransitionFinish(transition, returnValue);
 	};
 	var resumedCache = createCursor(null);
 	function peekCacheFromPool() {
@@ -8374,6 +8596,11 @@ function requireReactDomClient_production() {
 	function getHoistableRoot(container) {
 		return "function" === typeof container.getRootNode ? container.getRootNode() : 9 === container.nodeType ? container : container.ownerDocument;
 	}
+	ReactDOMSharedInternals.b = { a: flushSyncWork };
+	function flushSyncWork() {
+		var __unused_0697 = flushSyncWork$1();
+		return;
+	}
 	function getResource(type, currentProps, pendingProps, currentResource) {
 		var JSCompiler_inline_result = (JSCompiler_inline_result = rootInstanceStackCursor.current) ? getHoistableRoot(JSCompiler_inline_result) : null;
 		if (!JSCompiler_inline_result) throw Error(formatProdErrorMessage(446));
@@ -9065,6 +9292,8 @@ function requireReactDomClient_production() {
 			container[internalContainerInstanceKey] = null;
 		}
 	};
+	var isomorphicReactPackageVersion$jscomp$inline_1840 = React.version;
+	if ("19.2.4" !== isomorphicReactPackageVersion$jscomp$inline_1840) throw Error(formatProdErrorMessage(527, isomorphicReactPackageVersion$jscomp$inline_1840, "19.2.4"));
 	var internals$jscomp$inline_2347 = {
 		bundleType: 0,
 		version: "19.2.4",
@@ -9116,9 +9345,9 @@ var ReactDOM = getDefaultExportFromCjs(clientExports);
 /* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable react-hooks/exhaustive-deps */
 function useEvent(callback) {
-	const fnRef = reactExports.L(callback);
+	const fnRef = reactExports.useRef(callback);
 	fnRef.current = callback;
-	const memoFn = reactExports.y((...args) => fnRef.current?.(...args), []);
+	const memoFn = reactExports.useCallback((...args) => fnRef.current?.(...args), []);
 	return memoFn;
 }
 function canUseDom() {
@@ -9127,11 +9356,11 @@ function canUseDom() {
 /**
 * Wrap `React.useLayoutEffect` which will not throw warning message in test env
 */
-const useInternalLayoutEffect = canUseDom() ? reactExports.H : reactExports.C;
+const useInternalLayoutEffect = canUseDom() ? reactExports.useLayoutEffect : reactExports.useEffect;
 const useLayoutEffect = (callback, deps) => {
-	const firstMountRef = reactExports.L(true);
+	const firstMountRef = reactExports.useRef(true);
 	useInternalLayoutEffect(() => {
-		return callback();
+		return callback(firstMountRef.current);
 	}, deps);
 	// We tell react that first mount has passed
 	useInternalLayoutEffect(() => {
@@ -9141,15 +9370,23 @@ const useLayoutEffect = (callback, deps) => {
 		};
 	}, []);
 };
+const useLayoutUpdateEffect = (callback, deps) => {
+	useLayoutEffect((firstMount) => {
+		if (!firstMount) {
+			return callback();
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, deps);
+};
 /**
 * Same as React.useState but `setState` accept `ignoreDestroy` param to not to setState after destroyed.
 * We do not make this auto is to avoid real memory leak.
 * Developer should confirm it's safe to ignore themselves.
 */
 const useSafeState = (defaultValue) => {
-	const destroyRef = reactExports.L(false);
-	const [value, setValue] = reactExports.M(defaultValue);
-	reactExports.C(() => {
+	const destroyRef = reactExports.useRef(false);
+	const [value, setValue] = reactExports.useState(defaultValue);
+	reactExports.useEffect(() => {
 		destroyRef.current = false;
 		return () => {
 			destroyRef.current = true;
@@ -9163,6 +9400,21 @@ const useSafeState = (defaultValue) => {
 	}
 	return [value, safeSetState];
 };
+/**
+* Similar to `useState` but will use props value if provided.
+* From React 18, we do not need safe `useState` since it will not throw for unmounted update.
+* This hooks remove the `onChange` & `postState` logic since we only need basic merged state logic.
+*/
+function useControlledState(defaultStateValue, value) {
+	const [innerValue, setInnerValue] = reactExports.useState(defaultStateValue);
+	const mergedValue = value !== void 0 ? value : innerValue;
+	useLayoutEffect((mount) => {
+		if (!mount) {
+			setInnerValue(value);
+		}
+	}, [value]);
+	return [mergedValue, setInnerValue];
+}
 var reactIs = {};
 var reactIs_production_min = {};
 function requireReactIs_production_min() {
@@ -9205,7 +9457,7 @@ function requireReactIs() {
 }
 var reactIsExports = requireReactIs();
 function useMemo(getValue, condition, shouldUpdate) {
-	const cacheRef = reactExports.L({});
+	const cacheRef = reactExports.useRef({});
 	if (!("value" in cacheRef.current) || shouldUpdate(cacheRef.current.condition, condition)) {
 		cacheRef.current.value = getValue();
 		cacheRef.current.condition = condition;
@@ -9221,7 +9473,7 @@ const REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
 function isFragment$1(object) {
 	return object && typeof object === "object" && (object.$$typeof === REACT_ELEMENT_TYPE_18 || object.$$typeof === REACT_ELEMENT_TYPE_19) && object.type === REACT_FRAGMENT_TYPE;
 }
-const ReactMajorVersion = Number(reactExports.P.split(".")[0]);
+const ReactMajorVersion = Number(reactExports.version.split(".")[0]);
 const fillRef = (ref, node) => {
 	if (typeof ref === "function") {
 		ref(node);
@@ -9271,7 +9523,7 @@ const supportRef = (nodeOrComponent) => {
 	return true;
 };
 function isReactElement(node) {
-	return reactExports.r(node) && !isFragment$1(node);
+	return reactExports.isValidElement(node) && !isFragment$1(node);
 }
 /**
 * In React 19. `ref` is not a property from node.
@@ -9287,6 +9539,101 @@ const getNodeRef = (node) => {
 	}
 	return null;
 };
+function get(entity, path) {
+	let current = entity;
+	for (let i = 0; i < path.length; i += 1) {
+		if (current === null || current === void 0) {
+			return void 0;
+		}
+		current = current[path[i]];
+	}
+	return current;
+}
+function internalSet(entity, paths, value, removeIfUndefined) {
+	if (!paths.length) {
+		return value;
+	}
+	const [path, ...restPath] = paths;
+	let clone;
+	if (!entity && typeof path === "number") {
+		clone = [];
+	} else if (Array.isArray(entity)) {
+		clone = [...entity];
+	} else {
+		clone = { ...entity };
+	}
+	// Delete prop if `removeIfUndefined` and value is undefined
+	if (removeIfUndefined && value === void 0 && restPath.length === 1) {
+		delete clone[path][restPath[0]];
+	} else {
+		clone[path] = internalSet(clone[path], restPath, value, removeIfUndefined);
+	}
+	return clone;
+}
+function set(entity, paths, value, removeIfUndefined = false) {
+	// Do nothing if `removeIfUndefined` and parent object not exist
+	if (paths.length && removeIfUndefined && value === void 0 && !get(entity, paths.slice(0, -1))) {
+		return entity;
+	}
+	return internalSet(entity, paths, value, removeIfUndefined);
+}
+function isObject(obj) {
+	return typeof obj === "object" && obj !== null && Object.getPrototypeOf(obj) === Object.prototype;
+}
+function createEmpty(source) {
+	return Array.isArray(source) ? [] : {};
+}
+const keys = Reflect.ownKeys;
+// ================================ Merge ================================
+/**
+* Merge multiple objects. Support custom merge logic.
+* @param sources object sources
+* @param config.prepareArray Customize array prepare function.
+* It will return empty [] by default.
+* So when match array, it will auto be override with next array in sources.
+*/
+function mergeWith(sources, config = {}) {
+	const { prepareArray } = config;
+	const finalPrepareArray = prepareArray || (() => []);
+	let clone = createEmpty(sources[0]);
+	sources.forEach((src) => {
+		function internalMerge(path, parentLoopSet) {
+			const loopSet = new Set(parentLoopSet);
+			const value = get(src, path);
+			const isArr = Array.isArray(value);
+			if (isArr || isObject(value)) {
+				// Only add not loop obj
+				if (!loopSet.has(value)) {
+					loopSet.add(value);
+					const originValue = get(clone, path);
+					if (isArr) {
+						// Array will always be override
+						clone = set(clone, path, finalPrepareArray(originValue, value));
+					} else if (!originValue || typeof originValue !== "object") {
+						// Init container if not exist
+						clone = set(clone, path, createEmpty(value));
+					}
+					keys(value).forEach((key) => {
+						if (Object.getOwnPropertyDescriptor(value, key).enumerable) {
+							internalMerge([...path, key], loopSet);
+						}
+					});
+				}
+			} else {
+				clone = set(clone, path, value);
+			}
+		}
+		internalMerge([]);
+	});
+	return clone;
+}
+/**
+* Merge multiple objects into a new single object.
+* Arrays will be replaced by default.
+*/
+function merge$1(...sources) {
+	return mergeWith(sources);
+}
 /* eslint-disable no-console */
 let warned = {};
 function call(__unused_49C5, valid, message) {
@@ -9307,22 +9654,23 @@ function omit(obj, fields) {
 	}
 	return clone;
 }
-function toArray(children, option = {}) {
+function toArray$3(children, option = {}) {
 	let ret = [];
-	React.b.b(children, (child) => {
+	React.Children.forEach(children, (child) => {
 		if ((child === void 0 || child === null) && !option.keepEmpty) {
 			return;
 		}
 		if (Array.isArray(child)) {
-			ret = ret.concat(toArray(child));
+			ret = ret.concat(toArray$3(child));
 		} else if (isFragment$1(child) && child.props) {
-			ret = ret.concat(toArray(child.props.children, option));
+			ret = ret.concat(toArray$3(child.props.children, option));
 		} else {
 			ret.push(child);
 		}
 	});
 	return ret;
 }
+const WarningContext = reactExports.createContext({});
 function isDOM(node) {
 	// https://developer.mozilla.org/en-US/docs/Web/API/Element
 	// Since XULElement is also subclass of Element, we only need HTMLElement and SVGElement
@@ -9340,6 +9688,166 @@ function getDOM(node) {
 	}
 	return null;
 }
+const CollectionContext = reactExports.createContext(null);
+/**
+* Collect all the resize event from children ResizeObserver
+*/
+function Collection({ children, onBatchResize }) {
+	const resizeIdRef = reactExports.useRef(0);
+	const resizeInfosRef = reactExports.useRef([]);
+	const onCollectionResize = reactExports.useContext(CollectionContext);
+	const onResize = reactExports.useCallback((size, element, data) => {
+		resizeIdRef.current += 1;
+		const currentId = resizeIdRef.current;
+		resizeInfosRef.current.push({
+			size,
+			element,
+			data
+		});
+		Promise.resolve().then(() => {
+			if (currentId === resizeIdRef.current) {
+				onBatchResize?.(resizeInfosRef.current);
+				resizeInfosRef.current = [];
+			}
+		});
+		// Continue bubbling if parent exist
+		onCollectionResize?.(size, element, data);
+	}, [onBatchResize, onCollectionResize]);
+	return reactExports.createElement(CollectionContext.Provider, { value: onResize }, children);
+}
+// =============================== Const ===============================
+const elementListeners = new Map();
+function onResize(entities) {
+	entities.forEach((entity) => {
+		const { target } = entity;
+		elementListeners.get(target)?.forEach((listener) => listener(target));
+	});
+}
+// Delay create ResizeObserver since it's not supported in server side
+let observer;
+function ensureResizeObserver() {
+	if (!observer) {
+		observer = new ResizeObserver(onResize);
+	}
+	return observer;
+}
+// ============================== Observe ==============================
+function observe(element, callback) {
+	if (!elementListeners.has(element)) {
+		elementListeners.set(element, new Set());
+		ensureResizeObserver().observe(element);
+	}
+	elementListeners.get(element).add(callback);
+}
+function unobserve(element, callback) {
+	if (elementListeners.has(element)) {
+		elementListeners.get(element).delete(callback);
+		if (!elementListeners.get(element).size) {
+			ensureResizeObserver().unobserve(element);
+			elementListeners.delete(element);
+		}
+	}
+}
+function useResizeObserver(enabled, getTarget, onDelayResize, onSyncResize) {
+	// ============================= Size =============================
+	const sizeRef = reactExports.useRef({
+		width: -1,
+		height: -1,
+		offsetWidth: -1,
+		offsetHeight: -1
+	});
+	// =========================== Observe ============================
+	// Handler
+	const onInternalResize = useEvent((target) => {
+		const { width, height } = target.getBoundingClientRect();
+		const { offsetWidth, offsetHeight } = target;
+		/**
+		* Resize observer trigger when content size changed.
+		* In most case we just care about element size,
+		* let's use `boundary` instead of `contentRect` here to avoid shaking.
+		*/
+		const fixedWidth = Math.floor(width);
+		const fixedHeight = Math.floor(height);
+		if (sizeRef.current.width !== fixedWidth || sizeRef.current.height !== fixedHeight || sizeRef.current.offsetWidth !== offsetWidth || sizeRef.current.offsetHeight !== offsetHeight) {
+			const size = {
+				width: fixedWidth,
+				height: fixedHeight,
+				offsetWidth,
+				offsetHeight
+			};
+			sizeRef.current = size;
+			// IE is strange, right?
+			const mergedOffsetWidth = offsetWidth === Math.round(width) ? width : offsetWidth;
+			const mergedOffsetHeight = offsetHeight === Math.round(height) ? height : offsetHeight;
+			const sizeInfo = {
+				...size,
+				offsetWidth: mergedOffsetWidth,
+				offsetHeight: mergedOffsetHeight
+			};
+			// Call the callback immediately, let the caller decide whether to defer
+			// onResize(sizeInfo, target);
+			onSyncResize?.(sizeInfo, target);
+			// defer the callback but not defer to next frame
+			Promise.resolve().then(() => {
+				onDelayResize?.(sizeInfo, target);
+			});
+		}
+	});
+	// Dynamic observe
+	const isFuncTarget = typeof getTarget === "function";
+	reactExports.useEffect(() => {
+		const target = isFuncTarget ? getTarget() : getTarget;
+		if (target && enabled) {
+			observe(target, onInternalResize);
+		}
+		return () => {
+			if (target) {
+				unobserve(target, onInternalResize);
+			}
+		};
+	}, [enabled, isFuncTarget ? 0 : getTarget]);
+}
+function SingleObserver(props, ref) {
+	const { children, disabled, onResize, data } = props;
+	const elementRef = reactExports.useRef(null);
+	const onCollectionResize = reactExports.useContext(CollectionContext);
+	// =========================== Children ===========================
+	const isRenderProps = typeof children === "function";
+	const mergedChildren = isRenderProps ? children(elementRef) : children;
+	// ============================= Ref ==============================
+	const canRef = !isRenderProps && reactExports.isValidElement(mergedChildren) && supportRef(mergedChildren);
+	const originRef = canRef ? getNodeRef(mergedChildren) : null;
+	const mergedRef = useComposeRef(originRef, elementRef);
+	const getDomElement = () => {
+		return getDOM(elementRef.current);
+	};
+	reactExports.useImperativeHandle(ref, () => getDomElement());
+	// =========================== Observe ============================
+	useResizeObserver(!disabled, getDomElement, onResize, (sizeInfo, target) => {
+		onCollectionResize?.(sizeInfo, target, data);
+	});
+	// ============================ Render ============================
+	return canRef ? reactExports.cloneElement(mergedChildren, { ref: mergedRef }) : mergedChildren;
+}
+const RefSingleObserver = reactExports.forwardRef(SingleObserver);
+function _extends$x() {
+	_extends$x = Object.assign.bind();
+	return _extends$x.apply(this, arguments);
+}
+const INTERNAL_PREFIX_KEY = "rc-observer-key";
+function ResizeObserver$1(props, ref) {
+	const { children } = props;
+	const childNodes = typeof children === "function" ? [children] : toArray$3(children);
+	return childNodes.map((child, index) => {
+		const key = child?.key || `${INTERNAL_PREFIX_KEY}-${index}`;
+		return reactExports.createElement(RefSingleObserver, _extends$x({}, props, {
+			key,
+			ref: index === 0 ? ref : void 0
+		}), child);
+	});
+}
+const RefResizeObserver = reactExports.forwardRef(ResizeObserver$1);
+RefResizeObserver.Collection = Collection;
 function r(e) {
 	var t, f, n = "";
 	if ("string" == typeof e || "number" == typeof e) n += e;
@@ -9353,29 +9861,29 @@ function clsx() {
 	for (var e, t, f = 0, n = "", o = arguments.length; f < o; f++) (e = arguments[f]) && (t = r(e)) && (n && (n += " "), n += t);
 	return n;
 }
-function _arrayLikeToArray(r, a) {
+function _arrayLikeToArray$y(r, a) {
 	(null == a || a > r.length) && (a = r.length);
 	for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
 	return n;
 }
-function _arrayWithoutHoles(r) {
-	if (Array.isArray(r)) return _arrayLikeToArray(r);
+function _arrayWithoutHoles$8(r) {
+	if (Array.isArray(r)) return _arrayLikeToArray$y(r);
 }
-function _iterableToArray(r) {
+function _iterableToArray$8(r) {
 	if (null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r);
 }
-function _unsupportedIterableToArray(r, a) {
+function _unsupportedIterableToArray$y(r, a) {
 	if (r) {
-		if ("string" == typeof r) return _arrayLikeToArray(r, a);
+		if ("string" == typeof r) return _arrayLikeToArray$y(r, a);
 		var t = {}.toString.call(r).slice(8, -1);
-		return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
+		return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray$y(r, a) : void 0;
 	}
 }
-function _nonIterableSpread() {
+function _nonIterableSpread$8() {
 	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _toConsumableArray(r) {
-	return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread();
+function _toConsumableArray$8(r) {
+	return _arrayWithoutHoles$8(r) || _iterableToArray$8(r) || _unsupportedIterableToArray$y(r) || _nonIterableSpread$8();
 }
 let raf = (callback) => +setTimeout(callback, 16);
 let caf = (num) => clearTimeout(num);
@@ -9388,7 +9896,7 @@ const rafIds = new Map();
 function cleanup(id) {
 	rafIds.delete(id);
 }
-const wrapperRaf = (callback) => {
+const wrapperRaf = (callback, times = 1) => {
 	rafUUID += 1;
 	const id = rafUUID;
 	function callRef(leftTimes) {
@@ -9406,7 +9914,7 @@ const wrapperRaf = (callback) => {
 			rafIds.set(id, realId);
 		}
 	}
-	callRef(1);
+	callRef(times);
 	return id;
 };
 wrapperRaf.a = (id) => {
@@ -9414,6 +9922,12 @@ wrapperRaf.a = (id) => {
 	cleanup(id);
 	return caf(realId);
 };
+const Variants = [
+	"outlined",
+	"borderless",
+	"filled",
+	"underlined"
+];
 const defaultGetPrefixCls = (suffixCls, customizePrefixCls) => {
 	if (customizePrefixCls) {
 		return customizePrefixCls;
@@ -9421,7 +9935,7 @@ const defaultGetPrefixCls = (suffixCls, customizePrefixCls) => {
 	return suffixCls ? `${"ant"}-${suffixCls}` : "ant";
 };
 // zombieJ: 🚨 Do not pass `defaultRenderEmpty` here since it will cause circular dependency.
-const ConfigContext = reactExports.n({
+const ConfigContext = reactExports.createContext({
 	getPrefixCls: defaultGetPrefixCls,
 	iconPrefixCls: "anticon"
 });
@@ -9434,10 +9948,10 @@ const EMPTY_OBJECT = {};
 * NOTE: not refactor this with `useMemo` since memo will cost another memory space,
 * which will waste both compare calculation & memory.
 */
-function useComponentConfig() {
-	const context = reactExports.z(ConfigContext);
+function useComponentConfig(propName) {
+	const context = reactExports.useContext(ConfigContext);
 	const { getPrefixCls, direction } = context;
-	const propValue = context["button"];
+	const propValue = context[propName];
 	return {
 		classNames: EMPTY_OBJECT,
 		styles: EMPTY_OBJECT,
@@ -9496,15 +10010,15 @@ function contains(root, n) {
 const APPEND_ORDER = "data-rc-order";
 const APPEND_PRIORITY = "data-rc-priority";
 const containerCache = new Map();
-function getMark({ a: mark }) {
+function getMark({ mark }) {
 	if (mark) {
 		return mark.startsWith("data-") ? mark : `data-${mark}`;
 	}
 	return "rc-util-key";
 }
 function getContainer(option) {
-	if (option.b) {
-		return option.b;
+	if (option.attachTo) {
+		return option.attachTo;
 	}
 	const head = document.querySelector("head");
 	return head || document.body;
@@ -9525,7 +10039,7 @@ function injectCSS(css, option) {
 	if (!canUseDom()) {
 		return null;
 	}
-	const { c: csp, d: prepend, e: priority = 0 } = option;
+	const { csp, prepend, priority = 0 } = option;
 	const mergedOrder = getOrder(prepend);
 	const isPrependQueue = mergedOrder === "prependQueue";
 	const styleNode = document.createElement("style");
@@ -9542,7 +10056,7 @@ function injectCSS(css, option) {
 	if (prepend) {
 		// If is queue `prepend`, it will prepend first style and then append rest style
 		if (isPrependQueue) {
-			const existStyle = (option.f || findStyles(container)).filter((node) => {
+			const existStyle = (option.styles || findStyles(container)).filter((node) => {
 				// Ignore style which not injected by rc-util with prepend
 				if (!["prepend", "prependQueue"].includes(node.getAttribute(APPEND_ORDER))) {
 					return false;
@@ -9564,11 +10078,11 @@ function injectCSS(css, option) {
 	return styleNode;
 }
 function findExistNode(key, option) {
-	let { f: styles } = option;
+	let { styles } = option;
 	styles ||= findStyles(getContainer(option));
 	return styles.find((node) => node.getAttribute(getMark(option)) === key);
 }
-function removeCSS(key, option) {
+function removeCSS(key, option = {}) {
 	const existNode = findExistNode(key, option);
 	if (existNode) {
 		const container = getContainer(option);
@@ -9588,19 +10102,19 @@ function syncRealContainer(container, option) {
 		container.removeChild(placeholderStyle);
 	}
 }
-function updateCSS(css, key, originOption) {
+function updateCSS(css, key, originOption = {}) {
 	const container = getContainer(originOption);
 	const styles = findStyles(container);
 	const option = {
 		...originOption,
-		f: styles
+		styles
 	};
 	// Sync real parent
 	syncRealContainer(container, option);
 	const existNode = findExistNode(key, option);
 	if (existNode) {
-		if (option.c?.nonce && existNode.nonce !== option.c?.nonce) {
-			existNode.nonce = option.c?.nonce;
+		if (option.csp?.nonce && existNode.nonce !== option.csp?.nonce) {
+			existNode.nonce = option.csp?.nonce;
 		}
 		if (existNode.innerHTML !== css) {
 			existNode.innerHTML = css;
@@ -9610,6 +10124,53 @@ function updateCSS(css, key, originOption) {
 	const newNode = injectCSS(css, option);
 	newNode.setAttribute(getMark(option), key);
 	return newNode;
+}
+/**
+* Deeply compares two object literals.
+* @param obj1 object 1
+* @param obj2 object 2
+* @param shallow shallow compare
+* @returns
+*/
+function isEqual(obj1, obj2, shallow = false) {
+	// https://github.com/mapbox/mapbox-gl-js/pull/5979/files#diff-fde7145050c47cc3a306856efd5f9c3016e86e859de9afbd02c879be5067e58f
+	const refSet = new Set();
+	function deepEqual(a, b, level = 1) {
+		const circular = refSet.has(a);
+		warningOnce(!circular, "Warning: There may be circular references");
+		if (circular) {
+			return false;
+		}
+		if (a === b) {
+			return true;
+		}
+		if (shallow && level > 1) {
+			return false;
+		}
+		refSet.add(a);
+		const newLevel = level + 1;
+		if (Array.isArray(a)) {
+			if (!Array.isArray(b) || a.length !== b.length) {
+				return false;
+			}
+			for (let i = 0; i < a.length; i++) {
+				if (!deepEqual(a[i], b[i], newLevel)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		if (a && b && typeof a === "object" && typeof b === "object") {
+			const keys = Object.keys(a);
+			if (keys.length !== Object.keys(b).length) {
+				return false;
+			}
+			return keys.every((key) => deepEqual(a[key], b[key], newLevel));
+		}
+		// other
+		return false;
+	}
+	return deepEqual(obj1, obj2);
 }
 /** Connect key with `SPLIT` */
 function pathKey(keys) {
@@ -9683,20 +10244,35 @@ function createCache() {
 	}
 	return new Entity(cssinjsInstanceId);
 }
-const StyleContext = reactExports.n({
+const StyleContext = reactExports.createContext({
 	hashPriority: "low",
 	cache: createCache(),
 	defaultCache: true,
 	autoPrefix: false
 });
+// ================================== Cache ==================================
+function sameDerivativeOption(left, right) {
+	if (left.length !== right.length) {
+		return false;
+	}
+	for (let i = 0; i < left.length; i++) {
+		if (left[i] !== right[i]) {
+			return false;
+		}
+	}
+	return true;
+}
 class ThemeCache {
 	constructor() {
-		this.a = new Map();
-		this.b = [];
-		this.c = 0;
+		this.cache = new Map();
+		this.keys = [];
+		this.cacheCallTimes = 0;
 	}
-	d(derivativeOption, updateCallTimes = false) {
-		let cache = { map: this.a };
+	size() {
+		return this.keys.length;
+	}
+	internalGet(derivativeOption, updateCallTimes = false) {
+		let cache = { map: this.cache };
 		derivativeOption.forEach((derivative) => {
 			if (!cache) {
 				cache = void 0;
@@ -9705,25 +10281,35 @@ class ThemeCache {
 			}
 		});
 		if (cache?.value && updateCallTimes) {
-			cache.value[1] = this.c++;
+			cache.value[1] = this.cacheCallTimes++;
 		}
 		return cache?.value;
 	}
-	e(derivativeOption) {
-		return this.d(derivativeOption, true)?.[0];
+	get(derivativeOption) {
+		return this.internalGet(derivativeOption, true)?.[0];
 	}
-	f(derivativeOption) {
-		return !!this.d(derivativeOption);
+	has(derivativeOption) {
+		return !!this.internalGet(derivativeOption);
 	}
-	g(derivativeOption, value) {
+	set(derivativeOption, value) {
 		// New cache
-		if (!this.f(derivativeOption)) {
-			this.b.push(derivativeOption);
+		if (!this.has(derivativeOption)) {
+			if (this.size() + 1 > 25) {
+				const [targetKey] = this.keys.reduce((result, key) => {
+					const [, callTimes] = result;
+					if (this.internalGet(key)[1] < callTimes) {
+						return [key, this.internalGet(key)[1]];
+					}
+					return result;
+				}, [this.keys[0], this.cacheCallTimes]);
+				this.delete(targetKey);
+			}
+			this.keys.push(derivativeOption);
 		}
-		let cache = this.a;
+		let cache = this.cache;
 		derivativeOption.forEach((derivative, index) => {
 			if (index === derivativeOption.length - 1) {
-				cache.set(derivative, { value: [value, this.c++] });
+				cache.set(derivative, { value: [value, this.cacheCallTimes++] });
 			} else {
 				const cacheValue = cache.get(derivative);
 				if (!cacheValue) {
@@ -9735,8 +10321,32 @@ class ThemeCache {
 			}
 		});
 	}
+	deleteByPath(currentCache, derivatives) {
+		const cache = currentCache.get(derivatives[0]);
+		if (derivatives.length === 1) {
+			if (!cache.map) {
+				currentCache.delete(derivatives[0]);
+			} else {
+				currentCache.set(derivatives[0], { map: cache.map });
+			}
+			return cache.value?.[0];
+		}
+		const result = this.deleteByPath(cache.map, derivatives.slice(1));
+		if ((!cache.map || cache.map.size === 0) && !cache.value) {
+			currentCache.delete(derivatives[0]);
+		}
+		return result;
+	}
+	delete(derivativeOption) {
+		// If cache exists
+		if (this.has(derivativeOption)) {
+			this.keys = this.keys.filter((item) => !sameDerivativeOption(item, derivativeOption));
+			return this.deleteByPath(this.cache, derivativeOption);
+		}
+		return void 0;
+	}
 }
-let uuid = 0;
+let uuid$2 = 0;
 /**
 * Theme with algorithms to derive tokens from design tokens.
 * Use `createTheme` first which will help to manage the theme instance cache.
@@ -9746,8 +10356,8 @@ class Theme {
 	id;
 	constructor(derivatives) {
 		this.derivatives = Array.isArray(derivatives) ? derivatives : [derivatives];
-		this.id = uuid;
-		uuid += 1;
+		this.id = uuid$2;
+		uuid$2 += 1;
 	}
 	getDerivativeToken(token) {
 		return this.derivatives.reduce((result, derivative) => derivative(token, result), void 0);
@@ -9760,11 +10370,11 @@ const cacheThemes = new ThemeCache();
 function createTheme(derivatives) {
 	const derivativeArr = Array.isArray(derivatives) ? derivatives : [derivatives];
 	// Create new theme if not exist
-	if (!cacheThemes.f(derivativeArr)) {
-		cacheThemes.g(derivativeArr, new Theme(derivativeArr));
+	if (!cacheThemes.has(derivativeArr)) {
+		cacheThemes.set(derivativeArr, new Theme(derivativeArr));
 	}
 	// Get theme from cache and return
-	return cacheThemes.e(derivativeArr);
+	return cacheThemes.get(derivativeArr);
 }
 // Create a cache for memo concat
 const resultCache = new WeakMap();
@@ -9868,7 +10478,7 @@ const transformToken = (token, themeKey, config) => {
 };
 const effectMap = new Map();
 function useGlobalCache(prefix, keyPath, cacheFn, onCacheRemove, onCacheEffect) {
-	const { cache: globalCache } = reactExports.z(StyleContext);
+	const { cache: globalCache } = reactExports.useContext(StyleContext);
 	const fullPath = [prefix, ...keyPath];
 	const fullPathStr = pathKey(fullPath);
 	const buildCache = (updater) => {
@@ -9883,7 +10493,7 @@ function useGlobalCache(prefix, keyPath, cacheFn, onCacheRemove, onCacheEffect) 
 		});
 	};
 	// Create cache
-	reactExports.I(
+	reactExports.useMemo(
 		() => {
 			buildCache();
 		},
@@ -9893,7 +10503,7 @@ function useGlobalCache(prefix, keyPath, cacheFn, onCacheRemove, onCacheEffect) 
 	let cacheEntity = globalCache.opGet(fullPathStr);
 	const cacheContent = cacheEntity[1];
 	// Remove if no need anymore
-	reactExports.G(() => {
+	reactExports.useInsertionEffect(() => {
 		buildCache(([times, cache]) => [times + 1, cache]);
 		if (!effectMap.has(fullPathStr)) {
 			onCacheEffect(cacheContent);
@@ -9956,7 +10566,7 @@ function cleanTokenStyle(tokenKey, instanceId) {
 * @returns Call Theme.getDerivativeToken(tokenObject) to get token
 */
 function useCacheToken(theme, tokens, option) {
-	const { cache: { instanceId }, container, hashPriority } = reactExports.z(StyleContext);
+	const { cache: { instanceId }, container, hashPriority } = reactExports.useContext(StyleContext);
 	const { a: salt, b: override = EMPTY_OVERRIDE, c: compute, d: cssVar } = option;
 	// Basic - We do basic cache here
 	const mergedToken = memoResult(() => Object.assign({}, ...tokens), tokens);
@@ -10003,10 +10613,10 @@ function useCacheToken(theme, tokens, option) {
 			return;
 		}
 		const style = updateCSS(cssVarsStr, murmur2(`css-var-${themeKey}`), {
-			a: ATTR_MARK,
-			d: "queue",
-			b: container,
-			e: -999
+			mark: ATTR_MARK,
+			prepend: "queue",
+			attachTo: container,
+			priority: -999
 		});
 		style[CSS_IN_JS_INSTANCE] = instanceId;
 		// Used for `useCacheToken` to remove on batch when token removed
@@ -10097,7 +10707,7 @@ function trim(value) {
 * @param {RegExp} pattern
 * @return {string?}
 */
-function match(value, pattern) {
+function match$1(value, pattern) {
 	return (value = pattern.exec(value)) ? value[0] : value;
 }
 /**
@@ -10172,7 +10782,7 @@ function combine(array, callback) {
 */
 function filter(array, pattern) {
 	return array.filter(function(value) {
-		return !match(value, pattern);
+		return !match$1(value, pattern);
 	});
 }
 var line = 1;
@@ -10319,7 +10929,7 @@ function delimit(type) {
 * @param {number} type
 * @return {string}
 */
-function whitespace(type) {
+function whitespace$2(type) {
 	while (character = peek()) if (character < 33) next();
 	else break;
 	return token(type) > 2 || token(character) > 3 ? "" : " ";
@@ -10424,7 +11034,7 @@ function parse(value, root, parent, rule, rules, rulesets, pseudo, points, decla
 		case 10:
 		case 13:
 		case 32:
-			characters += whitespace(previous);
+			characters += whitespace$2(previous);
 			break;
 		case 92:
 			characters += escaping(caret() - 1, 7);
@@ -10585,7 +11195,7 @@ function prefix(value, length, children) {
 		case 2903: return "-webkit-" + value + "-ms-" + value + value;
 		case 6165: return "-webkit-" + value + "-ms-" + "flex-" + value + value;
 		case 5187: return "-webkit-" + value + replace(value, /(\w+).+(:[^]+)/, "-webkit-" + "box-$1$2" + "-ms-" + "flex-$1$2") + value;
-		case 5443: return "-webkit-" + value + "-ms-" + "flex-item-" + replace(value, /flex-|-self/g, "") + (!match(value, /flex-|baseline/) ? "-ms-" + "grid-row-" + replace(value, /flex-|-self/g, "") : "") + value;
+		case 5443: return "-webkit-" + value + "-ms-" + "flex-item-" + replace(value, /flex-|-self/g, "") + (!match$1(value, /flex-|baseline/) ? "-ms-" + "grid-row-" + replace(value, /flex-|-self/g, "") : "") + value;
 		case 4675: return "-webkit-" + value + "-ms-" + "flex-line-pack" + replace(value, /align-content|flex-|-self/g, "") + value;
 		case 5548: return "-webkit-" + value + "-ms-" + replace(value, "shrink", "negative") + value;
 		case 5292: return "-webkit-" + value + "-ms-" + replace(value, "basis", "preferred-size") + value;
@@ -10596,21 +11206,21 @@ function prefix(value, length, children) {
 		case 3959: return replace(value, /(image-set\([^]*)/, "-webkit-$1" + "$`$1");
 		case 4968: return replace(replace(value, /(.+:)(flex-)?(.*)/, "-webkit-" + "box-pack:$3" + "-ms-" + "flex-pack:$3"), /space-between/, "justify") + "-webkit-" + value + value;
 		case 4200:
-			if (!match(value, /flex-|baseline/)) return "-ms-" + "grid-column-align" + substr(value, length) + value;
+			if (!match$1(value, /flex-|baseline/)) return "-ms-" + "grid-column-align" + substr(value, length) + value;
 			break;
 		case 2592:
 		case 3360: return "-ms-" + replace(value, "template-", "") + value;
 		case 4384:
 		case 3616:
 			if (children && children.some(function(element, index) {
-				return length = index, match(element.props, /grid-\w+-end/);
+				return length = index, match$1(element.props, /grid-\w+-end/);
 			})) {
-				return ~indexof(value + (children = children[length].value), "span", 0) ? value : "-ms-" + replace(value, "-start", "") + value + "-ms-" + "grid-row-span:" + (~indexof(children, "span", 0) ? match(children, /\d+/) : +match(children, /\d+/) - +match(value, /\d+/)) + ";";
+				return ~indexof(value + (children = children[length].value), "span", 0) ? value : "-ms-" + replace(value, "-start", "") + value + "-ms-" + "grid-row-span:" + (~indexof(children, "span", 0) ? match$1(children, /\d+/) : +match$1(children, /\d+/) - +match$1(value, /\d+/)) + ";";
 			}
 			return "-ms-" + replace(value, "-start", "") + value;
 		case 4896:
 		case 4128: return children && children.some(function(element) {
-			return match(element.props, /grid-\w+-start/);
+			return match$1(element.props, /grid-\w+-start/);
 		}) ? value : "-ms-" + replace(replace(value, "-end", "-span"), "span ", "") + value;
 		case 4095:
 		case 3583:
@@ -10676,7 +11286,7 @@ function serialize(children, callback) {
 * @param {function} callback
 * @return {string}
 */
-function stringify(element, __unused_D143, children, callback) {
+function stringify$1(element, __unused_D143, children, callback) {
 	switch (element.type) {
 		case "@layer": if (element.children.length) break;
 		case "@import":
@@ -10713,7 +11323,7 @@ function prefixer(element, __unused_D143_0, children, callback) {
 				return;
 			case "@keyframes": return serialize([copy(element, { value: replace(element.value, "@", "@-webkit-") })], callback);
 			case "rule": if (element.length) return combine(children = element.props, function(value) {
-				switch (match(value, callback = /(::plac\w+|:read-\w+)/)) {
+				switch (match$1(value, callback = /(::plac\w+|:read-\w+)/)) {
 					case ":read-only":
 					case ":read-write":
 						lift(copy(element, { props: [replace(value, /:(read-\w+)/, ":-moz-$1")] }));
@@ -10796,7 +11406,7 @@ const MULTI_VALUE = "_multi_value_";
 // ============================================================================
 // Preprocessor style content to browser support one
 function normalizeStyle(styleStr, autoPrefix) {
-	const serialized = autoPrefix ? serialize(compile(styleStr), middleware([prefixer, stringify])) : serialize(compile(styleStr), stringify);
+	const serialized = autoPrefix ? serialize(compile(styleStr), middleware([prefixer, stringify$1])) : serialize(compile(styleStr), stringify$1);
 	return serialized.replace(/\{%%%\:[^;];}/g, ";");
 }
 function isCompoundCSSProperty(value) {
@@ -10956,7 +11566,7 @@ function uniqueHash(path, styleStr) {
 */
 function useStyleRegister(info, styleFn) {
 	const { path, hashId, layer, nonce, clientOnly, order = 0 } = info;
-	const { hashPriority, container, transformers, linters, cache, layer: enableLayer, autoPrefix } = reactExports.z(StyleContext);
+	const { hashPriority, container, transformers, linters, cache, layer: enableLayer, autoPrefix } = reactExports.useContext(StyleContext);
 	const fullPath = [hashId || ""];
 	if (enableLayer) {
 		fullPath.push("layer");
@@ -11010,14 +11620,14 @@ function useStyleRegister(info, styleFn) {
 			const [styleStr, styleId, effectStyle, , priority] = cacheValue;
 			if (isMergedClientSide && styleStr !== CSS_FILE_STYLE) {
 				const mergedCSSConfig = {
-					a: ATTR_MARK,
-					d: enableLayer ? false : "queue",
-					b: container,
-					e: priority
+					mark: ATTR_MARK,
+					prepend: enableLayer ? false : "queue",
+					attachTo: container,
+					priority
 				};
 				const nonceStr = typeof nonce === "function" ? nonce() : nonce;
 				if (nonceStr) {
-					mergedCSSConfig.c = { nonce: nonceStr };
+					mergedCSSConfig.csp = { nonce: nonceStr };
 				}
 				// ================= Split Effect Style =================
 				// We will split effectStyle here since @layer should be at the top level
@@ -11035,7 +11645,7 @@ function useStyleRegister(info, styleFn) {
 				effectLayerKeys.forEach((effectKey) => {
 					updateCSS(normalizeStyle(effectStyle[effectKey], autoPrefix || false), `_layer-${effectKey}`, {
 						...mergedCSSConfig,
-						d: true
+						prepend: true
 					});
 				});
 				// ==================== Inject Style ====================
@@ -11053,7 +11663,7 @@ function useStyleRegister(info, styleFn) {
 }
 const useCSSVarRegister = (config, fn) => {
 	const { a: key, b: prefix, c: unitless, d: ignore, e: token, f: scope = "" } = config;
-	const { cache: { instanceId }, container, hashPriority } = reactExports.z(StyleContext);
+	const { cache: { instanceId }, container, hashPriority } = reactExports.useContext(StyleContext);
 	const { _tokenKey: tokenKey } = token;
 	const stylePath = [
 		...config.g,
@@ -11081,8 +11691,8 @@ const useCSSVarRegister = (config, fn) => {
 	}, ([, , styleId]) => {
 		if (isClientSide) {
 			removeCSS(styleId, {
-				a: ATTR_MARK,
-				b: container
+				mark: ATTR_MARK,
+				attachTo: container
 			});
 		}
 	}, ([, cssVarsStr, styleId]) => {
@@ -11090,10 +11700,10 @@ const useCSSVarRegister = (config, fn) => {
 			return;
 		}
 		const style = updateCSS(cssVarsStr, styleId, {
-			a: ATTR_MARK,
-			d: "queue",
-			b: container,
-			e: -999
+			mark: ATTR_MARK,
+			prepend: "queue",
+			attachTo: container,
+			priority: -999
 		});
 		style[CSS_IN_JS_INSTANCE] = instanceId;
 		// Used for `useCacheToken` to remove on batch when token removed
@@ -11101,16 +11711,26 @@ const useCSSVarRegister = (config, fn) => {
 	});
 	return;
 };
-function _typeof(o) {
-	"@babel/helpers - typeof";
-	return _typeof = function(o) {
-		return typeof o;
-	}, _typeof(o);
+class Keyframe {
+	constructor(name, style) {
+		this.name = name;
+		this.style = style;
+	}
+	getName(hashId = "") {
+		return hashId ? `${hashId}-${this.name}` : this.name;
+	}
+	_keyframe = true;
 }
-function _arrayWithHoles(r) {
+function _typeof$u(o) {
+	"@babel/helpers - typeof";
+	return _typeof$u = function(o) {
+		return typeof o;
+	}, _typeof$u(o);
+}
+function _arrayWithHoles$v(r) {
 	if (Array.isArray(r)) return r;
 }
-function _iterableToArrayLimit(r, l) {
+function _iterableToArrayLimit$v(r, l) {
 	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
 	if (null != t) {
 		var e, n, i, u, a = [], f = true, o = false;
@@ -11131,27 +11751,27 @@ function _iterableToArrayLimit(r, l) {
 		return a;
 	}
 }
-function _nonIterableRest() {
+function _nonIterableRest$v() {
 	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
-function _slicedToArray(r, e) {
-	return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
+function _slicedToArray$v(r, e) {
+	return _arrayWithHoles$v(r) || _iterableToArrayLimit$v(r, e) || _unsupportedIterableToArray$y(r, e) || _nonIterableRest$v();
 }
 function toPrimitive(t) {
-	if ("object" != _typeof(t) || !t) return t;
+	if ("object" != _typeof$u(t) || !t) return t;
 	var e = t[Symbol.toPrimitive];
 	if (void 0 !== e) {
 		var i = e.call(t, "string");
-		if ("object" != _typeof(i)) return i;
+		if ("object" != _typeof$u(i)) return i;
 		throw new TypeError("@@toPrimitive must return a primitive value.");
 	}
 	return String(t);
 }
 function toPropertyKey(t) {
 	var i = toPrimitive(t);
-	return "symbol" == _typeof(i) ? i : i + "";
+	return "symbol" == _typeof$u(i) ? i : i + "";
 }
-function _defineProperty(e, r, t) {
+function _defineProperty$s(e, r, t) {
 	return (r = toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
 		value: t,
 		enumerable: true,
@@ -11159,7 +11779,7 @@ function _defineProperty(e, r, t) {
 		writable: true
 	}) : e[r] = t, e;
 }
-function ownKeys(e, r) {
+function ownKeys$i(e, r) {
 	var t = Object.keys(e);
 	if (Object.getOwnPropertySymbols) {
 		var o = Object.getOwnPropertySymbols(e);
@@ -11172,25 +11792,25 @@ function ownKeys(e, r) {
 function _objectSpread2(e) {
 	for (var r = 1; r < arguments.length; r++) {
 		var t = null != arguments[r] ? arguments[r] : {};
-		r % 2 ? ownKeys(Object(t), true).forEach(function(r) {
-			_defineProperty(e, r, t[r]);
-		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function(r) {
+		r % 2 ? ownKeys$i(Object(t), true).forEach(function(r) {
+			_defineProperty$s(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$i(Object(t)).forEach(function(r) {
 			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
 		});
 	}
 	return e;
 }
-function _classCallCheck(a, n) {
+function _classCallCheck$1(a, n) {
 	if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function");
 }
-function _defineProperties(e, r) {
+function _defineProperties$1(e, r) {
 	for (var t = 0; t < r.length; t++) {
 		var o = r[t];
 		o.enumerable = o.enumerable || false, o.configurable = true, "value" in o && (o.writable = true), Object.defineProperty(e, toPropertyKey(o.key), o);
 	}
 }
-function _createClass(e, r) {
-	return r && _defineProperties(e.prototype, r), Object.defineProperty(e, "prototype", { writable: false }), e;
+function _createClass$1(e, r) {
+	return r && _defineProperties$1(e.prototype, r), Object.defineProperty(e, "prototype", { writable: false }), e;
 }
 function _assertThisInitialized(e) {
 	if (void 0 === e) throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
@@ -11198,15 +11818,16 @@ function _assertThisInitialized(e) {
 }
 function _setPrototypeOf(t, e) {
 	return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function(t, e) {
-		return t.__proto__ = e;
+		return t.__proto__ = e, t;
 	}, _setPrototypeOf(t, e);
 }
 function _inherits(t, e) {
-	t.prototype = Object.create(e.prototype, { constructor: {
+	if ("function" != typeof e && null !== e) throw new TypeError("Super expression must either be null or a function");
+	t.prototype = Object.create(e && e.prototype, { constructor: {
 		value: t,
 		writable: true,
 		configurable: true
-	} }), Object.defineProperty(t, "prototype", { writable: false }), _setPrototypeOf(t, e);
+	} }), Object.defineProperty(t, "prototype", { writable: false }), e && _setPrototypeOf(t, e);
 }
 function _getPrototypeOf(t) {
 	return _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf.bind() : function(t) {
@@ -11222,7 +11843,7 @@ function _isNativeReflectConstruct() {
 	})();
 }
 function _possibleConstructorReturn(t, e) {
-	if (e && ("object" == _typeof(e) || "function" == typeof e)) return e;
+	if (e && ("object" == _typeof$u(e) || "function" == typeof e)) return e;
 	if (void 0 !== e) throw new TypeError("Derived constructors may only return object or undefined");
 	return _assertThisInitialized(t);
 }
@@ -11237,11 +11858,11 @@ function _createSuper(t) {
 		return _possibleConstructorReturn(this, e);
 	};
 }
-var AbstractCalculator = _createClass(function AbstractCalculator() {
-	_classCallCheck(this, AbstractCalculator);
+var AbstractCalculator = _createClass$1(function AbstractCalculator() {
+	_classCallCheck$1(this, AbstractCalculator);
 });
 var AbstractCalculator$1 = AbstractCalculator;
-var regexp = new RegExp("CALC_UNIT", "g");
+var regexp$2 = new RegExp("CALC_UNIT", "g");
 function unit(value) {
 	if (typeof value === "number") {
 		return "".concat(value).concat("CALC_UNIT");
@@ -11253,12 +11874,12 @@ var CSSCalculator = function(_AbstractCalculator) {
 	var _super = _createSuper(CSSCalculator);
 	function CSSCalculator(num, unitlessCssVar) {
 		var _this;
-		_classCallCheck(this, CSSCalculator);
+		_classCallCheck$1(this, CSSCalculator);
 		_this = _super.call(this);
-		_defineProperty(_assertThisInitialized(_this), "result", "");
-		_defineProperty(_assertThisInitialized(_this), "unitlessCssVar", void 0);
-		_defineProperty(_assertThisInitialized(_this), "lowPriority", void 0);
-		var numType = _typeof(num);
+		_defineProperty$s(_assertThisInitialized(_this), "result", "");
+		_defineProperty$s(_assertThisInitialized(_this), "unitlessCssVar", void 0);
+		_defineProperty$s(_assertThisInitialized(_this), "lowPriority", void 0);
+		var numType = _typeof$u(num);
 		_this.unitlessCssVar = unitlessCssVar;
 		if (num instanceof CSSCalculator) {
 			_this.result = "(".concat(num.result, ")");
@@ -11269,7 +11890,7 @@ var CSSCalculator = function(_AbstractCalculator) {
 		}
 		return _this;
 	}
-	_createClass(CSSCalculator, [
+	_createClass$1(CSSCalculator, [
 		{
 			key: "add",
 			value: function(num) {
@@ -11343,7 +11964,7 @@ var CSSCalculator = function(_AbstractCalculator) {
 				})) {
 					mergedUnit = false;
 				}
-				this.result = this.result.replace(regexp, mergedUnit ? "px" : "");
+				this.result = this.result.replace(regexp$2, mergedUnit ? "px" : "");
 				if (typeof this.lowPriority !== "undefined") {
 					return "calc(".concat(this.result, ")");
 				}
@@ -11358,9 +11979,9 @@ var __unused_76FD = function(_AbstractCalculator) {
 	var _super = _createSuper(NumCalculator);
 	function NumCalculator(num) {
 		var _this;
-		_classCallCheck(this, NumCalculator);
+		_classCallCheck$1(this, NumCalculator);
 		_this = _super.call(this);
-		_defineProperty(_assertThisInitialized(_this), "result", 0);
+		_defineProperty$s(_assertThisInitialized(_this), "result", 0);
 		if (num instanceof NumCalculator) {
 			_this.result = num.result;
 		} else if (typeof num === "number") {
@@ -11368,7 +11989,7 @@ var __unused_76FD = function(_AbstractCalculator) {
 		}
 		return _this;
 	}
-	_createClass(NumCalculator, [
+	_createClass$1(NumCalculator, [
 		{
 			key: "add",
 			value: function(num) {
@@ -11438,7 +12059,7 @@ function getComponentToken(component, token, defaultToken, options) {
 	if (options !== null && true && options.deprecatedTokens) {
 		var deprecatedTokens = options.deprecatedTokens;
 		deprecatedTokens.forEach(function(_ref) {
-			var _ref2 = _slicedToArray(_ref, 2), oldTokenKey = _ref2[0], newTokenKey = _ref2[1];
+			var _ref2 = _slicedToArray$v(_ref, 2), oldTokenKey = _ref2[0], newTokenKey = _ref2[1];
 			// Should wrap with `if` clause, or there will be `undefined` in object.
 			if (customToken !== null && customToken !== void 0 && customToken[oldTokenKey] || customToken !== null && customToken !== void 0 && customToken[newTokenKey]) {
 				var _customToken$newToken;
@@ -11472,7 +12093,7 @@ function merge() {
 	recording = false;
 	var ret = {};
 	objs.forEach(function(obj) {
-		if (_typeof(obj) !== "object") {
+		if (_typeof$u(obj) !== "object") {
 			return;
 		}
 		var keys = Object.keys(obj);
@@ -11554,16 +12175,16 @@ function genMaxMin() {
 */
 var ArrayKeyMap = function() {
 	function ArrayKeyMap() {
-		_classCallCheck(this, ArrayKeyMap);
-		_defineProperty(this, "map", new Map());
+		_classCallCheck$1(this, ArrayKeyMap);
+		_defineProperty$s(this, "map", new Map());
 		// Use WeakMap to avoid memory leak
-		_defineProperty(this, "objectIDMap", new WeakMap());
-		_defineProperty(this, "nextID", 0);
-		_defineProperty(this, "lastAccessBeat", new Map());
+		_defineProperty$s(this, "objectIDMap", new WeakMap());
+		_defineProperty$s(this, "nextID", 0);
+		_defineProperty$s(this, "lastAccessBeat", new Map());
 		// We will clean up the cache when reach the limit
-		_defineProperty(this, "accessBeat", 0);
+		_defineProperty$s(this, "accessBeat", 0);
 	}
-	_createClass(ArrayKeyMap, [
+	_createClass$1(ArrayKeyMap, [
 		{
 			key: "set",
 			value: function(keys, value) {
@@ -11590,10 +12211,10 @@ var ArrayKeyMap = function() {
 			value: function(keys) {
 				var _this = this;
 				var ids = keys.map(function(key) {
-					if (key && _typeof(key) === "object") {
+					if (key && _typeof$u(key) === "object") {
 						return "obj_".concat(_this.getObjectID(key));
 					}
-					return "".concat(_typeof(key), "_").concat(key);
+					return "".concat(_typeof$u(key), "_").concat(key);
 				});
 				return ids.join("|");
 			}
@@ -11634,7 +12255,7 @@ var uniqueMap = new ArrayKeyMap();
 * Like `useMemo`, but this hook result will be shared across all instances.
 */
 function useUniqueMemo(memoFn, deps) {
-	return React.I(function() {
+	return React.useMemo(function() {
 		var cachedValue = uniqueMap.get(deps);
 		if (cachedValue) {
 			return cachedValue;
@@ -11647,15 +12268,15 @@ function useUniqueMemo(memoFn, deps) {
 function genStyleUtils(config) {
 	// Dependency inversion for preparing basic config.
 	var _config$useCSP = config.a, useCSP = _config$useCSP, useToken = config.b, usePrefix = config.c, getResetStyles = config.d, getCommonStyle = config.e, getCompUnitless = config.f;
-	function genStyleHooks(__unused_4FFA, styleFn, getDefaultToken, options) {
-		var componentName = Array.isArray("Button") ? "B" : "Button";
+	function genStyleHooks(component, styleFn, getDefaultToken, options) {
+		var componentName = Array.isArray(component) ? component[0] : component;
 		function prefixToken(key) {
 			return "".concat(String(componentName)).concat(key.slice(0, 1).toUpperCase()).concat(key.slice(1));
 		}
 		// Fill unitless
-		var originUnitless = (options === null || false ? void 0 : options.unitless) || {};
+		var originUnitless = (options === null || options === void 0 ? void 0 : options.unitless) || {};
 		var originCompUnitless = getCompUnitless();
-		var compUnitless = _objectSpread2(_objectSpread2({}, originCompUnitless), {}, _defineProperty({}, prefixToken("zIndexPopup"), true));
+		var compUnitless = _objectSpread2(_objectSpread2({}, originCompUnitless), {}, _defineProperty$s({}, prefixToken("zIndexPopup"), true));
 		Object.keys(originUnitless).forEach(function(key) {
 			compUnitless[prefixToken(key)] = originUnitless[key];
 		});
@@ -11665,7 +12286,7 @@ function genStyleUtils(config) {
 			prefixToken
 		});
 		// Hooks
-		var useStyle = genComponentStyleHook("Button", styleFn, getDefaultToken, mergedOptions);
+		var useStyle = genComponentStyleHook(component, styleFn, getDefaultToken, mergedOptions);
 		var useCSSVar = genCSSVarRegister(componentName, getDefaultToken, mergedOptions);
 		return function(prefixCls) {
 			var rootCls = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : prefixCls;
@@ -11703,7 +12324,7 @@ function genStyleUtils(config) {
 	function genComponentStyleHook(componentName, styleFn, getDefaultToken) {
 		var options = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : {};
 		var cells = Array.isArray(componentName) ? componentName : [componentName, componentName];
-		var _cells = _slicedToArray(cells, 1), component = _cells[0];
+		var _cells = _slicedToArray$v(cells, 1), component = _cells[0];
 		var concatComponent = cells.join("-");
 		var mergedLayer = { name: "antd" };
 		// Return new style hook
@@ -11711,7 +12332,7 @@ function genStyleUtils(config) {
 			var rootCls = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : prefixCls;
 			var _useToken2 = useToken(), theme = _useToken2.c, realToken = _useToken2.b, hashId = _useToken2.d, token = _useToken2.e, cssVar = _useToken2.a, zeroRuntime = _useToken2.f;
 			// Update of `disabledRuntimeStyle` would cause React hook error, so memoized it and never update.
-			var memoizedZeroRuntime = reactExports.I(function() {
+			var memoizedZeroRuntime = reactExports.useMemo(function() {
 				return zeroRuntime;
 			}, []);
 			if (memoizedZeroRuntime) {
@@ -11771,7 +12392,7 @@ function genStyleUtils(config) {
 				var defaultComponentToken = getDefaultComponentToken(component, realToken, getDefaultToken);
 				var componentCls = ".".concat(prefixCls);
 				var componentToken = getComponentToken(component, realToken, defaultComponentToken, { deprecatedTokens: options.deprecatedTokens });
-				if (defaultComponentToken && _typeof(defaultComponentToken) === "object") {
+				if (defaultComponentToken && _typeof$u(defaultComponentToken) === "object") {
 					Object.keys(defaultComponentToken).forEach(function(key) {
 						defaultComponentToken[key] = "var(".concat(token2CSSVar(key, getCompVarPrefix$1(component, cssVar.prefix)), ")");
 					});
@@ -12622,7 +13243,7 @@ function getSaturation(hsv, i, light) {
 	}
 	return Math.round(saturation * 100) / 100;
 }
-function getValue(hsv, i, light) {
+function getValue$1(hsv, i, light) {
 	let value;
 	if (light) {
 		value = hsv.v + brightnessStep1 * i;
@@ -12641,7 +13262,7 @@ function generate$1(color) {
 		const c = new FastColor({
 			h: getHue(hsv, i, true),
 			s: getSaturation(hsv, i, true),
-			v: getValue(hsv, i, true)
+			v: getValue$1(hsv, i, true)
 		});
 		patterns.push(c);
 	}
@@ -12650,7 +13271,7 @@ function generate$1(color) {
 		const c = new FastColor({
 			h: getHue(hsv, i),
 			s: getSaturation(hsv, i),
-			v: getValue(hsv, i)
+			v: getValue$1(hsv, i)
 		});
 		patterns.push(c);
 	}
@@ -13125,7 +13746,7 @@ const defaultConfig = {
 	override: { override: seedToken },
 	hashed: true
 };
-const DesignTokenContext = React.n(defaultConfig);
+const DesignTokenContext = React.createContext(defaultConfig);
 function isStableColor(color) {
 	return color >= 0 && color <= 255;
 }
@@ -13349,7 +13970,7 @@ const getComputedToken = (originToken, overrideToken, theme) => {
 };
 // ================================== Hook ==================================
 function useToken() {
-	const { token: rootDesignToken, hashed, theme, override, cssVar: ctxCssVar, zeroRuntime } = React.z(DesignTokenContext);
+	const { token: rootDesignToken, hashed, theme, override, cssVar: ctxCssVar, zeroRuntime } = React.useContext(DesignTokenContext);
 	const cssVar = {
 		prefix: ctxCssVar?.prefix ?? "ant",
 		key: ctxCssVar?.key ?? "css-var-root"
@@ -13376,6 +13997,21 @@ function useToken() {
 		!!zeroRuntime
 	];
 }
+const textEllipsis = {
+	overflow: "hidden",
+	whiteSpace: "nowrap",
+	textOverflow: "ellipsis"
+};
+const resetComponent = (token) => ({
+	boxSizing: "border-box",
+	margin: 0,
+	padding: 0,
+	color: token.colorText,
+	fontSize: token.fontSize,
+	lineHeight: token.lineHeight,
+	listStyle: "none",
+	fontFamily: token.fontFamily
+});
 const resetIcon = () => ({
 	display: "inline-flex",
 	alignItems: "center",
@@ -13390,6 +14026,17 @@ const resetIcon = () => ({
 	"-moz-osx-font-smoothing": "grayscale",
 	"> *": { lineHeight: 1 },
 	svg: { display: "inline-block" }
+});
+const clearFix = () => ({
+	"&::before": {
+		display: "table",
+		content: "\"\""
+	},
+	"&::after": {
+		display: "table",
+		clear: "both",
+		content: "\"\""
+	}
 });
 const genLinkStyle = (token) => ({ a: {
 	color: token.colorLink,
@@ -13446,7 +14093,7 @@ const genIconStyle = (iconPrefixCls) => ({ [`.${iconPrefixCls}`]: {
 } });
 const { a: genStyleHooks, c: genComponentStyleHook, b: genSubStyleComponent } = genStyleUtils({
 	c: () => {
-		const { getPrefixCls, iconPrefixCls } = reactExports.z(ConfigContext);
+		const { getPrefixCls, iconPrefixCls } = reactExports.useContext(ConfigContext);
 		const rootPrefixCls = getPrefixCls();
 		return {
 			a: rootPrefixCls,
@@ -13465,7 +14112,7 @@ const { a: genStyleHooks, c: genComponentStyleHook, b: genSubStyleComponent } = 
 		};
 	},
 	a: () => {
-		const { csp } = reactExports.z(ConfigContext);
+		const { csp } = reactExports.useContext(ConfigContext);
 		return csp ?? {};
 	},
 	d: (token, config) => {
@@ -13489,7 +14136,17 @@ const genCssVar = (antCls, component) => {
 	};
 	return [varName, varRef];
 };
-const IconContext = reactExports.n({});
+const useResetIconStyle = (iconPrefixCls, csp) => {
+	useToken();
+	// Generate style for icons
+	return useStyleRegister({
+		hashId: "",
+		path: ["ant-design-icons", iconPrefixCls],
+		nonce: () => csp?.nonce,
+		layer: { name: "antd" }
+	}, () => genIconStyle(iconPrefixCls));
+};
+const IconContext = reactExports.createContext({});
 function getRoot(ele) {
 	return ele?.getRootNode?.();
 }
@@ -13508,7 +14165,7 @@ function getShadowRoot(ele) {
 function camelCase(input) {
 	return input.replace(/-(.)/g, (__unused_359B, g) => g.toUpperCase());
 }
-function warning(valid, message) {
+function warning$1(valid, message) {
 	warningOnce(valid, `[@ant-design/icons] ${message}`);
 }
 function isIconDefinition(target) {
@@ -13531,12 +14188,12 @@ function normalizeAttrs(attrs = {}) {
 }
 function generate(node, key, rootProps) {
 	if (!rootProps) {
-		return React.o(node.tag, {
+		return React.createElement(node.tag, {
 			key,
 			...normalizeAttrs(node.attrs)
 		}, (node.children || []).map((child, index) => generate(child, `${key}-${node.tag}-${index}`)));
 	}
-	return React.o(node.tag, {
+	return React.createElement(node.tag, {
 		key,
 		...normalizeAttrs(node.attrs),
 		...rootProps
@@ -13554,7 +14211,7 @@ function normalizeTwoToneColors(twoToneColor) {
 }
 const iconStyles = "\n.anticon {\n  display: inline-flex;\n  align-items: center;\n  color: inherit;\n  font-style: normal;\n  line-height: 0;\n  text-align: center;\n  text-transform: none;\n  vertical-align: -0.125em;\n  text-rendering: optimizeLegibility;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\n.anticon > * {\n  line-height: 1;\n}\n\n.anticon svg {\n  display: inline-block;\n  vertical-align: inherit;\n}\n\n.anticon::before {\n  display: none;\n}\n\n.anticon .anticon-icon {\n  display: block;\n}\n\n.anticon[tabindex] {\n  cursor: pointer;\n}\n\n.anticon-spin::before,\n.anticon-spin {\n  display: inline-block;\n  -webkit-animation: loadingCircle 1s infinite linear;\n  animation: loadingCircle 1s infinite linear;\n}\n\n@-webkit-keyframes loadingCircle {\n  100% {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n\n@keyframes loadingCircle {\n  100% {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n";
 const useInsertStyles = (eleRef) => {
-	const { csp, prefixCls, layer } = reactExports.z(IconContext);
+	const { csp, prefixCls, layer } = reactExports.useContext(IconContext);
 	let mergedStyleStr = iconStyles;
 	if (prefixCls) {
 		mergedStyleStr = mergedStyleStr.replace(/anticon/g, prefixCls);
@@ -13564,13 +14221,13 @@ const useInsertStyles = (eleRef) => {
 ${mergedStyleStr}
 }`;
 	}
-	reactExports.C(() => {
+	reactExports.useEffect(() => {
 		const ele = eleRef.current;
 		const shadowRoot = getShadowRoot(ele);
 		updateCSS(mergedStyleStr, "@ant-design-icons", {
-			d: !layer,
-			c: csp,
-			b: shadowRoot
+			prepend: !layer,
+			csp,
+			attachTo: shadowRoot
 		});
 	}, []);
 };
@@ -13585,7 +14242,7 @@ function getTwoToneColors() {
 }
 const IconBase = (props) => {
 	const { icon, className, onClick, style, primaryColor, secondaryColor, ...restProps } = props;
-	const svgRef = reactExports.L(null);
+	const svgRef = reactExports.useRef(null);
 	let colors = twoToneColorPalette;
 	if (primaryColor) {
 		colors = {
@@ -13594,7 +14251,7 @@ const IconBase = (props) => {
 		};
 	}
 	useInsertStyles(svgRef);
-	warning(isIconDefinition(icon), `icon should be icon definiton, but got ${icon}`);
+	warning$1(isIconDefinition(icon), `icon should be icon definiton, but got ${icon}`);
 	if (!isIconDefinition(icon)) {
 		return null;
 	}
@@ -13635,17 +14292,17 @@ function getTwoToneColor() {
 	}
 	return [colors.primaryColor, colors.secondaryColor];
 }
-function _extends$1() {
-	_extends$1 = Object.assign.bind();
-	return _extends$1.apply(this, arguments);
+function _extends$w() {
+	_extends$w = Object.assign.bind();
+	return _extends$w.apply(this, arguments);
 }
 // Initial setting
 // should move it to antd main repo?
 setTwoToneColor(blue.primary);
 // https://github.com/DefinitelyTyped/DefinitelyTyped/issues/34757#issuecomment-488848720
-const Icon = reactExports.q((props, ref) => {
+const Icon$1 = reactExports.forwardRef((props, ref) => {
 	const { className, icon, spin, rotate, tabIndex, onClick, twoToneColor, ...restProps } = props;
-	const { prefixCls = "anticon", rootClassName } = reactExports.z(IconContext);
+	const { prefixCls = "anticon", rootClassName } = reactExports.useContext(IconContext);
 	const classString = clsx(rootClassName, prefixCls, {
 		[`${prefixCls}-${icon.name}`]: !!icon.name,
 		[`${prefixCls}-spin`]: !!spin || icon.name === "loading"
@@ -13659,7 +14316,7 @@ const Icon = reactExports.q((props, ref) => {
 		transform: `rotate(${rotate}deg)`
 	} : void 0;
 	const [primaryColor, secondaryColor] = normalizeTwoToneColors(twoToneColor);
-	return reactExports.o("span", _extends$1({
+	return reactExports.createElement("span", _extends$w({
 		role: "img",
 		"aria-label": icon.name
 	}, restProps, {
@@ -13667,24 +14324,83 @@ const Icon = reactExports.q((props, ref) => {
 		tabIndex: iconTabIndex,
 		onClick,
 		className: classString
-	}), reactExports.o(IconBase, {
+	}), reactExports.createElement(IconBase, {
 		icon,
 		primaryColor,
 		secondaryColor,
 		style: svgStyle
 	}));
 });
-Icon.getTwoToneColor = getTwoToneColor;
-Icon.setTwoToneColor = setTwoToneColor;
-const Context = reactExports.n({});
+Icon$1.getTwoToneColor = getTwoToneColor;
+Icon$1.setTwoToneColor = setTwoToneColor;
+// This icon file is generated automatically.
+var CloseCircleFilled$1 = {
+	"icon": {
+		"tag": "svg",
+		"attrs": {
+			"fill-rule": "evenodd",
+			"viewBox": "64 64 896 896",
+			"focusable": "false"
+		},
+		"children": [{
+			"tag": "path",
+			"attrs": { "d": "M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960 64 759.4 64 512 264.6 64 512 64zm127.98 274.82h-.04l-.08.06L512 466.75 384.14 338.88c-.04-.05-.06-.06-.08-.06a.12.12 0 00-.07 0c-.03 0-.05.01-.09.05l-45.02 45.02a.2.2 0 00-.05.09.12.12 0 000 .07v.02a.27.27 0 00.06.06L466.75 512 338.88 639.86c-.05.04-.06.06-.06.08a.12.12 0 000 .07c0 .03.01.05.05.09l45.02 45.02a.2.2 0 00.09.05.12.12 0 00.07 0c.02 0 .04-.01.08-.05L512 557.25l127.86 127.87c.04.04.06.05.08.05a.12.12 0 00.07 0c.03 0 .05-.01.09-.05l45.02-45.02a.2.2 0 00.05-.09.12.12 0 000-.07v-.02a.27.27 0 00-.05-.06L557.25 512l127.87-127.86c.04-.04.05-.06.05-.08a.12.12 0 000-.07c0-.03-.01-.05-.05-.09l-45.02-45.02a.2.2 0 00-.09-.05.12.12 0 00-.07 0z" }
+		}]
+	},
+	"name": "close-circle",
+	"theme": "filled"
+};
+var CloseCircleFilledSvg = CloseCircleFilled$1;
+function _extends$v() {
+	_extends$v = Object.assign.bind();
+	return _extends$v.apply(this, arguments);
+}
+const CloseCircleFilled = (props, ref) => reactExports.createElement(Icon$1, _extends$v({}, props, {
+	ref,
+	icon: CloseCircleFilledSvg
+}));
+/**![close-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIGZpbGwtcnVsZT0iZXZlbm9kZCIgdmlld0JveD0iNjQgNjQgODk2IDg5NiIgZm9jdXNhYmxlPSJmYWxzZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNTEyIDY0YzI0Ny40IDAgNDQ4IDIwMC42IDQ0OCA0NDhTNzU5LjQgOTYwIDUxMiA5NjAgNjQgNzU5LjQgNjQgNTEyIDI2NC42IDY0IDUxMiA2NHptMTI3Ljk4IDI3NC44MmgtLjA0bC0uMDguMDZMNTEyIDQ2Ni43NSAzODQuMTQgMzM4Ljg4Yy0uMDQtLjA1LS4wNi0uMDYtLjA4LS4wNmEuMTIuMTIgMCAwMC0uMDcgMGMtLjAzIDAtLjA1LjAxLS4wOS4wNWwtNDUuMDIgNDUuMDJhLjIuMiAwIDAwLS4wNS4wOS4xMi4xMiAwIDAwMCAuMDd2LjAyYS4yNy4yNyAwIDAwLjA2LjA2TDQ2Ni43NSA1MTIgMzM4Ljg4IDYzOS44NmMtLjA1LjA0LS4wNi4wNi0uMDYuMDhhLjEyLjEyIDAgMDAwIC4wN2MwIC4wMy4wMS4wNS4wNS4wOWw0NS4wMiA0NS4wMmEuMi4yIDAgMDAuMDkuMDUuMTIuMTIgMCAwMC4wNyAwYy4wMiAwIC4wNC0uMDEuMDgtLjA1TDUxMiA1NTcuMjVsMTI3Ljg2IDEyNy44N2MuMDQuMDQuMDYuMDUuMDguMDVhLjEyLjEyIDAgMDAuMDcgMGMuMDMgMCAuMDUtLjAxLjA5LS4wNWw0NS4wMi00NS4wMmEuMi4yIDAgMDAuMDUtLjA5LjEyLjEyIDAgMDAwLS4wN3YtLjAyYS4yNy4yNyAwIDAwLS4wNS0uMDZMNTU3LjI1IDUxMmwxMjcuODctMTI3Ljg2Yy4wNC0uMDQuMDUtLjA2LjA1LS4wOGEuMTIuMTIgMCAwMDAtLjA3YzAtLjAzLS4wMS0uMDUtLjA1LS4wOWwtNDUuMDItNDUuMDJhLjIuMiAwIDAwLS4wOS0uMDUuMTIuMTIgMCAwMC0uMDcgMHoiIC8+PC9zdmc+) */
+const RefIcon$8 = reactExports.forwardRef(CloseCircleFilled);
+// This icon file is generated automatically.
+var CloseOutlined$1 = {
+	"icon": {
+		"tag": "svg",
+		"attrs": {
+			"fill-rule": "evenodd",
+			"viewBox": "64 64 896 896",
+			"focusable": "false"
+		},
+		"children": [{
+			"tag": "path",
+			"attrs": { "d": "M799.86 166.31c.02 0 .04.02.08.06l57.69 57.7c.04.03.05.05.06.08a.12.12 0 010 .06c0 .03-.02.05-.06.09L569.93 512l287.7 287.7c.04.04.05.06.06.09a.12.12 0 010 .07c0 .02-.02.04-.06.08l-57.7 57.69c-.03.04-.05.05-.07.06a.12.12 0 01-.07 0c-.03 0-.05-.02-.09-.06L512 569.93l-287.7 287.7c-.04.04-.06.05-.09.06a.12.12 0 01-.07 0c-.02 0-.04-.02-.08-.06l-57.69-57.7c-.04-.03-.05-.05-.06-.07a.12.12 0 010-.07c0-.03.02-.05.06-.09L454.07 512l-287.7-287.7c-.04-.04-.05-.06-.06-.09a.12.12 0 010-.07c0-.02.02-.04.06-.08l57.7-57.69c.03-.04.05-.05.07-.06a.12.12 0 01.07 0c.03 0 .05.02.09.06L512 454.07l287.7-287.7c.04-.04.06-.05.09-.06a.12.12 0 01.07 0z" }
+		}]
+	},
+	"name": "close",
+	"theme": "outlined"
+};
+var CloseOutlinedSvg = CloseOutlined$1;
+function _extends$u() {
+	_extends$u = Object.assign.bind();
+	return _extends$u.apply(this, arguments);
+}
+const CloseOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$u({}, props, {
+	ref,
+	icon: CloseOutlinedSvg
+}));
+/**![close](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIGZpbGwtcnVsZT0iZXZlbm9kZCIgdmlld0JveD0iNjQgNjQgODk2IDg5NiIgZm9jdXNhYmxlPSJmYWxzZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNzk5Ljg2IDE2Ni4zMWMuMDIgMCAuMDQuMDIuMDguMDZsNTcuNjkgNTcuN2MuMDQuMDMuMDUuMDUuMDYuMDhhLjEyLjEyIDAgMDEwIC4wNmMwIC4wMy0uMDIuMDUtLjA2LjA5TDU2OS45MyA1MTJsMjg3LjcgMjg3LjdjLjA0LjA0LjA1LjA2LjA2LjA5YS4xMi4xMiAwIDAxMCAuMDdjMCAuMDItLjAyLjA0LS4wNi4wOGwtNTcuNyA1Ny42OWMtLjAzLjA0LS4wNS4wNS0uMDcuMDZhLjEyLjEyIDAgMDEtLjA3IDBjLS4wMyAwLS4wNS0uMDItLjA5LS4wNkw1MTIgNTY5LjkzbC0yODcuNyAyODcuN2MtLjA0LjA0LS4wNi4wNS0uMDkuMDZhLjEyLjEyIDAgMDEtLjA3IDBjLS4wMiAwLS4wNC0uMDItLjA4LS4wNmwtNTcuNjktNTcuN2MtLjA0LS4wMy0uMDUtLjA1LS4wNi0uMDdhLjEyLjEyIDAgMDEwLS4wN2MwLS4wMy4wMi0uMDUuMDYtLjA5TDQ1NC4wNyA1MTJsLTI4Ny43LTI4Ny43Yy0uMDQtLjA0LS4wNS0uMDYtLjA2LS4wOWEuMTIuMTIgMCAwMTAtLjA3YzAtLjAyLjAyLS4wNC4wNi0uMDhsNTcuNy01Ny42OWMuMDMtLjA0LjA1LS4wNS4wNy0uMDZhLjEyLjEyIDAgMDEuMDcgMGMuMDMgMCAuMDUuMDIuMDkuMDZMNTEyIDQ1NC4wN2wyODcuNy0yODcuN2MuMDQtLjA0LjA2LS4wNS4wOS0uMDZhLjEyLjEyIDAgMDEuMDcgMHoiIC8+PC9zdmc+) */
+const RefIcon$7 = reactExports.forwardRef(CloseOutlined);
+const Context$1 = reactExports.createContext({});
+function MotionProvider({ children, ...props }) {
+	return reactExports.createElement(Context$1.Provider, { value: props }, children);
+}
 /**
 * Same as React.useState but will always get latest state.
 * This is useful when React merge multiple state updates into one.
 * e.g. onTransitionEnd trigger multiple event at once will be merged state update in React.
 */
-function useSyncState() {
-	const [, forceUpdate] = reactExports.K((x) => x + 1);
-	const currentValueRef = reactExports.L("none");
+function useSyncState$1() {
+	const [, forceUpdate] = reactExports.useReducer((x) => x + 1, 0);
+	const currentValueRef = reactExports.useRef("none");
 	const getValue = useEvent(() => {
 		return currentValueRef.current;
 	});
@@ -13757,7 +14473,7 @@ function getTransitionName(transitionName, transitionType) {
 	return `${transitionName}-${transitionType}`;
 }
 var useDomMotionEvents = (onInternalMotionEnd) => {
-	const cacheElementRef = reactExports.L();
+	const cacheElementRef = reactExports.useRef();
 	// Remove events
 	function removeMotionEvents(element) {
 		if (element) {
@@ -13778,16 +14494,16 @@ var useDomMotionEvents = (onInternalMotionEnd) => {
 		}
 	}
 	// Clean up when removed
-	reactExports.C(() => () => {
+	reactExports.useEffect(() => () => {
 		removeMotionEvents(cacheElementRef.current);
 		cacheElementRef.current = null;
 	}, []);
 	return [patchMotionEvents, ,];
 };
 // It's safe to use `useLayoutEffect` but the warning is annoying
-const useIsomorphicLayoutEffect = canUseDom() ? reactExports.H : reactExports.C;
+const useIsomorphicLayoutEffect = canUseDom() ? reactExports.useLayoutEffect : reactExports.useEffect;
 var useNextFrame = () => {
-	const nextFrameRef = reactExports.L(null);
+	const nextFrameRef = reactExports.useRef(null);
 	function cancelNextFrame() {
 		wrapperRaf.a(nextFrameRef.current);
 	}
@@ -13802,7 +14518,7 @@ var useNextFrame = () => {
 		});
 		nextFrameRef.current = nextFrameId;
 	}
-	reactExports.C(() => () => {
+	reactExports.useEffect(() => () => {
 		cancelNextFrame();
 	}, []);
 	return [nextFrame, cancelNextFrame];
@@ -13850,7 +14566,7 @@ var useStepQueue = (status, prepareOnly, callback) => {
 			}
 		}
 	}, [status, step]);
-	reactExports.C(() => () => {
+	reactExports.useEffect(() => () => {
 		cancelNextFrame();
 	}, []);
 	return [startQueue, step];
@@ -13858,17 +14574,17 @@ var useStepQueue = (status, prepareOnly, callback) => {
 function useStatus(supportMotion, visible, getElement, { motionEnter = true, motionAppear = true, motionLeave = true, motionDeadline, motionLeaveImmediately, onAppearPrepare, onEnterPrepare, onLeavePrepare, onAppearStart, onEnterStart, onLeaveStart, onAppearActive, onEnterActive, onLeaveActive, onAppearEnd, onEnterEnd, onLeaveEnd, onVisibleChanged }) {
 	// Used for outer render usage to avoid `visible: false & status: none` to render nothing
 	const [asyncVisible, setAsyncVisible] = useSafeState();
-	const [getStatus, setStatus] = useSyncState();
+	const [getStatus, setStatus] = useSyncState$1();
 	const [style, setStyle] = useSafeState(null);
 	const currentStatus = getStatus();
-	const mountedRef = reactExports.L(false);
-	const deadlineRef = reactExports.L(null);
+	const mountedRef = reactExports.useRef(false);
+	const deadlineRef = reactExports.useRef(null);
 	// =========================== Dom Node ===========================
 	function getDomElement() {
 		return getElement();
 	}
 	// ========================== Motion End ==========================
-	const activeRef = reactExports.L(false);
+	const activeRef = reactExports.useRef(false);
 	/**
 	* Clean up status & style
 	*/
@@ -13926,7 +14642,7 @@ function useStatus(supportMotion, visible, getElement, { motionEnter = true, mot
 			default: return {};
 		}
 	};
-	const eventHandlers = reactExports.I(() => getEventHandlers(currentStatus), [currentStatus]);
+	const eventHandlers = reactExports.useMemo(() => getEventHandlers(currentStatus), [currentStatus]);
 	const [startStep, step] = useStepQueue(currentStatus, !supportMotion, (newStep) => {
 		// Only prepare step can be skip
 		if (newStep === "prepare") {
@@ -13958,7 +14674,7 @@ function useStatus(supportMotion, visible, getElement, { motionEnter = true, mot
 	const active = isActive(step);
 	activeRef.current = active;
 	// ============================ Status ============================
-	const visibleRef = reactExports.L(null);
+	const visibleRef = reactExports.useRef(null);
 	// Update with new status
 	useIsomorphicLayoutEffect(() => {
 		// When use Suspense, the `visible` will repeat trigger,
@@ -13999,7 +14715,7 @@ function useStatus(supportMotion, visible, getElement, { motionEnter = true, mot
 	}, [visible]);
 	// ============================ Effect ============================
 	// Reset when motion changed
-	reactExports.C(() => {
+	reactExports.useEffect(() => {
 		if (currentStatus === "appear" && !motionAppear || currentStatus === "enter" && !motionEnter || currentStatus === "leave" && !motionLeave) {
 			setStatus("none");
 		}
@@ -14008,13 +14724,13 @@ function useStatus(supportMotion, visible, getElement, { motionEnter = true, mot
 		motionEnter,
 		motionLeave
 	]);
-	reactExports.C(() => () => {
+	reactExports.useEffect(() => () => {
 		mountedRef.current = false;
 		clearTimeout(deadlineRef.current);
 	}, []);
 	// Trigger `onVisibleChanged`
-	const firstMountChangeRef = reactExports.L(false);
-	reactExports.C(() => {
+	const firstMountChangeRef = reactExports.useRef(false);
+	reactExports.useEffect(() => {
 		// [visible & motion not end] => [!visible & motion end] still need trigger onVisibleChanged
 		if (asyncVisible) {
 			firstMountChangeRef.current = true;
@@ -14052,12 +14768,12 @@ function genCSSMotion(config) {
 	function isSupportTransition(props, contextMotion) {
 		return !!(props.motionName && transitionSupport && contextMotion !== false);
 	}
-	const CSSMotion = reactExports.q((props, ref) => {
+	const CSSMotion = reactExports.forwardRef((props, ref) => {
 		const { visible = true, removeOnLeave = true, forceRender, children, motionName, leavedClassName, eventProps } = props;
-		const { motion: contextMotion } = reactExports.z(Context);
+		const { motion: contextMotion } = reactExports.useContext(Context$1);
 		const supportMotion = isSupportTransition(props, contextMotion);
 		// Ref to the react node, it may be a HTMLElement
-		const nodeRef = reactExports.L();
+		const nodeRef = reactExports.useRef();
 		function getDomElement() {
 			return getDOM(nodeRef.current);
 		}
@@ -14065,12 +14781,12 @@ function genCSSMotion(config) {
 		const status = getStatus();
 		// Record whether content has rendered
 		// Will return null for un-rendered even when `removeOnLeave={false}`
-		const renderedRef = reactExports.L(mergedVisible);
+		const renderedRef = reactExports.useRef(mergedVisible);
 		if (mergedVisible) {
 			renderedRef.current = true;
 		}
 		// ====================== Refs ======================
-		const refObj = reactExports.I(() => {
+		const refObj = reactExports.useMemo(() => {
 			const obj = {};
 			Object.defineProperties(obj, {
 				nativeElement: {
@@ -14090,7 +14806,7 @@ function genCSSMotion(config) {
 		}, []);
 		// We lock `deps` here since function return object
 		// will repeat trigger ref from `refConfig` -> `null` -> `refConfig`
-		reactExports.F(ref, () => refObj, []);
+		reactExports.useImperativeHandle(ref, () => refObj, []);
 		// ===================== Render =====================
 		let motionChildren;
 		const mergedProps = {
@@ -14138,10 +14854,10 @@ function genCSSMotion(config) {
 			}, nodeRef);
 		}
 		// Auto inject ref if child node not have `ref` props
-		if (reactExports.r(motionChildren) && supportRef(motionChildren)) {
+		if (reactExports.isValidElement(motionChildren) && supportRef(motionChildren)) {
 			const originNodeRef = getNodeRef(motionChildren);
 			if (!originNodeRef) {
-				motionChildren = reactExports.m(motionChildren, { ref: nodeRef });
+				motionChildren = reactExports.cloneElement(motionChildren, { ref: nodeRef });
 			}
 		}
 		return motionChildren;
@@ -14150,6 +14866,248 @@ function genCSSMotion(config) {
 	return CSSMotion;
 }
 var CSSMotion = genCSSMotion(supportTransition);
+const attributes = "accept acceptCharset accessKey action allowFullScreen allowTransparency\n    alt async autoComplete autoFocus autoPlay capture cellPadding cellSpacing challenge\n    charSet checked classID className colSpan cols content contentEditable contextMenu\n    controls coords crossOrigin data dateTime default defer dir disabled download draggable\n    encType form formAction formEncType formMethod formNoValidate formTarget frameBorder\n    headers height hidden high href hrefLang htmlFor httpEquiv icon id inputMode integrity\n    is keyParams keyType kind label lang list loop low manifest marginHeight marginWidth max maxLength media\n    mediaGroup method min minLength multiple muted name noValidate nonce open\n    optimum pattern placeholder poster preload radioGroup readOnly rel required\n    reversed role rowSpan rows sandbox scope scoped scrolling seamless selected\n    shape size sizes span spellCheck src srcDoc srcLang srcSet start step style\n    summary tabIndex target title type useMap value width wmode wrap";
+const eventsName = "onCopy onCut onPaste onCompositionEnd onCompositionStart onCompositionUpdate onKeyDown\n    onKeyPress onKeyUp onFocus onBlur onChange onInput onSubmit onClick onContextMenu onDoubleClick\n    onDrag onDragEnd onDragEnter onDragExit onDragLeave onDragOver onDragStart onDrop onMouseDown\n    onMouseEnter onMouseLeave onMouseMove onMouseOut onMouseOver onMouseUp onSelect onTouchCancel\n    onTouchEnd onTouchMove onTouchStart onScroll onWheel onAbort onCanPlay onCanPlayThrough\n    onDurationChange onEmptied onEncrypted onEnded onError onLoadedData onLoadedMetadata\n    onLoadStart onPause onPlay onPlaying onProgress onRateChange onSeeked onSeeking onStalled onSuspend onTimeUpdate onVolumeChange onWaiting onLoad onError";
+const propList = `${attributes} ${eventsName}`.split(/[\s\n]+/);
+function match(key, prefix) {
+	return key.indexOf(prefix) === 0;
+}
+/**
+* Picker props from exist props with filter
+* @param props Passed props
+* @param ariaOnly boolean | { aria?: boolean; data?: boolean; attr?: boolean; } filter config
+*/
+function pickAttrs(props, ariaOnly) {
+	let mergedConfig;
+	if (ariaOnly === false) {
+		mergedConfig = { a: true };
+	} else {
+		{
+			mergedConfig = { ...ariaOnly };
+		}
+	}
+	const attrs = {};
+	Object.keys(props).forEach((key) => {
+		if (key === "role" || match(key, "aria-") || match(key, "data-") || mergedConfig.a && propList.includes(key)) {
+			attrs[key] = props[key];
+		}
+	});
+	return attrs;
+}
+var commonLocale = {
+	yearFormat: "YYYY",
+	dayFormat: "D",
+	cellMeridiemFormat: "A",
+	monthBeforeYear: true
+};
+function _typeof$t(o) {
+	"@babel/helpers - typeof";
+	return _typeof$t = function(o) {
+		return typeof o;
+	}, _typeof$t(o);
+}
+function ownKeys$h(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$h(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$h(Object(t), true).forEach(function(r) {
+			_defineProperty$r(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$h(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$r(obj, key, value) {
+	key = _toPropertyKey$r(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$r(t) {
+	var i = _toPrimitive$r(t);
+	return "symbol" == _typeof$t(i) ? i : String(i);
+}
+function _toPrimitive$r(t) {
+	if ("object" != _typeof$t(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$t(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+var locale$2 = _objectSpread$h(_objectSpread$h({}, commonLocale), {}, {
+	locale: "en_US",
+	today: "Today",
+	now: "Now",
+	backToToday: "Back to today",
+	ok: "OK",
+	clear: "Clear",
+	week: "Week",
+	month: "Month",
+	year: "Year",
+	timeSelect: "select time",
+	dateSelect: "select date",
+	weekSelect: "Choose a week",
+	monthSelect: "Choose a month",
+	yearSelect: "Choose a year",
+	decadeSelect: "Choose a decade",
+	previousMonth: "Previous month (PageUp)",
+	nextMonth: "Next month (PageDown)",
+	previousYear: "Last year (Control + left)",
+	nextYear: "Next year (Control + right)",
+	previousDecade: "Last decade",
+	nextDecade: "Next decade",
+	previousCentury: "Last century",
+	nextCentury: "Next century"
+});
+var CalendarLocale = locale$2;
+const locale$1 = {
+	placeholder: "Select time",
+	rangePlaceholder: ["Start time", "End time"]
+};
+// Merge into a locale object
+const locale = {
+	lang: {
+		placeholder: "Select date",
+		yearPlaceholder: "Select year",
+		quarterPlaceholder: "Select quarter",
+		monthPlaceholder: "Select month",
+		weekPlaceholder: "Select week",
+		rangePlaceholder: ["Start date", "End date"],
+		rangeYearPlaceholder: ["Start year", "End year"],
+		rangeQuarterPlaceholder: ["Start quarter", "End quarter"],
+		rangeMonthPlaceholder: ["Start month", "End month"],
+		rangeWeekPlaceholder: ["Start week", "End week"],
+		...CalendarLocale
+	},
+	timePickerLocale: { ...locale$1 }
+};
+const typeTemplate$1 = "${label} is not a valid ${type}";
+const localeValues = {
+	a: {
+		okText: "OK",
+		cancelText: "Cancel",
+		justOkText: "OK"
+	},
+	b: { a: {
+		default: "Field validation error for ${label}",
+		required: "Please enter ${label}",
+		enum: "${label} must be one of [${enum}]",
+		whitespace: "${label} cannot be a blank character",
+		date: {
+			format: "${label} date format is invalid",
+			parse: "${label} cannot be converted to a date",
+			invalid: "${label} is an invalid date"
+		},
+		types: {
+			string: typeTemplate$1,
+			method: typeTemplate$1,
+			array: typeTemplate$1,
+			object: typeTemplate$1,
+			number: typeTemplate$1,
+			date: typeTemplate$1,
+			boolean: typeTemplate$1,
+			integer: typeTemplate$1,
+			float: typeTemplate$1,
+			regexp: typeTemplate$1,
+			email: typeTemplate$1,
+			url: typeTemplate$1,
+			hex: typeTemplate$1
+		},
+		string: {
+			len: "${label} must be ${len} characters",
+			min: "${label} must be at least ${min} characters",
+			max: "${label} must be up to ${max} characters",
+			range: "${label} must be between ${min}-${max} characters"
+		},
+		number: {
+			len: "${label} must be equal to ${len}",
+			min: "${label} must be minimum ${min}",
+			max: "${label} must be maximum ${max}",
+			range: "${label} must be between ${min}-${max}"
+		},
+		array: {
+			len: "Must be ${len} ${label}",
+			min: "At least ${min} ${label}",
+			max: "At most ${max} ${label}",
+			range: "The amount of ${label} must be between ${min}-${max}"
+		},
+		pattern: { mismatch: "${label} does not match the pattern ${pattern}" }
+	} }
+};
+let localeList = [];
+const generateLocale = () => localeList.reduce((merged, locale) => ({
+	...merged,
+	...locale
+}), localeValues.a);
+function changeConfirmLocale(newLocale) {
+	if (newLocale) {
+		const cloneLocale = { ...newLocale };
+		localeList.push(cloneLocale);
+		generateLocale();
+		return () => {
+			localeList = localeList.filter((locale) => locale !== cloneLocale);
+			generateLocale();
+		};
+	}
+}
+const LocaleContext = reactExports.createContext(void 0);
+const useLocale$1 = (componentName, defaultLocale) => {
+	const fullLocale = reactExports.useContext(LocaleContext);
+	const getLocale = reactExports.useMemo(() => {
+		const locale = defaultLocale;
+		const localeFromContext = fullLocale?.[componentName] ?? {};
+		return {
+			...locale,
+			...localeFromContext || {}
+		};
+	}, [
+		componentName,
+		defaultLocale,
+		fullLocale
+	]);
+	const __unused_997B = reactExports.useMemo(() => {
+		const localeCode = fullLocale?.locale;
+		// Had use LocaleProvide but didn't set locale
+		if (fullLocale?.exist && !localeCode) {
+			return "en";
+		}
+		return localeCode;
+	}, [fullLocale]);
+	return [getLocale, ,];
+};
+const LocaleProvider = (props) => {
+	const { locale = {}, children } = props;
+	reactExports.useEffect(() => {
+		const clearLocale = changeConfirmLocale(locale.Modal);
+		return clearLocale;
+	}, [locale]);
+	const getMemoizedContextValue = reactExports.useMemo(() => ({
+		...locale,
+		exist: true
+	}), [locale]);
+	return reactExports.createElement(LocaleContext.Provider, { value: getMemoizedContextValue }, children);
+};
 // \b([A-Za-z_$][\w$]*)\s*!==\s*(?:undefined\s*&&\s*\1\s*!==\s*null|null\s*&&\s*\1\s*!==\s*undefined)\b
 // \b([A-Za-z_$][\w$\.]*)\s*===\s*(?:undefined|null)\s*\|\|\s*\1\s*===\s*(?:undefined|null)\b
 const isNonNullable = (val) => {
@@ -14184,7 +15142,7 @@ const mergeClassNames = (schema, ...classNames) => {
 	}, {});
 };
 const useSemanticClassNames = (schema, ...classNames) => {
-	return reactExports.I(() => mergeClassNames.apply(0, [schema].concat(classNames)), [schema].concat(classNames));
+	return reactExports.useMemo(() => mergeClassNames.apply(0, [schema].concat(classNames)), [schema].concat(classNames));
 };
 // =========================== Styles ===========================
 const mergeStyles = (...styles) => {
@@ -14199,7 +15157,19 @@ const mergeStyles = (...styles) => {
 	}, {});
 };
 const useSemanticStyles = (...styles) => {
-	return reactExports.I(() => mergeStyles.apply(0, styles), [].concat(styles));
+	return reactExports.useMemo(() => mergeStyles.apply(0, styles), [].concat(styles));
+};
+// =========================== Export ===========================
+const fillObjectBySchema = (obj, schema) => {
+	const newObj = { ...obj };
+	Object.keys(schema).forEach((key) => {
+		if (key !== "_default") {
+			const nestSchema = schema[key];
+			const nextValue = newObj[key] || {};
+			newObj[key] = nestSchema ? fillObjectBySchema(nextValue, nestSchema) : nextValue;
+		}
+	});
+	return newObj;
 };
 const resolveStyleOrClass = (value, info) => {
 	return typeof value === "function" ? value(info) : value;
@@ -14208,21 +15178,598 @@ const resolveStyleOrClass = (value, info) => {
 * @desc Merge classNames and styles from multiple sources. When `schema` is provided, it **must** provide the nest object structure.
 * @descZH 合并来自多个来源的 classNames 和 styles，当提供了 `schema` 时，必须提供嵌套的对象结构。
 */
-const useMergeSemantic = (classNamesList, stylesList, info) => {
+const useMergeSemantic = (classNamesList, stylesList, info, schema) => {
 	const resolvedClassNamesList = classNamesList.map((classNames) => classNames ? resolveStyleOrClass(classNames, info) : void 0);
 	const resolvedStylesList = stylesList.map((styles) => styles ? resolveStyleOrClass(styles, info) : void 0);
-	const mergedClassNames = useSemanticClassNames.apply(0, [void 0].concat(_toConsumableArray(resolvedClassNamesList)));
-	const mergedStyles = useSemanticStyles.apply(0, _toConsumableArray(resolvedStylesList));
-	return reactExports.I(() => {
-		{
+	const mergedClassNames = useSemanticClassNames.apply(0, [schema].concat(_toConsumableArray$8(resolvedClassNamesList)));
+	const mergedStyles = useSemanticStyles.apply(0, _toConsumableArray$8(resolvedStylesList));
+	return reactExports.useMemo(() => {
+		if (!schema) {
 			return [mergedClassNames, mergedStyles];
 		}
+		return [fillObjectBySchema(mergedClassNames, schema), fillObjectBySchema(mergedStyles, schema)];
 	}, [
 		mergedClassNames,
 		mergedStyles,
-		void 0
+		schema
 	]);
 };
+const zIndexContext = React.createContext(void 0);
+const containerBaseZIndexOffset = {
+	Modal: 100,
+	Drawer: 100,
+	Popover: 100,
+	Popconfirm: 100,
+	Tooltip: 100,
+	Tour: 100,
+	FloatButton: 100
+};
+const isContainerType = () => {
+	return "DatePicker" in containerBaseZIndexOffset;
+};
+const useZIndex = (__unused_A188, customZIndex) => {
+	const [, token] = useToken();
+	const parentZIndex = React.useContext(zIndexContext);
+	const isContainer = isContainerType();
+	let result;
+	if (customZIndex !== void 0) {
+		result = [customZIndex, ,];
+	} else {
+		let zIndex = parentZIndex ?? 0;
+		if (isContainer) {
+			zIndex += (parentZIndex ? 0 : token.zIndexPopupBase) + containerBaseZIndexOffset["DatePicker"];
+		} else {
+			zIndex += 50;
+		}
+		result = [parentZIndex === void 0 ? customZIndex : zIndex, ,];
+	}
+	return result;
+};
+/**
+* This hook is only for cssVar to add root className for components.
+* If root ClassName is needed, this hook could be refactored with `-root`
+* @param prefixCls
+*/
+const useCSSVarCls = (prefixCls) => `${prefixCls}-css-var`;
+// ZombieJ: We export single file here since
+// ConfigProvider use this which will make loop deps
+// to import whole `rc-component/form`
+var ValidateMessagesContext = reactExports.createContext(void 0);
+var reactDomExports = requireReactDom();
+const OrderContext = reactExports.createContext(null);
+const EMPTY_LIST$1 = [];
+/**
+* Will add `div` to document. Nest call will keep order
+* @param render Render DOM in document
+*/
+function useDom(render) {
+	const [ele] = reactExports.useState(() => {
+		if (!canUseDom()) {
+			return null;
+		}
+		const defaultEle = document.createElement("div");
+		return defaultEle;
+	});
+	// ========================== Order ==========================
+	const appendedRef = reactExports.useRef(false);
+	const queueCreate = reactExports.useContext(OrderContext);
+	const [queue, setQueue] = reactExports.useState(EMPTY_LIST$1);
+	const mergedQueueCreate = queueCreate || (appendedRef.current ? void 0 : (appendFn) => {
+		setQueue((origin) => {
+			const newQueue = [appendFn, ...origin];
+			return newQueue;
+		});
+	});
+	// =========================== DOM ===========================
+	function append() {
+		if (!ele.parentElement) {
+			document.body.appendChild(ele);
+		}
+		appendedRef.current = true;
+	}
+	function cleanup() {
+		ele.parentElement?.removeChild(ele);
+		appendedRef.current = false;
+	}
+	useLayoutEffect(() => {
+		if (render) {
+			if (queueCreate) {
+				queueCreate(append);
+			} else {
+				append();
+			}
+		} else {
+			cleanup();
+		}
+		return cleanup;
+	}, [render]);
+	useLayoutEffect(() => {
+		if (queue.length) {
+			queue.forEach((appendFn) => appendFn());
+			setQueue(EMPTY_LIST$1);
+		}
+	}, [queue]);
+	return [ele, mergedQueueCreate];
+}
+/* eslint-disable no-param-reassign */
+function measureScrollbarSize(ele) {
+	const randomId = `rc-scrollbar-measure-${Math.random().toString(36).substring(7)}`;
+	const measureEle = document.createElement("div");
+	measureEle.id = randomId;
+	// Create Style
+	const measureStyle = measureEle.style;
+	measureStyle.position = "absolute";
+	measureStyle.left = "0";
+	measureStyle.top = "0";
+	measureStyle.width = "100px";
+	measureStyle.height = "100px";
+	measureStyle.overflow = "scroll";
+	// Clone Style if needed
+	let fallbackWidth;
+	if (ele) {
+		const targetStyle = getComputedStyle(ele);
+		measureStyle.scrollbarColor = targetStyle.scrollbarColor;
+		measureStyle.scrollbarWidth = targetStyle.scrollbarWidth;
+		// Set Webkit style
+		const webkitScrollbarStyle = getComputedStyle(ele, "::-webkit-scrollbar");
+		const width = parseInt(webkitScrollbarStyle.width, 10);
+		const height = parseInt(webkitScrollbarStyle.height, 10);
+		// Try wrap to handle CSP case
+		try {
+			const widthStyle = width ? `width: ${webkitScrollbarStyle.width};` : "";
+			const heightStyle = height ? `height: ${webkitScrollbarStyle.height};` : "";
+			updateCSS(`
+#${randomId}::-webkit-scrollbar {
+${widthStyle}
+${heightStyle}
+}`, randomId);
+		} catch (e) {
+			// Can't wrap, just log error
+			console.error(e);
+			// Get from style directly
+			fallbackWidth = width;
+		}
+	}
+	document.body.appendChild(measureEle);
+	// Measure. Get fallback style if provided
+	const scrollWidth = ele && fallbackWidth && !isNaN(fallbackWidth) ? fallbackWidth : measureEle.offsetWidth - measureEle.clientWidth;
+	// Clean up
+	document.body.removeChild(measureEle);
+	removeCSS(randomId);
+	return { a: scrollWidth };
+}
+function getTargetScrollBarSize(target) {
+	if (typeof document === "undefined" || !target || !(target instanceof Element)) {
+		return { a: 0 };
+	}
+	return measureScrollbarSize(target);
+}
+/**
+* Test usage export. Do not use in your production
+*/
+function isBodyOverflowing() {
+	return document.body.scrollHeight > (window.innerHeight || document.documentElement.clientHeight) && window.innerWidth > document.body.offsetWidth;
+}
+const UNIQUE_ID = `rc-util-locker-${Date.now()}`;
+let uuid$1 = 0;
+function useScrollLocker(lock) {
+	const mergedLock = !!lock;
+	const [id] = reactExports.useState(() => {
+		uuid$1 += 1;
+		return `${UNIQUE_ID}_${uuid$1}`;
+	});
+	useLayoutEffect(() => {
+		if (mergedLock) {
+			const scrollbarSize = getTargetScrollBarSize(document.body).a;
+			const isOverflow = isBodyOverflowing();
+			updateCSS(`
+html body {
+  overflow-y: hidden;
+  ${isOverflow ? `width: calc(100% - ${scrollbarSize}px);` : ""}
+}`, id);
+		} else {
+			removeCSS(id);
+		}
+		return () => {
+			removeCSS(id);
+		};
+	}, [mergedLock, id]);
+}
+function getUseId() {
+	// We need fully clone React function here to avoid webpack warning React 17 do not export `useId`
+	const fullClone = { ...React$1 };
+	return fullClone.useId;
+}
+let uuid = 0;
+const useOriginId = getUseId();
+var useId = useOriginId ? function() {
+	const reactId = useOriginId();
+	return reactId;
+} : function() {
+	// Inner id for accessibility usage. Only work in client side
+	const [innerId, setInnerId] = reactExports.useState("ssr-id");
+	reactExports.useEffect(() => {
+		const nextId = uuid;
+		uuid += 1;
+		setInnerId(`rc_unique_${nextId}`);
+	}, []);
+	// Return react native id or inner id
+	return innerId;
+};
+let stack = [];
+let lastCompositionEndTime = 0;
+// Global event handlers
+const onGlobalKeyDown = (event) => {
+	if (event.key === "Escape" && !event.isComposing) {
+		const now = Date.now();
+		if (now - lastCompositionEndTime < 200) {
+			return;
+		}
+		const len = stack.length;
+		for (let i = len - 1; i >= 0; i -= 1) {
+			stack[i].onEsc({
+				top: i === len - 1,
+				event
+			});
+		}
+	}
+};
+const onGlobalCompositionEnd = () => {
+	lastCompositionEndTime = Date.now();
+};
+function attachGlobalEventListeners() {
+	window.addEventListener("keydown", onGlobalKeyDown);
+	window.addEventListener("compositionend", onGlobalCompositionEnd);
+}
+function detachGlobalEventListeners() {
+	if (stack.length === 0) {
+		window.removeEventListener("keydown", onGlobalKeyDown);
+		window.removeEventListener("compositionend", onGlobalCompositionEnd);
+	}
+}
+function useEscKeyDown(open, onEsc) {
+	const id = useId();
+	const onEventEsc = useEvent(onEsc);
+	const ensure = () => {
+		if (!stack.find((item) => item.id === id)) {
+			stack.push({
+				id,
+				onEsc: onEventEsc
+			});
+		}
+	};
+	const clear = () => {
+		stack = stack.filter((item) => item.id !== id);
+	};
+	reactExports.useMemo(() => {
+		if (open) {
+			ensure();
+		} else if (!open) {
+			clear();
+		}
+	}, [open]);
+	reactExports.useEffect(() => {
+		if (open) {
+			ensure();
+			// Attach global event listeners
+			attachGlobalEventListeners();
+			return () => {
+				clear();
+				// Remove global event listeners if instances is empty
+				detachGlobalEventListeners();
+			};
+		}
+	}, [open]);
+}
+const getPortalContainer = (getContainer) => {
+	if (getContainer === false) {
+		return false;
+	}
+	if (!canUseDom() || !getContainer) {
+		return null;
+	}
+	if (typeof getContainer === "string") {
+		return document.querySelector(getContainer);
+	}
+	if (typeof getContainer === "function") {
+		return getContainer();
+	}
+	return getContainer;
+};
+const Portal = reactExports.forwardRef((props, ref) => {
+	const { open, autoLock, getContainer, autoDestroy = true, children, onEsc } = props;
+	const [shouldRender, setShouldRender] = reactExports.useState(open);
+	const mergedRender = shouldRender || open;
+	// ====================== Should Render ======================
+	reactExports.useEffect(() => {
+		if (autoDestroy || open) {
+			setShouldRender(open);
+		}
+	}, [open, autoDestroy]);
+	// ======================== Container ========================
+	const [innerContainer, setInnerContainer] = reactExports.useState(() => getPortalContainer(getContainer));
+	reactExports.useEffect(() => {
+		const customizeContainer = getPortalContainer(getContainer);
+		// Tell component that we check this in effect which is safe to be `null`
+		setInnerContainer(() => customizeContainer ?? null);
+	});
+	const [defaultContainer, queueCreate] = useDom(mergedRender && !innerContainer);
+	const mergedContainer = innerContainer ?? defaultContainer;
+	// ========================= Locker ==========================
+	useScrollLocker(autoLock && open && canUseDom() && (mergedContainer === defaultContainer || mergedContainer === document.body));
+	// ========================= Esc Keydown ==========================
+	useEscKeyDown(open, onEsc);
+	// =========================== Ref ===========================
+	let childRef = null;
+	if (children && supportRef(children) && ref) {
+		childRef = getNodeRef(children);
+	}
+	const mergedRef = useComposeRef(childRef, ref);
+	// ========================= Render ==========================
+	// Do not render when nothing need render
+	// When innerContainer is `undefined`, it may not ready since user use ref in the same render
+	if (!mergedRender || !canUseDom() || innerContainer === void 0) {
+		return null;
+	}
+	// Render inline
+	const renderInline = mergedContainer === false || false;
+	let reffedChildren = children;
+	if (ref) {
+		reffedChildren = reactExports.cloneElement(children, { ref: mergedRef });
+	}
+	return reactExports.createElement(OrderContext.Provider, { value: queueCreate }, renderInline ? reffedChildren : reactDomExports.b(reffedChildren, mergedContainer));
+});
+function Arrow(props) {
+	const { prefixCls, align, arrow, arrowPos } = props;
+	const { className, content, style } = arrow || {};
+	const { x = 0, y = 0 } = arrowPos;
+	const arrowRef = reactExports.useRef(null);
+	// Skip if no align
+	if (!align || !align.points) {
+		return null;
+	}
+	const alignStyle = { position: "absolute" };
+	// Skip if no need to align
+	if (align.autoArrow !== false) {
+		const popupPoints = align.points[0];
+		const targetPoints = align.points[1];
+		const popupTB = popupPoints[0];
+		const popupLR = popupPoints[1];
+		const targetTB = targetPoints[0];
+		const targetLR = targetPoints[1];
+		// Top & Bottom
+		if (popupTB === targetTB || !["t", "b"].includes(popupTB)) {
+			alignStyle.top = y;
+		} else if (popupTB === "t") {
+			alignStyle.top = 0;
+		} else {
+			alignStyle.bottom = 0;
+		}
+		// Left & Right
+		if (popupLR === targetLR || !["l", "r"].includes(popupLR)) {
+			alignStyle.left = x;
+		} else if (popupLR === "l") {
+			alignStyle.left = 0;
+		} else {
+			alignStyle.right = 0;
+		}
+	}
+	return reactExports.createElement("div", {
+		ref: arrowRef,
+		className: clsx(`${prefixCls}-arrow`, className),
+		style: {
+			...alignStyle,
+			...style
+		}
+	}, content);
+}
+function _extends$t() {
+	_extends$t = Object.assign.bind();
+	return _extends$t.apply(this, arguments);
+}
+function Mask(props) {
+	const { prefixCls, open, zIndex, mask, motion, mobile } = props;
+	if (!mask) {
+		return null;
+	}
+	return reactExports.createElement(CSSMotion, _extends$t({}, motion, {
+		motionAppear: true,
+		visible: open,
+		removeOnLeave: true
+	}), ({ className }) => reactExports.createElement("div", {
+		style: { zIndex },
+		className: clsx(`${prefixCls}-mask`, mobile && `${prefixCls}-mobile-mask`, className)
+	}));
+}
+const PopupContent = reactExports.memo(({ children }) => children, (__unused_578F, next) => next.cache);
+function useOffsetStyle(isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY) {
+	const offsetStyle = isMobile ? {} : {
+		left: "-1000vw",
+		top: "-1000vh",
+		right: "auto",
+		bottom: "auto"
+	};
+	// Set align style
+	if (!isMobile && (ready || !open)) {
+		const { points } = align;
+		const dynamicInset = align.dynamicInset || align._experimental?.dynamicInset;
+		const alignRight = dynamicInset && points[0][1] === "r";
+		const alignBottom = dynamicInset && points[0][0] === "b";
+		if (alignRight) {
+			offsetStyle.right = offsetR;
+			offsetStyle.left = "auto";
+		} else {
+			offsetStyle.left = offsetX;
+			offsetStyle.right = "auto";
+		}
+		if (alignBottom) {
+			offsetStyle.bottom = offsetB;
+			offsetStyle.top = "auto";
+		} else {
+			offsetStyle.top = offsetY;
+			offsetStyle.bottom = "auto";
+		}
+	}
+	return offsetStyle;
+}
+function _extends$s() {
+	_extends$s = Object.assign.bind();
+	return _extends$s.apply(this, arguments);
+}
+const Popup$1 = reactExports.forwardRef((props, ref) => {
+	const { onEsc, popup, className, prefixCls, style, target, onVisibleChanged, open, keepDom, fresh, onClick, mask, arrow, arrowPos, align, motion, maskMotion, mobile, forceRender, getPopupContainer, autoDestroy, portal: Portal, children, zIndex, onMouseEnter, onMouseLeave, onPointerEnter, onPointerDownCapture, ready, offsetX, offsetY, offsetR, offsetB, onAlign, onPrepare, onResize, stretch, targetWidth, targetHeight } = props;
+	const popupContent = typeof popup === "function" ? popup() : popup;
+	// We can not remove holder only when motion finished.
+	const isNodeVisible = open || keepDom;
+	// ========================= Mobile =========================
+	const isMobile = !!mobile;
+	// ========================== Mask ==========================
+	const [mergedMask, mergedMaskMotion, mergedPopupMotion] = reactExports.useMemo(() => {
+		if (mobile) {
+			return [
+				mobile.mask,
+				mobile.maskMotion,
+				mobile.motion
+			];
+		}
+		return [
+			mask,
+			maskMotion,
+			motion
+		];
+	}, [
+		mobile,
+		mask,
+		maskMotion,
+		motion
+	]);
+	// ======================= Container ========================
+	const getPopupContainerNeedParams = getPopupContainer?.length > 0;
+	const [show, setShow] = reactExports.useState(!getPopupContainer || !getPopupContainerNeedParams);
+	// Delay to show since `getPopupContainer` need target element
+	useLayoutEffect(() => {
+		if (!show && getPopupContainerNeedParams && target) {
+			setShow(true);
+		}
+	}, [
+		show,
+		getPopupContainerNeedParams,
+		target
+	]);
+	// ========================= Resize =========================
+	const onInternalResize = useEvent((size, ele) => {
+		onResize?.(size, ele);
+		onAlign();
+	});
+	// ========================= Styles =========================
+	const offsetStyle = useOffsetStyle(isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY);
+	// ========================= Render =========================
+	if (!show) {
+		return null;
+	}
+	// >>>>> Misc
+	const miscStyle = {};
+	if (stretch) {
+		if (stretch.includes("height") && targetHeight) {
+			miscStyle.height = targetHeight;
+		} else if (stretch.includes("minHeight") && targetHeight) {
+			miscStyle.minHeight = targetHeight;
+		}
+		if (stretch.includes("width") && targetWidth) {
+			miscStyle.width = targetWidth;
+		} else if (stretch.includes("minWidth") && targetWidth) {
+			miscStyle.minWidth = targetWidth;
+		}
+	}
+	if (!open) {
+		miscStyle.pointerEvents = "none";
+	}
+	return reactExports.createElement(Portal, {
+		open: forceRender || isNodeVisible,
+		getContainer: getPopupContainer && (() => getPopupContainer(target)),
+		autoDestroy,
+		onEsc
+	}, reactExports.createElement(Mask, {
+		prefixCls,
+		open,
+		zIndex,
+		mask: mergedMask,
+		motion: mergedMaskMotion,
+		mobile: isMobile
+	}), reactExports.createElement(RefResizeObserver, {
+		onResize: onInternalResize,
+		disabled: !open
+	}, (resizeObserverRef) => {
+		return reactExports.createElement(CSSMotion, _extends$s({
+			motionAppear: true,
+			motionEnter: true,
+			motionLeave: true,
+			removeOnLeave: false,
+			forceRender,
+			leavedClassName: `${prefixCls}-hidden`
+		}, mergedPopupMotion, {
+			onAppearPrepare: onPrepare,
+			onEnterPrepare: onPrepare,
+			visible: open,
+			onVisibleChanged: (nextVisible) => {
+				motion?.onVisibleChanged?.(nextVisible);
+				onVisibleChanged(nextVisible);
+			}
+		}), ({ className: motionClassName, style: motionStyle }, motionRef) => {
+			const cls = clsx(prefixCls, motionClassName, className, { [`${prefixCls}-mobile`]: isMobile });
+			return reactExports.createElement("div", {
+				ref: composeRef(resizeObserverRef, ref, motionRef),
+				className: cls,
+				style: {
+					"--arrow-x": `${arrowPos.x || 0}px`,
+					"--arrow-y": `${arrowPos.y || 0}px`,
+					...offsetStyle,
+					...miscStyle,
+					...motionStyle,
+					boxSizing: "border-box",
+					zIndex,
+					...style
+				},
+				onMouseEnter,
+				onMouseLeave,
+				onPointerEnter,
+				onClick,
+				onPointerDownCapture
+			}, arrow && reactExports.createElement(Arrow, {
+				prefixCls,
+				arrow,
+				arrowPos,
+				align
+			}), reactExports.createElement(PopupContent, { cache: !open && !fresh }, popupContent));
+		});
+	}), children);
+});
+// ===================== Nest =====================
+const TriggerContext = reactExports.createContext(null);
+// ==================== Unique ====================
+const UniqueContext = reactExports.createContext(null);
+function toArray$2(val) {
+	return val ? Array.isArray(val) ? val : [val] : [];
+}
+function useAction(action, showAction, hideAction) {
+	return reactExports.useMemo(() => {
+		const mergedShowAction = toArray$2(showAction ?? action);
+		const mergedHideAction = toArray$2(hideAction ?? action);
+		const showActionSet = new Set(mergedShowAction);
+		const hideActionSet = new Set(mergedHideAction);
+		if (showActionSet.has("hover") && !showActionSet.has("click")) {
+			showActionSet.add("touch");
+		}
+		if (hideActionSet.has("hover") && !hideActionSet.has("click")) {
+			hideActionSet.add("touch");
+		}
+		return [showActionSet, hideActionSet];
+	}, [
+		action,
+		showAction,
+		hideAction
+	]);
+}
 var isVisible = (element) => {
 	if (!element) {
 		return false;
@@ -14246,20 +15793,1758 @@ var isVisible = (element) => {
 	}
 	return false;
 };
+function isPointsEq(a1 = [], a2 = [], isAlignPoint) {
+	const getVal = (a, index) => a[index] || "";
+	if (isAlignPoint) {
+		return getVal(a1, 0) === getVal(a2, 0);
+	}
+	return getVal(a1, 0) === getVal(a2, 0) && getVal(a1, 1) === getVal(a2, 1);
+}
+function getAlignPopupClassName(builtinPlacements, prefixCls, align, isAlignPoint) {
+	const { points } = align;
+	const placements = Object.keys(builtinPlacements);
+	for (let i = 0; i < placements.length; i += 1) {
+		const placement = placements[i];
+		if (isPointsEq(builtinPlacements[placement]?.points, points, isAlignPoint)) {
+			return `${prefixCls}-placement-${placement}`;
+		}
+	}
+	return "";
+}
+function getWin(ele) {
+	return ele.ownerDocument.defaultView;
+}
+/**
+* Get all the scrollable parent elements of the element
+* @param ele       The element to be detected
+* @param areaOnly  Only return the parent which will cut visible area
+*/
+function collectScroller(ele) {
+	const scrollerList = [];
+	let current = ele?.parentElement;
+	const scrollStyle = [
+		"hidden",
+		"scroll",
+		"clip",
+		"auto"
+	];
+	while (current) {
+		const { overflowX, overflowY, overflow } = getWin(current).getComputedStyle(current);
+		if ([
+			overflowX,
+			overflowY,
+			overflow
+		].some((o) => scrollStyle.includes(o))) {
+			scrollerList.push(current);
+		}
+		current = current.parentElement;
+	}
+	return scrollerList;
+}
+function toNum(num, defaultValue = 1) {
+	return Number.isNaN(num) ? defaultValue : num;
+}
+function getPxValue(val) {
+	return toNum(parseFloat(val), 0);
+}
+/**
+*
+*
+*  **************************************
+*  *              Border                *
+*  *     **************************     *
+*  *     *                  *     *     *
+*  *  B  *                  *  S  *  B  *
+*  *  o  *                  *  c  *  o  *
+*  *  r  *      Content     *  r  *  r  *
+*  *  d  *                  *  o  *  d  *
+*  *  e  *                  *  l  *  e  *
+*  *  r  ********************  l  *  r  *
+*  *     *        Scroll          *     *
+*  *     **************************     *
+*  *              Border                *
+*  **************************************
+*
+*/
+/**
+* Get visible area of element
+*/
+function getVisibleArea(initArea, scrollerList) {
+	const visibleArea = { ...initArea };
+	(scrollerList || []).forEach((ele) => {
+		if (ele instanceof HTMLBodyElement || ele instanceof HTMLHtmlElement) {
+			return;
+		}
+		// Skip if static position which will not affect visible area
+		const { overflow, overflowClipMargin, borderTopWidth, borderBottomWidth, borderLeftWidth, borderRightWidth } = getWin(ele).getComputedStyle(ele);
+		const eleRect = ele.getBoundingClientRect();
+		const { offsetHeight: eleOutHeight, clientHeight: eleInnerHeight, offsetWidth: eleOutWidth, clientWidth: eleInnerWidth } = ele;
+		const borderTopNum = getPxValue(borderTopWidth);
+		const borderBottomNum = getPxValue(borderBottomWidth);
+		const borderLeftNum = getPxValue(borderLeftWidth);
+		const borderRightNum = getPxValue(borderRightWidth);
+		const scaleX = toNum(Math.round(eleRect.width / eleOutWidth * 1e3) / 1e3);
+		const scaleY = toNum(Math.round(eleRect.height / eleOutHeight * 1e3) / 1e3);
+		// Original visible area
+		const eleScrollWidth = (eleOutWidth - eleInnerWidth - borderLeftNum - borderRightNum) * scaleX;
+		const eleScrollHeight = (eleOutHeight - eleInnerHeight - borderTopNum - borderBottomNum) * scaleY;
+		// Cut border size
+		const scaledBorderTopWidth = borderTopNum * scaleY;
+		const scaledBorderBottomWidth = borderBottomNum * scaleY;
+		const scaledBorderLeftWidth = borderLeftNum * scaleX;
+		const scaledBorderRightWidth = borderRightNum * scaleX;
+		// Clip margin
+		let clipMarginWidth = 0;
+		let clipMarginHeight = 0;
+		if (overflow === "clip") {
+			const clipNum = getPxValue(overflowClipMargin);
+			clipMarginWidth = clipNum * scaleX;
+			clipMarginHeight = clipNum * scaleY;
+		}
+		// Region
+		const eleLeft = eleRect.x + scaledBorderLeftWidth - clipMarginWidth;
+		const eleTop = eleRect.y + scaledBorderTopWidth - clipMarginHeight;
+		const eleRight = eleLeft + eleRect.width + 2 * clipMarginWidth - scaledBorderLeftWidth - scaledBorderRightWidth - eleScrollWidth;
+		const eleBottom = eleTop + eleRect.height + 2 * clipMarginHeight - scaledBorderTopWidth - scaledBorderBottomWidth - eleScrollHeight;
+		visibleArea.left = Math.max(visibleArea.left, eleLeft);
+		visibleArea.top = Math.max(visibleArea.top, eleTop);
+		visibleArea.right = Math.min(visibleArea.right, eleRight);
+		visibleArea.bottom = Math.min(visibleArea.bottom, eleBottom);
+	});
+	return visibleArea;
+}
+function getUnitOffset(size, offset = 0) {
+	const offsetStr = `${offset}`;
+	const cells = offsetStr.match(/^(.*)\%$/);
+	if (cells) {
+		return size * (parseFloat(cells[1]) / 100);
+	}
+	return parseFloat(offsetStr);
+}
+function getNumberOffset(rect, offset) {
+	const [offsetX, offsetY] = offset || [];
+	return [getUnitOffset(rect.width, offsetX), getUnitOffset(rect.height, offsetY)];
+}
+function splitPoints(points = "") {
+	return [points[0], points[1]];
+}
+function getAlignPoint(rect, points) {
+	const topBottom = points[0];
+	const leftRight = points[1];
+	let x;
+	let y;
+	// Top & Bottom
+	if (topBottom === "t") {
+		y = rect.y;
+	} else if (topBottom === "b") {
+		y = rect.y + rect.height;
+	} else {
+		y = rect.y + rect.height / 2;
+	}
+	// Left & Right
+	if (leftRight === "l") {
+		x = rect.x;
+	} else if (leftRight === "r") {
+		x = rect.x + rect.width;
+	} else {
+		x = rect.x + rect.width / 2;
+	}
+	return {
+		a: x,
+		b: y
+	};
+}
+function reversePoints(points, index) {
+	const reverseMap = {
+		t: "b",
+		b: "t",
+		l: "r",
+		r: "l"
+	};
+	const clone = [...points];
+	clone[index] = reverseMap[points[index]] || "c";
+	return clone;
+}
+function flatPoints(points) {
+	return points.join("");
+}
+function useAlign(open, popupEle, target, placement, builtinPlacements, popupAlign, onPopupAlign, mobile) {
+	const [offsetInfo, setOffsetInfo] = reactExports.useState({
+		ready: false,
+		offsetX: 0,
+		offsetY: 0,
+		offsetR: 0,
+		offsetB: 0,
+		arrowX: 0,
+		arrowY: 0,
+		scaleX: 1,
+		scaleY: 1,
+		align: builtinPlacements[placement] || {}
+	});
+	const alignCountRef = reactExports.useRef(0);
+	const scrollerList = reactExports.useMemo(() => {
+		if (!popupEle || mobile) {
+			return [];
+		}
+		return collectScroller(popupEle);
+	}, [popupEle]);
+	// ========================= Flip ==========================
+	// We will memo flip info.
+	// If size change to make flip, it will memo the flip info and use it in next align.
+	const prevFlipRef = reactExports.useRef({});
+	const resetFlipCache = () => {
+		prevFlipRef.current = {};
+	};
+	if (!open) {
+		resetFlipCache();
+	}
+	// ========================= Align =========================
+	const onAlign = useEvent(() => {
+		if (popupEle && target && open && !mobile) {
+			const popupElement = popupEle;
+			const doc = popupElement.ownerDocument;
+			const win = getWin(popupElement);
+			const { position: popupPosition } = win.getComputedStyle(popupElement);
+			const originLeft = popupElement.style.left;
+			const originTop = popupElement.style.top;
+			const originRight = popupElement.style.right;
+			const originBottom = popupElement.style.bottom;
+			const originOverflow = popupElement.style.overflow;
+			// Placement
+			const placementInfo = {
+				...builtinPlacements[placement],
+				...popupAlign
+			};
+			// placeholder element
+			const placeholderElement = doc.createElement("div");
+			popupElement.parentElement?.appendChild(placeholderElement);
+			placeholderElement.style.left = `${popupElement.offsetLeft}px`;
+			placeholderElement.style.top = `${popupElement.offsetTop}px`;
+			placeholderElement.style.position = popupPosition;
+			placeholderElement.style.height = `${popupElement.offsetHeight}px`;
+			placeholderElement.style.width = `${popupElement.offsetWidth}px`;
+			// Reset first
+			popupElement.style.left = "0";
+			popupElement.style.top = "0";
+			popupElement.style.right = "auto";
+			popupElement.style.bottom = "auto";
+			popupElement.style.overflow = "hidden";
+			// Calculate align style, we should consider `transform` case
+			let targetRect;
+			if (Array.isArray(target)) {
+				targetRect = {
+					x: target[0],
+					y: target[1],
+					width: 0,
+					height: 0
+				};
+			} else {
+				const rect = target.getBoundingClientRect();
+				rect.x = rect.x ?? rect.left;
+				rect.y = rect.y ?? rect.top;
+				targetRect = {
+					x: rect.x,
+					y: rect.y,
+					width: rect.width,
+					height: rect.height
+				};
+			}
+			const popupRect = popupElement.getBoundingClientRect();
+			const { height, width } = win.getComputedStyle(popupElement);
+			popupRect.x = popupRect.x ?? popupRect.left;
+			popupRect.y = popupRect.y ?? popupRect.top;
+			const { clientWidth, clientHeight, scrollWidth, scrollHeight, scrollTop, scrollLeft } = doc.documentElement;
+			const popupHeight = popupRect.height;
+			const popupWidth = popupRect.width;
+			const targetHeight = targetRect.height;
+			const targetWidth = targetRect.width;
+			// Get bounding of visible area
+			const visibleRegion = {
+				left: 0,
+				top: 0,
+				right: clientWidth,
+				bottom: clientHeight
+			};
+			const scrollRegion = {
+				left: -scrollLeft,
+				top: -scrollTop,
+				right: scrollWidth - scrollLeft,
+				bottom: scrollHeight - scrollTop
+			};
+			let { htmlRegion } = placementInfo;
+			if (htmlRegion !== "scroll" && htmlRegion !== "visibleFirst") {
+				htmlRegion = "visible";
+			}
+			const isVisibleFirst = htmlRegion === "visibleFirst";
+			const scrollRegionArea = getVisibleArea(scrollRegion, scrollerList);
+			const visibleRegionArea = getVisibleArea(visibleRegion, scrollerList);
+			const visibleArea = htmlRegion === "visible" ? visibleRegionArea : scrollRegionArea;
+			// When set to `visibleFirst`,
+			// the check `adjust` logic will use `visibleRegion` for check first.
+			const adjustCheckVisibleArea = isVisibleFirst ? visibleRegionArea : visibleArea;
+			// Record right & bottom align data
+			popupElement.style.left = "auto";
+			popupElement.style.top = "auto";
+			popupElement.style.right = "0";
+			popupElement.style.bottom = "0";
+			const popupMirrorRect = popupElement.getBoundingClientRect();
+			// Reset back
+			popupElement.style.left = originLeft;
+			popupElement.style.top = originTop;
+			popupElement.style.right = originRight;
+			popupElement.style.bottom = originBottom;
+			popupElement.style.overflow = originOverflow;
+			popupElement.parentElement?.removeChild(placeholderElement);
+			// Calculate scale
+			const scaleX = toNum(Math.round(popupWidth / parseFloat(width) * 1e3) / 1e3);
+			const scaleY = toNum(Math.round(popupHeight / parseFloat(height) * 1e3) / 1e3);
+			// No need to align since it's not visible in view
+			if (scaleX === 0 || scaleY === 0 || isDOM(target) && !isVisible(target)) {
+				return;
+			}
+			// Offset
+			const { offset, targetOffset } = placementInfo;
+			let [popupOffsetX, popupOffsetY] = getNumberOffset(popupRect, offset);
+			const [targetOffsetX, targetOffsetY] = getNumberOffset(targetRect, targetOffset);
+			targetRect.x -= targetOffsetX;
+			targetRect.y -= targetOffsetY;
+			// Points
+			const [popupPoint, targetPoint] = placementInfo.points || [];
+			const targetPoints = splitPoints(targetPoint);
+			const popupPoints = splitPoints(popupPoint);
+			const targetAlignPoint = getAlignPoint(targetRect, targetPoints);
+			const popupAlignPoint = getAlignPoint(popupRect, popupPoints);
+			// Real align info may not same as origin one
+			const nextAlignInfo = { ...placementInfo };
+			let nextPoints = [popupPoints, targetPoints];
+			// Next Offset
+			let nextOffsetX = targetAlignPoint.a - popupAlignPoint.a + popupOffsetX;
+			let nextOffsetY = targetAlignPoint.b - popupAlignPoint.b + popupOffsetY;
+			// ============== Intersection ===============
+			// Get area by position. Used for check if flip area is better
+			function getIntersectionVisibleArea(offsetX, offsetY, area = visibleArea) {
+				const l = popupRect.x + offsetX;
+				const t = popupRect.y + offsetY;
+				const r = l + popupWidth;
+				const b = t + popupHeight;
+				const visibleL = Math.max(l, area.left);
+				const visibleT = Math.max(t, area.top);
+				const visibleR = Math.min(r, area.right);
+				const visibleB = Math.min(b, area.bottom);
+				return Math.max(0, (visibleR - visibleL) * (visibleB - visibleT));
+			}
+			const originIntersectionVisibleArea = getIntersectionVisibleArea(nextOffsetX, nextOffsetY);
+			// As `visibleFirst`, we prepare this for check
+			const originIntersectionRecommendArea = getIntersectionVisibleArea(nextOffsetX, nextOffsetY, visibleRegionArea);
+			// ========================== Overflow ===========================
+			const targetAlignPointTL = getAlignPoint(targetRect, ["t", "l"]);
+			const popupAlignPointTL = getAlignPoint(popupRect, ["t", "l"]);
+			const targetAlignPointBR = getAlignPoint(targetRect, ["b", "r"]);
+			const popupAlignPointBR = getAlignPoint(popupRect, ["b", "r"]);
+			const overflow = placementInfo.overflow || {};
+			const { adjustX, adjustY, shiftX, shiftY } = overflow;
+			const supportAdjust = (val) => {
+				if (typeof val === "boolean") {
+					return val;
+				}
+				return val >= 0;
+			};
+			// Prepare position
+			let nextPopupY;
+			let nextPopupBottom;
+			let nextPopupX;
+			let nextPopupRight;
+			function syncNextPopupPosition() {
+				nextPopupY = popupRect.y + nextOffsetY;
+				nextPopupBottom = nextPopupY + popupHeight;
+				nextPopupX = popupRect.x + nextOffsetX;
+				nextPopupRight = nextPopupX + popupWidth;
+			}
+			syncNextPopupPosition();
+			// >>>>>>>>>> Top & Bottom
+			const needAdjustY = supportAdjust(adjustY);
+			const sameTB = popupPoints[0] === targetPoints[0];
+			// Bottom to Top
+			if (needAdjustY && popupPoints[0] === "t" && (nextPopupBottom > adjustCheckVisibleArea.bottom || prevFlipRef.current.bt)) {
+				let tmpNextOffsetY = nextOffsetY;
+				if (sameTB) {
+					tmpNextOffsetY -= popupHeight - targetHeight;
+				} else {
+					tmpNextOffsetY = targetAlignPointTL.b - popupAlignPointBR.b - popupOffsetY;
+				}
+				const newVisibleArea = getIntersectionVisibleArea(nextOffsetX, tmpNextOffsetY);
+				const newVisibleRecommendArea = getIntersectionVisibleArea(nextOffsetX, tmpNextOffsetY, visibleRegionArea);
+				if (newVisibleArea > originIntersectionVisibleArea || newVisibleArea === originIntersectionVisibleArea && (!isVisibleFirst || newVisibleRecommendArea >= originIntersectionRecommendArea)) {
+					prevFlipRef.current.bt = true;
+					nextOffsetY = tmpNextOffsetY;
+					popupOffsetY = -popupOffsetY;
+					nextPoints = [reversePoints(nextPoints[0], 0), reversePoints(nextPoints[1], 0)];
+				} else {
+					prevFlipRef.current.bt = false;
+				}
+			}
+			// Top to Bottom
+			if (needAdjustY && popupPoints[0] === "b" && (nextPopupY < adjustCheckVisibleArea.top || prevFlipRef.current.tb)) {
+				let tmpNextOffsetY = nextOffsetY;
+				if (sameTB) {
+					tmpNextOffsetY += popupHeight - targetHeight;
+				} else {
+					tmpNextOffsetY = targetAlignPointBR.b - popupAlignPointTL.b - popupOffsetY;
+				}
+				const newVisibleArea = getIntersectionVisibleArea(nextOffsetX, tmpNextOffsetY);
+				const newVisibleRecommendArea = getIntersectionVisibleArea(nextOffsetX, tmpNextOffsetY, visibleRegionArea);
+				if (newVisibleArea > originIntersectionVisibleArea || newVisibleArea === originIntersectionVisibleArea && (!isVisibleFirst || newVisibleRecommendArea >= originIntersectionRecommendArea)) {
+					prevFlipRef.current.tb = true;
+					nextOffsetY = tmpNextOffsetY;
+					popupOffsetY = -popupOffsetY;
+					nextPoints = [reversePoints(nextPoints[0], 0), reversePoints(nextPoints[1], 0)];
+				} else {
+					prevFlipRef.current.tb = false;
+				}
+			}
+			// >>>>>>>>>> Left & Right
+			const needAdjustX = supportAdjust(adjustX);
+			// >>>>> Flip
+			const sameLR = popupPoints[1] === targetPoints[1];
+			// Right to Left
+			if (needAdjustX && popupPoints[1] === "l" && (nextPopupRight > adjustCheckVisibleArea.right || prevFlipRef.current.rl)) {
+				let tmpNextOffsetX = nextOffsetX;
+				if (sameLR) {
+					tmpNextOffsetX -= popupWidth - targetWidth;
+				} else {
+					tmpNextOffsetX = targetAlignPointTL.a - popupAlignPointBR.a - popupOffsetX;
+				}
+				const newVisibleArea = getIntersectionVisibleArea(tmpNextOffsetX, nextOffsetY);
+				const newVisibleRecommendArea = getIntersectionVisibleArea(tmpNextOffsetX, nextOffsetY, visibleRegionArea);
+				if (newVisibleArea > originIntersectionVisibleArea || newVisibleArea === originIntersectionVisibleArea && (!isVisibleFirst || newVisibleRecommendArea >= originIntersectionRecommendArea)) {
+					prevFlipRef.current.rl = true;
+					nextOffsetX = tmpNextOffsetX;
+					popupOffsetX = -popupOffsetX;
+					nextPoints = [reversePoints(nextPoints[0], 1), reversePoints(nextPoints[1], 1)];
+				} else {
+					prevFlipRef.current.rl = false;
+				}
+			}
+			// Left to Right
+			if (needAdjustX && popupPoints[1] === "r" && (nextPopupX < adjustCheckVisibleArea.left || prevFlipRef.current.lr)) {
+				let tmpNextOffsetX = nextOffsetX;
+				if (sameLR) {
+					tmpNextOffsetX += popupWidth - targetWidth;
+				} else {
+					tmpNextOffsetX = targetAlignPointBR.a - popupAlignPointTL.a - popupOffsetX;
+				}
+				const newVisibleArea = getIntersectionVisibleArea(tmpNextOffsetX, nextOffsetY);
+				const newVisibleRecommendArea = getIntersectionVisibleArea(tmpNextOffsetX, nextOffsetY, visibleRegionArea);
+				if (newVisibleArea > originIntersectionVisibleArea || newVisibleArea === originIntersectionVisibleArea && (!isVisibleFirst || newVisibleRecommendArea >= originIntersectionRecommendArea)) {
+					prevFlipRef.current.lr = true;
+					nextOffsetX = tmpNextOffsetX;
+					popupOffsetX = -popupOffsetX;
+					nextPoints = [reversePoints(nextPoints[0], 1), reversePoints(nextPoints[1], 1)];
+				} else {
+					prevFlipRef.current.lr = false;
+				}
+			}
+			nextAlignInfo.points = [flatPoints(nextPoints[0]), flatPoints(nextPoints[1])];
+			// ============================ Shift ============================
+			syncNextPopupPosition();
+			const numShiftX = shiftX === true ? 0 : shiftX;
+			if (typeof numShiftX === "number") {
+				// Left
+				if (nextPopupX < visibleRegionArea.left) {
+					nextOffsetX -= nextPopupX - visibleRegionArea.left - popupOffsetX;
+					if (targetRect.x + targetWidth < visibleRegionArea.left + numShiftX) {
+						nextOffsetX += targetRect.x - visibleRegionArea.left + targetWidth - numShiftX;
+					}
+				}
+				// Right
+				if (nextPopupRight > visibleRegionArea.right) {
+					nextOffsetX -= nextPopupRight - visibleRegionArea.right - popupOffsetX;
+					if (targetRect.x > visibleRegionArea.right - numShiftX) {
+						nextOffsetX += targetRect.x - visibleRegionArea.right + numShiftX;
+					}
+				}
+			}
+			const numShiftY = shiftY === true ? 0 : shiftY;
+			if (typeof numShiftY === "number") {
+				// Top
+				if (nextPopupY < visibleRegionArea.top) {
+					nextOffsetY -= nextPopupY - visibleRegionArea.top - popupOffsetY;
+					// When target if far away from visible area
+					// Stop shift
+					if (targetRect.y + targetHeight < visibleRegionArea.top + numShiftY) {
+						nextOffsetY += targetRect.y - visibleRegionArea.top + targetHeight - numShiftY;
+					}
+				}
+				// Bottom
+				if (nextPopupBottom > visibleRegionArea.bottom) {
+					nextOffsetY -= nextPopupBottom - visibleRegionArea.bottom - popupOffsetY;
+					if (targetRect.y > visibleRegionArea.bottom - numShiftY) {
+						nextOffsetY += targetRect.y - visibleRegionArea.bottom + numShiftY;
+					}
+				}
+			}
+			// ============================ Arrow ============================
+			// Arrow center align
+			const popupLeft = popupRect.x + nextOffsetX;
+			const popupRight = popupLeft + popupWidth;
+			const popupTop = popupRect.y + nextOffsetY;
+			const popupBottom = popupTop + popupHeight;
+			const targetLeft = targetRect.x;
+			const targetRight = targetLeft + targetWidth;
+			const targetTop = targetRect.y;
+			const targetBottom = targetTop + targetHeight;
+			/** Max left of the popup and target element */
+			const maxLeft = Math.max(popupLeft, targetLeft);
+			/** Min right of the popup and target element */
+			const minRight = Math.min(popupRight, targetRight);
+			/** The center X of popup & target cross area */
+			const xCenter = (maxLeft + minRight) / 2;
+			/** Arrow X of popup offset */
+			const nextArrowX = xCenter - popupLeft;
+			const maxTop = Math.max(popupTop, targetTop);
+			const minBottom = Math.min(popupBottom, targetBottom);
+			const yCenter = (maxTop + minBottom) / 2;
+			const nextArrowY = yCenter - popupTop;
+			onPopupAlign?.(popupEle, nextAlignInfo);
+			// Additional calculate right & bottom position
+			let offsetX4Right = popupMirrorRect.right - popupRect.x - (nextOffsetX + popupRect.width);
+			let offsetY4Bottom = popupMirrorRect.bottom - popupRect.y - (nextOffsetY + popupRect.height);
+			if (scaleX === 1) {
+				nextOffsetX = Math.floor(nextOffsetX);
+				offsetX4Right = Math.floor(offsetX4Right);
+			}
+			if (scaleY === 1) {
+				nextOffsetY = Math.floor(nextOffsetY);
+				offsetY4Bottom = Math.floor(offsetY4Bottom);
+			}
+			const nextOffsetInfo = {
+				ready: true,
+				offsetX: nextOffsetX / scaleX,
+				offsetY: nextOffsetY / scaleY,
+				offsetR: offsetX4Right / scaleX,
+				offsetB: offsetY4Bottom / scaleY,
+				arrowX: nextArrowX / scaleX,
+				arrowY: nextArrowY / scaleY,
+				scaleX,
+				scaleY,
+				align: nextAlignInfo
+			};
+			setOffsetInfo(nextOffsetInfo);
+		}
+	});
+	const triggerAlign = () => {
+		alignCountRef.current += 1;
+		const id = alignCountRef.current;
+		// Merge all align requirement into one frame
+		Promise.resolve().then(() => {
+			if (alignCountRef.current === id) {
+				onAlign();
+			}
+		});
+	};
+	// Reset ready status when placement & open changed
+	const resetReady = () => {
+		setOffsetInfo((ori) => ({
+			...ori,
+			ready: false
+		}));
+	};
+	useLayoutEffect(resetReady, [placement]);
+	useLayoutEffect(() => {
+		if (!open) {
+			resetReady();
+		}
+	}, [open]);
+	return [
+		offsetInfo.ready,
+		offsetInfo.offsetX,
+		offsetInfo.offsetY,
+		offsetInfo.offsetR,
+		offsetInfo.offsetB,
+		offsetInfo.arrowX,
+		offsetInfo.arrowY,
+		offsetInfo.scaleX,
+		offsetInfo.scaleY,
+		offsetInfo.align,
+		triggerAlign
+	];
+}
+function useDelay() {
+	const delayRef = reactExports.useRef(null);
+	const clearDelay = () => {
+		if (delayRef.current) {
+			clearTimeout(delayRef.current);
+			delayRef.current = null;
+		}
+	};
+	const delayInvoke = (callback, delay) => {
+		clearDelay();
+		if (delay === 0) {
+			callback();
+		} else {
+			delayRef.current = setTimeout(() => {
+				callback();
+			}, delay * 1e3);
+		}
+	};
+	// Clean up on unmount
+	reactExports.useEffect(() => {
+		return () => {
+			clearDelay();
+		};
+	}, []);
+	return delayInvoke;
+}
+function useWatch$1(open, target, popup, onAlign, onScroll) {
+	useLayoutEffect(() => {
+		if (open && target && popup) {
+			const targetElement = target;
+			const popupElement = popup;
+			const targetScrollList = collectScroller(targetElement);
+			const popupScrollList = collectScroller(popupElement);
+			const win = getWin(popupElement);
+			const mergedList = new Set([
+				win,
+				...targetScrollList,
+				...popupScrollList
+			]);
+			function notifyScroll() {
+				onAlign();
+				onScroll();
+			}
+			mergedList.forEach((scroller) => {
+				scroller.addEventListener("scroll", notifyScroll, { passive: true });
+			});
+			win.addEventListener("resize", notifyScroll, { passive: true });
+			// First time always do align
+			onAlign();
+			return () => {
+				mergedList.forEach((scroller) => {
+					scroller.removeEventListener("scroll", notifyScroll);
+					win.removeEventListener("resize", notifyScroll);
+				});
+			};
+		}
+	}, [
+		open,
+		target,
+		popup
+	]);
+}
+/**
+* Close if click on the window.
+* Return the function that click on the Popup element.
+*/
+function useWinClick(open, clickToHide, targetEle, popupEle, mask, maskClosable, inPopupOrChild, triggerOpen) {
+	const openRef = reactExports.useRef(open);
+	openRef.current = open;
+	const popupPointerDownRef = reactExports.useRef(false);
+	// Click to hide is special action since click popup element should not hide
+	reactExports.useEffect(() => {
+		if (clickToHide && popupEle && (!mask || maskClosable)) {
+			const onPointerDown = () => {
+				popupPointerDownRef.current = false;
+			};
+			const onTriggerClose = (e) => {
+				if (openRef.current && !inPopupOrChild(e.composedPath?.()?.[0] || e.target) && !popupPointerDownRef.current) {
+					triggerOpen(false);
+				}
+			};
+			const win = getWin(popupEle);
+			win.addEventListener("pointerdown", onPointerDown, true);
+			win.addEventListener("mousedown", onTriggerClose, true);
+			win.addEventListener("contextmenu", onTriggerClose, true);
+			// shadow root
+			const targetShadowRoot = getShadowRoot(targetEle);
+			if (targetShadowRoot) {
+				targetShadowRoot.addEventListener("mousedown", onTriggerClose, true);
+				targetShadowRoot.addEventListener("contextmenu", onTriggerClose, true);
+			}
+			return () => {
+				win.removeEventListener("pointerdown", onPointerDown, true);
+				win.removeEventListener("mousedown", onTriggerClose, true);
+				win.removeEventListener("contextmenu", onTriggerClose, true);
+				if (targetShadowRoot) {
+					targetShadowRoot.removeEventListener("mousedown", onTriggerClose, true);
+					targetShadowRoot.removeEventListener("contextmenu", onTriggerClose, true);
+				}
+			};
+		}
+	}, [
+		clickToHide,
+		targetEle,
+		popupEle,
+		mask,
+		maskClosable
+	]);
+	function onPopupPointerDown() {
+		popupPointerDownRef.current = true;
+	}
+	return onPopupPointerDown;
+}
+/**
+* Control the state of popup bind target:
+* 1. When set `target`. Do show the popup.
+* 2. When `target` is removed. Do hide the popup.
+* 3. When `target` change to another one:
+*  a. We wait motion finish of previous popup.
+*  b. Then we set new target and show the popup.
+* 4. During appear/enter animation, cache new options and apply after animation completes.
+*/
+function useTargetState() {
+	const [options, setOptions] = React.useState(null);
+	const [open, setOpen] = React.useState(false);
+	const [isAnimating, setIsAnimating] = React.useState(false);
+	const pendingOptionsRef = React.useRef(null);
+	const trigger = useEvent((nextOptions) => {
+		if (nextOptions === false) {
+			// Clear pending options when hiding
+			pendingOptionsRef.current = null;
+			setOpen(false);
+		} else {
+			if (isAnimating && open) {
+				// If animating (appear or enter), cache new options
+				pendingOptionsRef.current = nextOptions;
+			} else {
+				setOpen(true);
+				// Set new options
+				setOptions(nextOptions);
+				pendingOptionsRef.current = null;
+				// Only mark as animating when transitioning from closed to open
+				if (!open) {
+					setIsAnimating(true);
+				}
+			}
+		}
+	});
+	const onVisibleChanged = useEvent((visible) => {
+		if (visible) {
+			// Animation enter completed, check if there are pending options
+			setIsAnimating(false);
+			if (pendingOptionsRef.current) {
+				// Apply pending options
+				setOptions(pendingOptionsRef.current);
+				pendingOptionsRef.current = null;
+			}
+		} else {
+			// Animation leave completed
+			setIsAnimating(false);
+			pendingOptionsRef.current = null;
+		}
+	});
+	return [
+		trigger,
+		open,
+		options,
+		onVisibleChanged
+	];
+}
+function _extends$r() {
+	_extends$r = Object.assign.bind();
+	return _extends$r.apply(this, arguments);
+}
+const UniqueContainer = (props) => {
+	const { prefixCls, isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY, arrowPos, popupSize, motion, uniqueContainerClassName, uniqueContainerStyle } = props;
+	const containerCls = `${prefixCls}-unique-container`;
+	const [motionVisible, setMotionVisible] = React.useState(false);
+	// ========================= Styles =========================
+	const offsetStyle = useOffsetStyle(isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY);
+	// Cache for offsetStyle when ready is true
+	const cachedOffsetStyleRef = React.useRef(offsetStyle);
+	// Update cached offset style when ready is true
+	if (ready) {
+		cachedOffsetStyleRef.current = offsetStyle;
+	}
+	// Apply popup size if available
+	const sizeStyle = {};
+	if (popupSize) {
+		sizeStyle.width = popupSize.width;
+		sizeStyle.height = popupSize.height;
+	}
+	// ========================= Render =========================
+	return React.createElement(CSSMotion, _extends$r({
+		motionAppear: true,
+		motionEnter: true,
+		motionLeave: true,
+		removeOnLeave: false,
+		leavedClassName: `${containerCls}-hidden`
+	}, motion, {
+		visible: open,
+		onVisibleChanged: (nextVisible) => {
+			setMotionVisible(nextVisible);
+		}
+	}), ({ className: motionClassName, style: motionStyle }) => {
+		const cls = clsx(containerCls, motionClassName, uniqueContainerClassName, { [`${containerCls}-visible`]: motionVisible });
+		return React.createElement("div", {
+			className: cls,
+			style: {
+				"--arrow-x": `${arrowPos?.x || 0}px`,
+				"--arrow-y": `${arrowPos?.y || 0}px`,
+				...cachedOffsetStyleRef.current,
+				...sizeStyle,
+				...motionStyle,
+				...uniqueContainerStyle
+			}
+		});
+	});
+};
+const UniqueProvider$1 = ({ children, postTriggerProps }) => {
+	const [trigger, open, options, onTargetVisibleChanged] = useTargetState();
+	// ========================== Options ===========================
+	const mergedOptions = reactExports.useMemo(() => {
+		if (!options || !postTriggerProps) {
+			return options;
+		}
+		return postTriggerProps(options);
+	}, [options, postTriggerProps]);
+	// =========================== Popup ============================
+	const [popupEle, setPopupEle] = reactExports.useState(null);
+	const [popupSize, setPopupSize] = reactExports.useState(null);
+	// Used for forwardRef popup. Not use internal
+	const externalPopupRef = reactExports.useRef(null);
+	const setPopupRef = useEvent((node) => {
+		externalPopupRef.current = node;
+		if (isDOM(node) && popupEle !== node) {
+			setPopupEle(node);
+		}
+	});
+	// ========================== Register ==========================
+	// Store the isOpen function from the latest show call
+	const isOpenRef = reactExports.useRef(null);
+	const delayInvoke = useDelay();
+	const show = useEvent((showOptions, isOpen) => {
+		// Store the isOpen function for later use in hide
+		isOpenRef.current = isOpen;
+		delayInvoke(() => {
+			trigger(showOptions);
+		}, showOptions.delay);
+	});
+	const hide = (delay) => {
+		delayInvoke(() => {
+			// Check if we should still hide by calling the isOpen function
+			// If isOpen returns true, it means another trigger wants to keep it open
+			if (isOpenRef.current?.()) {
+				return;
+			}
+			trigger(false);
+			// Don't clear target, currentNode, options immediately, wait until animation completes
+		}, delay);
+	};
+	// Callback after animation completes
+	const onVisibleChanged = useEvent((visible) => {
+		// Call useTargetState callback to handle animation state
+		onTargetVisibleChanged(visible);
+	});
+	// =========================== Align ============================
+	const [ready, offsetX, offsetY, offsetR, offsetB, arrowX, arrowY, , , alignInfo, onAlign] = useAlign(
+		open,
+		popupEle,
+		mergedOptions?.target,
+		mergedOptions?.popupPlacement,
+		mergedOptions?.builtinPlacements || {},
+		mergedOptions?.popupAlign,
+		0,
+		// onPopupAlign
+		false
+	);
+	const alignedClassName = reactExports.useMemo(() => {
+		if (!mergedOptions) {
+			return "";
+		}
+		const baseClassName = getAlignPopupClassName(mergedOptions.builtinPlacements || {}, mergedOptions.prefixCls || "", alignInfo, false);
+		return clsx(baseClassName, mergedOptions.getPopupClassNameFromAlign?.(alignInfo));
+	}, [
+		alignInfo,
+		mergedOptions?.getPopupClassNameFromAlign,
+		mergedOptions?.builtinPlacements,
+		mergedOptions?.prefixCls
+	]);
+	const contextValue = reactExports.useMemo(() => ({
+		show,
+		hide
+	}), []);
+	// =========================== Align ============================
+	reactExports.useEffect(() => {
+		onAlign();
+	}, [mergedOptions?.target]);
+	// =========================== Motion ===========================
+	const onPrepare = useEvent(() => {
+		onAlign();
+		return Promise.resolve();
+	});
+	// ======================== Trigger Context =====================
+	const subPopupElements = reactExports.useRef({});
+	const parentContext = reactExports.useContext(TriggerContext);
+	const triggerContextValue = reactExports.useMemo(() => ({ registerSubPopup: (id, subPopupEle) => {
+		subPopupElements.current[id] = subPopupEle;
+		parentContext?.registerSubPopup(id, subPopupEle);
+	} }), [parentContext]);
+	// =========================== Render ===========================
+	const prefixCls = mergedOptions?.prefixCls;
+	return reactExports.createElement(UniqueContext.Provider, { value: contextValue }, children, mergedOptions && reactExports.createElement(TriggerContext.Provider, { value: triggerContextValue }, reactExports.createElement(Popup$1, {
+		ref: setPopupRef,
+		portal: Portal,
+		onEsc: mergedOptions.onEsc,
+		prefixCls,
+		popup: mergedOptions.popup,
+		className: clsx(mergedOptions.popupClassName, alignedClassName, `${prefixCls}-unique-controlled`),
+		style: mergedOptions.popupStyle,
+		target: mergedOptions.target,
+		open,
+		keepDom: true,
+		fresh: true,
+		autoDestroy: false,
+		onVisibleChanged,
+		ready,
+		offsetX,
+		offsetY,
+		offsetR,
+		offsetB,
+		onAlign,
+		onPrepare,
+		onResize: (size) => setPopupSize({
+			width: size.offsetWidth,
+			height: size.offsetHeight
+		}),
+		arrowPos: {
+			x: arrowX,
+			y: arrowY
+		},
+		align: alignInfo,
+		zIndex: mergedOptions.zIndex,
+		mask: mergedOptions.mask,
+		arrow: mergedOptions.arrow,
+		motion: mergedOptions.popupMotion,
+		maskMotion: mergedOptions.maskMotion,
+		getPopupContainer: mergedOptions.getPopupContainer
+	}, reactExports.createElement(UniqueContainer, {
+		prefixCls,
+		isMobile: false,
+		ready,
+		open,
+		align: alignInfo,
+		offsetR,
+		offsetB,
+		offsetX,
+		offsetY,
+		arrowPos: {
+			x: arrowX,
+			y: arrowY
+		},
+		popupSize,
+		motion: mergedOptions.popupMotion,
+		uniqueContainerClassName: clsx(mergedOptions.uniqueContainerClassName, alignedClassName),
+		uniqueContainerStyle: mergedOptions.uniqueContainerStyle
+	}))));
+};
+// Removed Props List
+// Seems this can be auto
+// getDocument?: (element?: HTMLElement) => Document;
+// New version will not wrap popup with `rc-trigger-popup-content` when multiple children
+function generateTrigger(PortalComponent = Portal) {
+	const Trigger = reactExports.forwardRef((props, ref) => {
+		const { prefixCls = "rc-trigger-popup", children, action = "hover", showAction, hideAction, popupVisible, defaultPopupVisible, onOpenChange, afterOpenChange, onPopupVisibleChange, afterPopupVisibleChange, mouseEnterDelay, mouseLeaveDelay = .1, focusDelay, blurDelay, mask, maskClosable = true, getPopupContainer, forceRender, autoDestroy, popup, popupClassName, uniqueContainerClassName, uniqueContainerStyle, popupStyle, popupPlacement, builtinPlacements = {}, popupAlign, zIndex, stretch, getPopupClassNameFromAlign, fresh, unique, alignPoint, onPopupClick, onPopupAlign, arrow, popupMotion, maskMotion, mobile, ...restProps } = props;
+		const mergedAutoDestroy = autoDestroy || false;
+		const openUncontrolled = popupVisible === void 0;
+		// =========================== Mobile ===========================
+		const isMobile = !!mobile;
+		// ========================== Context ===========================
+		const subPopupElements = reactExports.useRef({});
+		const parentContext = reactExports.useContext(TriggerContext);
+		const context = reactExports.useMemo(() => {
+			return { registerSubPopup: (id, subPopupEle) => {
+				subPopupElements.current[id] = subPopupEle;
+				parentContext?.registerSubPopup(id, subPopupEle);
+			} };
+		}, [parentContext]);
+		// ======================== UniqueContext =========================
+		const uniqueContext = reactExports.useContext(UniqueContext);
+		// =========================== Popup ============================
+		const id = useId();
+		const [popupEle, setPopupEle] = reactExports.useState(null);
+		// Used for forwardRef popup. Not use internal
+		const externalPopupRef = reactExports.useRef(null);
+		const setPopupRef = useEvent((node) => {
+			externalPopupRef.current = node;
+			if (isDOM(node) && popupEle !== node) {
+				setPopupEle(node);
+			}
+			parentContext?.registerSubPopup(id, node);
+		});
+		// =========================== Target ===========================
+		// Use state to control here since `useRef` update not trigger render
+		const [targetEle, setTargetEle] = reactExports.useState(null);
+		// Used for forwardRef target. Not use internal
+		const externalForwardRef = reactExports.useRef(null);
+		const setTargetRef = useEvent((node) => {
+			const domNode = getDOM(node);
+			if (isDOM(domNode) && targetEle !== domNode) {
+				setTargetEle(domNode);
+				externalForwardRef.current = domNode;
+			}
+		});
+		const cloneProps = {};
+		const inPopupOrChild = useEvent((ele) => {
+			const childDOM = targetEle;
+			return childDOM?.contains(ele) || getShadowRoot(childDOM)?.host === ele || ele === childDOM || popupEle?.contains(ele) || getShadowRoot(popupEle)?.host === ele || ele === popupEle || Object.values(subPopupElements.current).some((subPopupEle) => subPopupEle?.contains(ele) || ele === subPopupEle);
+		});
+		// =========================== Arrow ============================
+		const innerArrow = arrow ? { ...arrow !== true ? arrow : {} } : null;
+		// ============================ Open ============================
+		const [internalOpen, setInternalOpen] = useControlledState(defaultPopupVisible || false, popupVisible);
+		const mergedOpen = internalOpen || false;
+		// ========================== Children ==========================
+		const child = reactExports.useMemo(() => {
+			const nextChild = typeof children === "function" ? children({ open: mergedOpen }) : children;
+			return reactExports.Children.only(nextChild);
+		}, [children, mergedOpen]);
+		const originChildProps = child?.props || {};
+		// Support ref
+		const isOpen = useEvent(() => mergedOpen);
+		// Extract common options for UniqueProvider
+		const getUniqueOptions = useEvent((delay = 0) => ({
+			popup,
+			target: targetEle,
+			delay,
+			prefixCls,
+			popupClassName,
+			uniqueContainerClassName,
+			uniqueContainerStyle,
+			popupStyle,
+			popupPlacement,
+			builtinPlacements,
+			popupAlign,
+			zIndex,
+			mask,
+			maskClosable,
+			popupMotion,
+			maskMotion,
+			arrow: innerArrow,
+			getPopupContainer,
+			getPopupClassNameFromAlign,
+			id,
+			onEsc
+		}));
+		// Handle controlled state changes for UniqueProvider
+		// Only sync to UniqueProvider when it's controlled mode
+		// If there is a parentContext, don't call uniqueContext methods
+		useLayoutEffect(() => {
+			if (uniqueContext && unique && targetEle && !openUncontrolled && !parentContext) {
+				if (mergedOpen) {
+					uniqueContext.show(getUniqueOptions(mouseEnterDelay), isOpen);
+				} else {
+					uniqueContext.hide(mouseLeaveDelay);
+				}
+			}
+		}, [mergedOpen, targetEle]);
+		const openRef = reactExports.useRef(mergedOpen);
+		openRef.current = mergedOpen;
+		const internalTriggerOpen = useEvent((nextOpen) => {
+			reactDomExports.c(() => {
+				if (mergedOpen !== nextOpen) {
+					setInternalOpen(nextOpen);
+					onOpenChange?.(nextOpen);
+					onPopupVisibleChange?.(nextOpen);
+				}
+			});
+		});
+		// Trigger for delay
+		const delayInvoke = useDelay();
+		const triggerOpen = (nextOpen, delay = 0) => {
+			// If it's controlled mode, always use internal trigger logic
+			// UniqueProvider will be synced through useLayoutEffect
+			if (popupVisible !== void 0) {
+				delayInvoke(() => {
+					internalTriggerOpen(nextOpen);
+				}, delay);
+				return;
+			}
+			// If UniqueContext exists and not controlled, pass delay to Provider instead of handling it internally
+			// If there is a parentContext, don't call uniqueContext methods
+			if (uniqueContext && unique && openUncontrolled && !parentContext) {
+				if (nextOpen) {
+					uniqueContext.show(getUniqueOptions(delay), isOpen);
+				} else {
+					uniqueContext.hide(delay);
+				}
+				return;
+			}
+			delayInvoke(() => {
+				internalTriggerOpen(nextOpen);
+			}, delay);
+		};
+		function onEsc({ top }) {
+			if (top) {
+				triggerOpen(false);
+			}
+		}
+		// ========================== Motion ============================
+		const [inMotion, setInMotion] = reactExports.useState(false);
+		useLayoutEffect((firstMount) => {
+			if (!firstMount || mergedOpen) {
+				setInMotion(true);
+			}
+		}, [mergedOpen]);
+		const [motionPrepareResolve, setMotionPrepareResolve] = reactExports.useState(null);
+		// =========================== Align ============================
+		const [mousePos, setMousePos] = reactExports.useState(null);
+		const setMousePosByEvent = (event) => {
+			setMousePos([event.clientX, event.clientY]);
+		};
+		const [ready, offsetX, offsetY, offsetR, offsetB, arrowX, arrowY, scaleX, scaleY, alignInfo, onAlign] = useAlign(mergedOpen, popupEle, alignPoint && mousePos !== null ? mousePos : targetEle, popupPlacement, builtinPlacements, popupAlign, onPopupAlign, isMobile);
+		const [showActions, hideActions] = useAction(action, showAction, hideAction);
+		const clickToShow = showActions.has("click");
+		const clickToHide = hideActions.has("click") || hideActions.has("contextMenu");
+		const triggerAlign = useEvent(() => {
+			if (!inMotion) {
+				onAlign();
+			}
+		});
+		const onScroll = () => {
+			if (openRef.current && alignPoint && clickToHide) {
+				triggerOpen(false);
+			}
+		};
+		useWatch$1(mergedOpen, targetEle, popupEle, triggerAlign, onScroll);
+		useLayoutEffect(() => {
+			triggerAlign();
+		}, [mousePos, popupPlacement]);
+		// When no builtinPlacements and popupAlign changed
+		useLayoutEffect(() => {
+			if (mergedOpen && !builtinPlacements[popupPlacement]) {
+				triggerAlign();
+			}
+		}, [JSON.stringify(popupAlign)]);
+		const alignedClassName = reactExports.useMemo(() => {
+			const baseClassName = getAlignPopupClassName(builtinPlacements, prefixCls, alignInfo, alignPoint);
+			return clsx(baseClassName, getPopupClassNameFromAlign?.(alignInfo));
+		}, [
+			alignInfo,
+			getPopupClassNameFromAlign,
+			builtinPlacements,
+			prefixCls,
+			alignPoint
+		]);
+		// ============================ Refs ============================
+		reactExports.useImperativeHandle(ref, () => ({
+			nativeElement: externalForwardRef.current,
+			popupElement: externalPopupRef.current,
+			forceAlign: triggerAlign
+		}));
+		// ========================== Stretch ===========================
+		const [targetWidth, setTargetWidth] = reactExports.useState(0);
+		const [targetHeight, setTargetHeight] = reactExports.useState(0);
+		const syncTargetSize = () => {
+			if (stretch && targetEle) {
+				const rect = targetEle.getBoundingClientRect();
+				setTargetWidth(rect.width);
+				setTargetHeight(rect.height);
+			}
+		};
+		const onTargetResize = () => {
+			syncTargetSize();
+			triggerAlign();
+		};
+		// ========================== Motion ============================
+		const onVisibleChanged = (visible) => {
+			setInMotion(false);
+			onAlign();
+			afterOpenChange?.(visible);
+			afterPopupVisibleChange?.(visible);
+		};
+		// We will trigger align when motion is in prepare
+		const onPrepare = () => new Promise((resolve) => {
+			syncTargetSize();
+			setMotionPrepareResolve(() => resolve);
+		});
+		useLayoutEffect(() => {
+			if (motionPrepareResolve) {
+				onAlign();
+				motionPrepareResolve();
+				setMotionPrepareResolve(null);
+			}
+		}, [motionPrepareResolve]);
+		// =========================== Action ===========================
+		/**
+		* Util wrapper for trigger action
+		* @param eventName  Listen event name
+		* @param nextOpen  Next open state after trigger
+		* @param delay Delay to trigger open change
+		* @param callback Callback if current event need additional action
+		* @param ignoreCheck  Ignore current event if check return true
+		*/
+		function wrapperAction(eventName, nextOpen, delay, callback, ignoreCheck) {
+			cloneProps[eventName] = (event, ...args) => {
+				if (!ignoreCheck || !ignoreCheck()) {
+					callback?.(event);
+					triggerOpen(nextOpen, delay);
+				}
+				// Pass to origin
+				originChildProps[eventName]?.(event, ...args);
+			};
+		}
+		// ======================= Action: Touch ========================
+		const touchToShow = showActions.has("touch");
+		const touchToHide = hideActions.has("touch");
+		/** Used for prevent `hover` event conflict with mobile env */
+		const touchedRef = reactExports.useRef(false);
+		if (touchToShow || touchToHide) {
+			cloneProps.onTouchStart = (...args) => {
+				touchedRef.current = true;
+				if (openRef.current && touchToHide) {
+					triggerOpen(false);
+				} else if (!openRef.current && touchToShow) {
+					triggerOpen(true);
+				}
+				// Pass to origin
+				originChildProps.onTouchStart?.(...args);
+			};
+		}
+		// ======================= Action: Click ========================
+		if (clickToShow || clickToHide) {
+			cloneProps.onClick = (event, ...args) => {
+				if (openRef.current && clickToHide) {
+					triggerOpen(false);
+				} else if (!openRef.current && clickToShow) {
+					setMousePosByEvent(event);
+					triggerOpen(true);
+				}
+				// Pass to origin
+				originChildProps.onClick?.(event, ...args);
+				touchedRef.current = false;
+			};
+		}
+		// Click to hide is special action since click popup element should not hide
+		const onPopupPointerDown = useWinClick(mergedOpen, clickToHide || touchToHide, targetEle, popupEle, mask, maskClosable, inPopupOrChild, triggerOpen);
+		// ======================= Action: Hover ========================
+		const hoverToShow = showActions.has("hover");
+		const hoverToHide = hideActions.has("hover");
+		let onPopupMouseEnter;
+		let onPopupMouseLeave;
+		const ignoreMouseTrigger = () => {
+			return touchedRef.current;
+		};
+		if (hoverToShow) {
+			const onMouseEnterCallback = (event) => {
+				setMousePosByEvent(event);
+			};
+			// Compatible with old browser which not support pointer event
+			wrapperAction("onMouseEnter", true, mouseEnterDelay, onMouseEnterCallback, ignoreMouseTrigger);
+			wrapperAction("onPointerEnter", true, mouseEnterDelay, onMouseEnterCallback, ignoreMouseTrigger);
+			onPopupMouseEnter = (event) => {
+				// Only trigger re-open when popup is visible
+				if ((mergedOpen || inMotion) && popupEle?.contains(event.target)) {
+					triggerOpen(true, mouseEnterDelay);
+				}
+			};
+			// Align Point
+			if (alignPoint) {
+				cloneProps.onMouseMove = (event) => {
+					originChildProps.onMouseMove?.(event);
+				};
+			}
+		}
+		if (hoverToHide) {
+			wrapperAction("onMouseLeave", false, mouseLeaveDelay, 0, ignoreMouseTrigger);
+			wrapperAction("onPointerLeave", false, mouseLeaveDelay, 0, ignoreMouseTrigger);
+			onPopupMouseLeave = () => {
+				triggerOpen(false, mouseLeaveDelay);
+			};
+		}
+		// ======================= Action: Focus ========================
+		if (showActions.has("focus")) {
+			wrapperAction("onFocus", true, focusDelay);
+		}
+		if (hideActions.has("focus")) {
+			wrapperAction("onBlur", false, blurDelay);
+		}
+		// ==================== Action: ContextMenu =====================
+		if (showActions.has("contextMenu")) {
+			cloneProps.onContextMenu = (event, ...args) => {
+				if (openRef.current && hideActions.has("contextMenu")) {
+					triggerOpen(false);
+				} else {
+					setMousePosByEvent(event);
+					triggerOpen(true);
+				}
+				event.preventDefault();
+				// Pass to origin
+				originChildProps.onContextMenu?.(event, ...args);
+			};
+		}
+		// ============================ Perf ============================
+		const rendedRef = reactExports.useRef(false);
+		rendedRef.current ||= forceRender || mergedOpen || inMotion;
+		// =========================== Render ===========================
+		const mergedChildrenProps = {
+			...originChildProps,
+			...cloneProps
+		};
+		// Pass props into cloneProps for nest usage
+		const passedProps = {};
+		const passedEventList = [
+			"onContextMenu",
+			"onClick",
+			"onMouseDown",
+			"onTouchStart",
+			"onMouseEnter",
+			"onMouseLeave",
+			"onFocus",
+			"onBlur"
+		];
+		passedEventList.forEach((eventName) => {
+			if (restProps[eventName]) {
+				passedProps[eventName] = (...args) => {
+					mergedChildrenProps[eventName]?.(...args);
+					restProps[eventName](...args);
+				};
+			}
+		});
+		const arrowPos = {
+			x: arrowX,
+			y: arrowY
+		};
+		// =================== Resize Observer ===================
+		// Use hook to observe target element resize
+		// Pass targetEle directly instead of a function so the hook will re-observe when target changes
+		useResizeObserver(mergedOpen, targetEle, onTargetResize);
+		// Compose refs
+		const mergedRef = useComposeRef(setTargetRef, getNodeRef(child));
+		// Child Node
+		const triggerNode = reactExports.cloneElement(child, {
+			...mergedChildrenProps,
+			...passedProps,
+			ref: mergedRef
+		});
+		// Render
+		return reactExports.createElement(reactExports.Fragment, null, triggerNode, rendedRef.current && (!uniqueContext || !unique) && reactExports.createElement(TriggerContext.Provider, { value: context }, reactExports.createElement(Popup$1, {
+			portal: PortalComponent,
+			ref: setPopupRef,
+			prefixCls,
+			popup,
+			className: clsx(popupClassName, !isMobile && alignedClassName),
+			style: popupStyle,
+			target: targetEle,
+			onMouseEnter: onPopupMouseEnter,
+			onMouseLeave: onPopupMouseLeave,
+			onPointerEnter: onPopupMouseEnter,
+			zIndex,
+			open: mergedOpen,
+			keepDom: inMotion,
+			fresh,
+			onClick: onPopupClick,
+			onPointerDownCapture: onPopupPointerDown,
+			mask,
+			motion: popupMotion,
+			maskMotion,
+			onVisibleChanged,
+			onPrepare,
+			forceRender,
+			autoDestroy: mergedAutoDestroy,
+			getPopupContainer,
+			onEsc,
+			align: alignInfo,
+			arrow: innerArrow,
+			arrowPos,
+			ready,
+			offsetX,
+			offsetY,
+			offsetR,
+			offsetB,
+			onAlign: triggerAlign,
+			stretch,
+			targetWidth: targetWidth / scaleX,
+			targetHeight: targetHeight / scaleY,
+			mobile
+		})));
+	});
+	return Trigger;
+}
+var Trigger = generateTrigger(Portal);
 function isFragment(child) {
-	return child && React.r(child) && child.type === React.d;
+	return child && React.isValidElement(child) && child.type === React.Fragment;
 }
 const replaceElement = (element, replacement, props) => {
-	if (!React.r(element)) {
+	if (!React.isValidElement(element)) {
 		return replacement;
 	}
-	return React.m(element, typeof props === "function" ? props(element.props || {}) : props);
+	return React.cloneElement(element, typeof props === "function" ? props(element.props || {}) : props);
 };
 function cloneElement(element, props) {
 	return replaceElement(element, element, props);
 }
-const DisabledContext = reactExports.n(false);
-const SizeContext = reactExports.n(void 0);
+const MotionContent = ({ children }) => {
+	const { getPrefixCls } = React.useContext(ConfigContext);
+	const rootPrefixCls = getPrefixCls();
+	// This will never reach since we will not render this when no children
+	/* istanbul ignore next */
+	if (!React.isValidElement(children)) {
+		return children;
+	}
+	return React.createElement(CSSMotion, {
+		visible: true,
+		motionName: `${rootPrefixCls}-fade`,
+		motionAppear: true,
+		motionEnter: true,
+		motionLeave: false,
+		removeOnLeave: false
+	}, ({ style: motionStyle, className: motionClassName }) => {
+		return cloneElement(children, (oriProps) => ({
+			className: clsx(oriProps.className, motionClassName),
+			style: {
+				...oriProps.style,
+				...motionStyle
+			}
+		}));
+	});
+};
+const cachedPlacements = [null, null];
+function uniqueBuiltinPlacements(ori) {
+	if (cachedPlacements[0] !== ori) {
+		const target = {};
+		Object.keys(ori).forEach((placement) => {
+			target[placement] = {
+				...ori[placement],
+				dynamicInset: false
+			};
+		});
+		cachedPlacements[0] = ori;
+		cachedPlacements[1] = target;
+	}
+	return cachedPlacements[1];
+}
+const UniqueProvider = ({ children }) => {
+	const renderPopup = (options) => {
+		const { id, builtinPlacements, popup } = options;
+		const popupEle = typeof popup === "function" ? popup() : popup;
+		const parsedPlacements = uniqueBuiltinPlacements(builtinPlacements);
+		return {
+			...options,
+			getPopupContainer: null,
+			arrow: false,
+			popup: React.createElement(MotionContent, { key: id }, popupEle),
+			builtinPlacements: parsedPlacements
+		};
+	};
+	return React.createElement(UniqueProvider$1, { postTriggerProps: renderPopup }, children);
+};
+const DisabledContext = reactExports.createContext(false);
+const DisabledContextProvider = ({ children, disabled }) => {
+	const originDisabled = reactExports.useContext(DisabledContext);
+	return reactExports.createElement(DisabledContext.Provider, { value: disabled ?? originDisabled }, children);
+};
+const SizeContext = reactExports.createContext(void 0);
+const SizeContextProvider = ({ children, size }) => {
+	const originSize = reactExports.useContext(SizeContext);
+	return reactExports.createElement(SizeContext.Provider, { value: size || originSize }, children);
+};
+function useConfig() {
+	const componentDisabled = reactExports.useContext(DisabledContext);
+	const componentSize = reactExports.useContext(SizeContext);
+	return {
+		componentDisabled,
+		componentSize
+	};
+}
+function useTheme(theme, parentTheme, config) {
+	const themeConfig = theme || {};
+	const parentThemeConfig = themeConfig.inherit === false || !parentTheme ? {
+		...defaultConfig,
+		hashed: parentTheme?.hashed ?? defaultConfig.hashed,
+		cssVar: parentTheme?.cssVar
+	} : parentTheme;
+	// Generate a unique key for cssVar
+	const themeKey = reactExports.useId();
+	return useMemo(() => {
+		if (!theme) {
+			return parentTheme;
+		}
+		// Override
+		const mergedComponents = { ...parentThemeConfig.components };
+		Object.keys(theme.components || {}).forEach((componentName) => {
+			mergedComponents[componentName] = {
+				...mergedComponents[componentName],
+				...theme.components[componentName]
+			};
+		});
+		const cssVarKey = `css-var-${themeKey.replace(/:/g, "")}`;
+		const mergedCssVar = {
+			prefix: config.a,
+			...parentThemeConfig.cssVar,
+			...themeConfig.cssVar,
+			key: themeConfig.cssVar?.key || cssVarKey
+		};
+		// Base token
+		return {
+			...parentThemeConfig,
+			...themeConfig,
+			token: {
+				...parentThemeConfig.token,
+				...themeConfig.token
+			},
+			components: mergedComponents,
+			cssVar: mergedCssVar
+		};
+	}, [themeConfig, parentThemeConfig], (prev, next) => prev.some((prevTheme, index) => {
+		const nextTheme = next[index];
+		return !isEqual(prevTheme, nextTheme, true);
+	}));
+}
+const MotionCacheContext = reactExports.createContext(true);
+function MotionWrapper(props) {
+	const parentMotion = reactExports.useContext(MotionCacheContext);
+	const { children } = props;
+	const [, token] = useToken();
+	const { motion } = token;
+	const needWrapMotionProviderRef = reactExports.useRef(false);
+	needWrapMotionProviderRef.current || (needWrapMotionProviderRef.current = parentMotion !== motion);
+	if (needWrapMotionProviderRef.current) {
+		return reactExports.createElement(MotionCacheContext.Provider, { value: motion }, reactExports.createElement(MotionProvider, { motion }, children));
+	}
+	return children;
+}
+var PropWarning = () => null;
+/**
+* This component registers icon styles inside the DesignTokenContext.Provider
+* so that CSS variables use the correct cssVar key from the theme config.
+*/
+const IconStyle = ({ iconPrefixCls, csp }) => {
+	useResetIconStyle(iconPrefixCls, csp);
+	return null;
+};
+// These props is used by `useContext` directly in sub component
+const PASSED_PROPS = [
+	"getTargetContainer",
+	"getPopupContainer",
+	"renderEmpty",
+	"input",
+	"pagination",
+	"form",
+	"select",
+	"button"
+];
+const setGlobalConfig = () => {};
+const ProviderChildren = (props) => {
+	const { children, csp: customCsp, autoInsertSpaceInButton, alert, affix, anchor, form, locale, componentSize, direction, space, splitter, virtual, dropdownMatchSelectWidth, popupMatchSelectWidth, popupOverflow, legacyLocale, parentContext, iconPrefixCls: customIconPrefixCls, theme, componentDisabled, segmented, statistic, spin, calendar, carousel, cascader, collapse, typography, checkbox, descriptions, divider, drawer, skeleton, steps, image, layout, list, mentions, modal, progress, result, slider, breadcrumb, masonry, menu, pagination, input, textArea, otp, empty, badge, radio, rate, ribbon, switch: SWITCH, transfer, avatar, message, tag, table, card, cardMeta, tabs, timeline, timePicker, upload, notification, tree, colorPicker, datePicker, rangePicker, flex, wave, dropdown, warning: warningConfig, tour, tooltip, popover, popconfirm, qrcode, floatButton, floatButtonGroup, variant, inputNumber, treeSelect, watermark } = props;
+	// =================================== Context ===================================
+	const getPrefixCls = reactExports.useCallback((suffixCls, customizePrefixCls) => {
+		const { prefixCls } = props;
+		if (customizePrefixCls) {
+			return customizePrefixCls;
+		}
+		const mergedPrefixCls = prefixCls || parentContext.getPrefixCls("");
+		return suffixCls ? `${mergedPrefixCls}-${suffixCls}` : mergedPrefixCls;
+	}, [parentContext.getPrefixCls, props.prefixCls]);
+	const iconPrefixCls = customIconPrefixCls || parentContext.iconPrefixCls || "anticon";
+	const csp = customCsp || parentContext.csp;
+	const mergedTheme = useTheme(theme, parentContext.theme, { a: getPrefixCls("") });
+	const baseConfig = {
+		csp,
+		autoInsertSpaceInButton,
+		alert,
+		affix,
+		anchor,
+		locale: locale || legacyLocale,
+		direction,
+		space,
+		splitter,
+		virtual,
+		popupMatchSelectWidth: popupMatchSelectWidth ?? dropdownMatchSelectWidth,
+		popupOverflow,
+		getPrefixCls,
+		iconPrefixCls,
+		theme: mergedTheme,
+		segmented,
+		statistic,
+		spin,
+		calendar,
+		carousel,
+		cascader,
+		collapse,
+		typography,
+		checkbox,
+		descriptions,
+		divider,
+		drawer,
+		skeleton,
+		steps,
+		image,
+		input,
+		textArea,
+		otp,
+		layout,
+		list,
+		mentions,
+		modal,
+		progress,
+		result,
+		slider,
+		breadcrumb,
+		masonry,
+		menu,
+		pagination,
+		empty,
+		badge,
+		radio,
+		rate,
+		ribbon,
+		switch: SWITCH,
+		transfer,
+		avatar,
+		message,
+		tag,
+		table,
+		card,
+		cardMeta,
+		tabs,
+		timeline,
+		timePicker,
+		upload,
+		notification,
+		tree,
+		colorPicker,
+		datePicker,
+		rangePicker,
+		flex,
+		wave,
+		dropdown,
+		warning: warningConfig,
+		tour,
+		tooltip,
+		popover,
+		popconfirm,
+		qrcode,
+		floatButton,
+		floatButtonGroup,
+		variant,
+		inputNumber,
+		treeSelect,
+		watermark
+	};
+	const config = { ...parentContext };
+	Object.keys(baseConfig).forEach((key) => {
+		if (baseConfig[key] !== void 0) {
+			config[key] = baseConfig[key];
+		}
+	});
+	// Pass the props used by `useContext` directly with child component.
+	// These props should merged into `config`.
+	PASSED_PROPS.forEach((propName) => {
+		const propValue = props[propName];
+		if (propValue) {
+			config[propName] = propValue;
+		}
+	});
+	if (typeof autoInsertSpaceInButton !== "undefined") {
+		// merge deprecated api
+		config.button = {
+			autoInsertSpace: autoInsertSpaceInButton,
+			...config.button
+		};
+	}
+	// https://github.com/ant-design/ant-design/issues/27617
+	const memoedConfig = useMemo(() => config, config, (prevConfig, currentConfig) => {
+		const prevKeys = Object.keys(prevConfig);
+		const currentKeys = Object.keys(currentConfig);
+		return prevKeys.length !== currentKeys.length || prevKeys.some((key) => prevConfig[key] !== currentConfig[key]);
+	});
+	const { layer } = reactExports.useContext(StyleContext);
+	const memoIconContextValue = reactExports.useMemo(() => ({
+		prefixCls: iconPrefixCls,
+		csp,
+		layer: layer ? "antd" : void 0
+	}), [
+		iconPrefixCls,
+		csp,
+		layer
+	]);
+	let childNode = reactExports.createElement(reactExports.Fragment, null, reactExports.createElement(IconStyle, {
+		iconPrefixCls,
+		csp
+	}), reactExports.createElement(PropWarning, { dropdownMatchSelectWidth }), children);
+	const validateMessages = reactExports.useMemo(() => merge$1(localeValues.b.a, memoedConfig.locale?.Form?.defaultValidateMessages || {}, memoedConfig.form?.validateMessages || {}, form?.validateMessages || {}), [memoedConfig, form?.validateMessages]);
+	if (Object.keys(validateMessages).length > 0) {
+		childNode = reactExports.createElement(ValidateMessagesContext.Provider, { value: validateMessages }, childNode);
+	}
+	if (locale) {
+		childNode = reactExports.createElement(LocaleProvider, {
+			locale,
+			_ANT_MARK__: "internalMark"
+		}, childNode);
+	}
+	{
+		childNode = reactExports.createElement(IconContext.Provider, { value: memoIconContextValue }, childNode);
+	}
+	if (componentSize) {
+		childNode = reactExports.createElement(SizeContextProvider, { size: componentSize }, childNode);
+	}
+	// =================================== Motion ===================================
+	childNode = reactExports.createElement(MotionWrapper, null, childNode);
+	// ================================ Tooltip Unique ===============================
+	if (tooltip?.unique) {
+		childNode = reactExports.createElement(UniqueProvider, null, childNode);
+	}
+	// ================================ Dynamic theme ================================
+	const memoTheme = reactExports.useMemo(() => {
+		const { algorithm, token, components, cssVar, ...rest } = mergedTheme || {};
+		const themeObj = algorithm && (!Array.isArray(algorithm) || algorithm.length > 0) ? createTheme(algorithm) : defaultTheme;
+		const parsedComponents = {};
+		Object.entries(components || {}).forEach(([componentName, componentToken]) => {
+			const parsedToken = { ...componentToken };
+			if ("algorithm" in parsedToken) {
+				if (parsedToken.algorithm === true) {
+					parsedToken.theme = themeObj;
+				} else if (Array.isArray(parsedToken.algorithm) || typeof parsedToken.algorithm === "function") {
+					parsedToken.theme = createTheme(parsedToken.algorithm);
+				}
+				delete parsedToken.algorithm;
+			}
+			parsedComponents[componentName] = parsedToken;
+		});
+		const mergedToken = {
+			...seedToken,
+			...token
+		};
+		return {
+			...rest,
+			theme: themeObj,
+			token: mergedToken,
+			components: parsedComponents,
+			override: {
+				override: mergedToken,
+				...parsedComponents
+			},
+			cssVar
+		};
+	}, [mergedTheme]);
+	if (theme) {
+		childNode = reactExports.createElement(DesignTokenContext.Provider, { value: memoTheme }, childNode);
+	}
+	// ================================== Warning ===================================
+	if (memoedConfig.warning) {
+		childNode = reactExports.createElement(WarningContext.Provider, { value: memoedConfig.warning }, childNode);
+	}
+	// =================================== Render ===================================
+	if (componentDisabled !== void 0) {
+		childNode = reactExports.createElement(DisabledContextProvider, { disabled: componentDisabled }, childNode);
+	}
+	return reactExports.createElement(ConfigContext.Provider, { value: memoedConfig }, childNode);
+};
+const ConfigProvider = (props) => {
+	const context = reactExports.useContext(ConfigContext);
+	const antLocale = reactExports.useContext(LocaleContext);
+	return reactExports.createElement(ProviderChildren, {
+		parentContext: context,
+		legacyLocale: antLocale,
+		...props
+	});
+};
+ConfigProvider.ConfigContext = ConfigContext;
+ConfigProvider.config = setGlobalConfig;
+ConfigProvider.useConfig = useConfig;
+Object.defineProperty(ConfigProvider, "SizeContext", { get: () => {
+	return SizeContext;
+} });
 // This icon file is generated automatically.
 var LoadingOutlined$1 = {
 	"icon": {
@@ -14277,16 +17562,16 @@ var LoadingOutlined$1 = {
 	"theme": "outlined"
 };
 var LoadingOutlinedSvg = LoadingOutlined$1;
-function _extends() {
-	_extends = Object.assign.bind();
-	return _extends.apply(this, arguments);
+function _extends$q() {
+	_extends$q = Object.assign.bind();
+	return _extends$q.apply(this, arguments);
 }
-const LoadingOutlined = (props, ref) => reactExports.o(Icon, _extends({}, props, {
+const LoadingOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$q({}, props, {
 	ref,
 	icon: LoadingOutlinedSvg
 }));
 /**![loading](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTk4OCA1NDhjLTE5LjkgMC0zNi0xNi4xLTM2LTM2IDAtNTkuNC0xMS42LTExNy0zNC42LTE3MS4zYTQ0MC40NSA0NDAuNDUgMCAwMC05NC4zLTEzOS45IDQzNy43MSA0MzcuNzEgMCAwMC0xMzkuOS05NC4zQzYyOSA4My42IDU3MS40IDcyIDUxMiA3MmMtMTkuOSAwLTM2LTE2LjEtMzYtMzZzMTYuMS0zNiAzNi0zNmM2OS4xIDAgMTM2LjIgMTMuNSAxOTkuMyA0MC4zQzc3Mi4zIDY2IDgyNyAxMDMgODc0IDE1MGM0NyA0NyA4My45IDEwMS44IDEwOS43IDE2Mi43IDI2LjcgNjMuMSA0MC4yIDEzMC4yIDQwLjIgMTk5LjMuMSAxOS45LTE2IDM2LTM1LjkgMzZ6IiAvPjwvc3ZnPg==) */
-const RefIcon = reactExports.q(LoadingOutlined);
+const RefIcon$6 = reactExports.forwardRef(LoadingOutlined);
 const MARK = "__rc_react_root__";
 // ========================== Render ==========================
 function render(node, container) {
@@ -14323,7 +17608,7 @@ const genWaveStyle = (token) => {
 		}
 	} };
 };
-var useStyle$1 = genComponentStyleHook("Wave", genWaveStyle);
+var useStyle$2 = genComponentStyleHook("Wave", genWaveStyle);
 const TARGET_CLS = `${"ant"}-wave-target`;
 function isValidWaveColor(color) {
 	return color && typeof color === "string" && color !== "#fff" && color !== "#ffffff" && color !== "rgb(255, 255, 255)" && color !== "rgba(255, 255, 255, 1)" && !/rgba\((?:\d*, ){3}0\)/.test(color) && color !== "transparent" && color !== "canvastext";
@@ -14345,18 +17630,18 @@ function validateNum(value) {
 }
 const WaveEffect = (props) => {
 	const { className, target, component, colorSource } = props;
-	const divRef = reactExports.L(null);
-	const { getPrefixCls } = reactExports.z(ConfigContext);
+	const divRef = reactExports.useRef(null);
+	const { getPrefixCls } = reactExports.useContext(ConfigContext);
 	const rootPrefixCls = getPrefixCls();
 	const [varName] = genCssVar(rootPrefixCls, "wave");
 	// ===================== Effect =====================
-	const [color, setWaveColor] = reactExports.M(null);
-	const [borderRadius, setBorderRadius] = reactExports.M([]);
-	const [left, setLeft] = reactExports.M(0);
-	const [top, setTop] = reactExports.M(0);
-	const [width, setWidth] = reactExports.M(0);
-	const [height, setHeight] = reactExports.M(0);
-	const [enabled, setEnabled] = reactExports.M(false);
+	const [color, setWaveColor] = reactExports.useState(null);
+	const [borderRadius, setBorderRadius] = reactExports.useState([]);
+	const [left, setLeft] = reactExports.useState(0);
+	const [top, setTop] = reactExports.useState(0);
+	const [width, setWidth] = reactExports.useState(0);
+	const [height, setHeight] = reactExports.useState(0);
+	const [enabled, setEnabled] = reactExports.useState(false);
 	const waveStyle = {
 		left,
 		top,
@@ -14387,7 +17672,7 @@ const WaveEffect = (props) => {
 			borderBottomLeftRadius
 		].map((radius) => validateNum(Number.parseFloat(radius))));
 	}
-	reactExports.C(() => {
+	reactExports.useEffect(() => {
 		if (target) {
 			// We need delay to check position here
 			// since UI may change after click
@@ -14411,7 +17696,7 @@ const WaveEffect = (props) => {
 		return null;
 	}
 	const isSmallComponent = (component === "Checkbox" || component === "Radio") && target?.classList.contains(TARGET_CLS);
-	return reactExports.o(CSSMotion, {
+	return reactExports.createElement(CSSMotion, {
 		visible: true,
 		motionAppear: true,
 		motionName: "wave-motion",
@@ -14425,7 +17710,7 @@ const WaveEffect = (props) => {
 			}
 			return false;
 		}
-	}, ({ className: motionClassName }, ref) => reactExports.o("div", {
+	}, ({ className: motionClassName }, ref) => reactExports.createElement("div", {
 		ref: composeRef(divRef, ref),
 		className: clsx(className, motionClassName, { "wave-quick": isSmallComponent }),
 		style: waveStyle
@@ -14443,13 +17728,13 @@ const showWaveEffect = (target, info) => {
 	holder.style.left = "0px";
 	holder.style.top = "0px";
 	target?.insertBefore(holder, target?.firstChild);
-	render(reactExports.o(WaveEffect, {
+	render(reactExports.createElement(WaveEffect, {
 		...info,
 		target
 	}), holder);
 };
 const useWave = (nodeRef, className, component, colorSource) => {
-	const { wave } = reactExports.z(ConfigContext);
+	const { wave } = reactExports.useContext(ConfigContext);
 	const [, token, hashId] = useToken();
 	const showWave = useEvent((event) => {
 		const node = nodeRef.current;
@@ -14468,9 +17753,9 @@ const useWave = (nodeRef, className, component, colorSource) => {
 			colorSource
 		});
 	});
-	const rafId = reactExports.L(null);
+	const rafId = reactExports.useRef(null);
 	// Clean up RAF on unmount to prevent memory leaks and stale callbacks
-	reactExports.C(() => () => {
+	reactExports.useEffect(() => () => {
 		wrapperRaf.a(rafId.current);
 	}, []);
 	// Merge trigger event into one for each frame
@@ -14484,15 +17769,15 @@ const useWave = (nodeRef, className, component, colorSource) => {
 };
 const Wave = (props) => {
 	const { children, disabled, component, colorSource } = props;
-	const { getPrefixCls } = reactExports.z(ConfigContext);
-	const containerRef = reactExports.L(null);
+	const { getPrefixCls } = reactExports.useContext(ConfigContext);
+	const containerRef = reactExports.useRef(null);
 	// ============================== Style ===============================
 	const prefixCls = getPrefixCls("wave");
-	const hashId = useStyle$1(prefixCls);
+	const hashId = useStyle$2(prefixCls);
 	// =============================== Wave ===============================
 	const showWave = useWave(containerRef, clsx(prefixCls, hashId), component, colorSource);
 	// ============================== Effect ==============================
-	React.C(() => {
+	React.useEffect(() => {
 		const node = containerRef.current;
 		if (!node || node.nodeType !== window.Node.ELEMENT_NODE || disabled) {
 			return;
@@ -14512,15 +17797,15 @@ const Wave = (props) => {
 		};
 	}, [disabled]);
 	// ============================== Render ==============================
-	if (!React.r(children)) {
+	if (!React.isValidElement(children)) {
 		return children ?? null;
 	}
 	const ref = supportRef(children) ? composeRef(getNodeRef(children), containerRef) : containerRef;
 	return cloneElement(children, { ref });
 };
 const useSize = (customSize) => {
-	const size = React.z(SizeContext);
-	const mergedSize = React.I(() => {
+	const size = React.useContext(SizeContext);
+	const mergedSize = React.useMemo(() => {
 		{
 			{
 				return customSize(size);
@@ -14529,10 +17814,10 @@ const useSize = (customSize) => {
 	}, [customSize, size]);
 	return mergedSize;
 };
-const SpaceCompactItemContext = reactExports.n(null);
+const SpaceCompactItemContext = reactExports.createContext(null);
 const useCompactItemContext = (prefixCls, direction) => {
-	const compactItemContext = reactExports.z(SpaceCompactItemContext);
-	const compactItemClassnames = reactExports.I(() => {
+	const compactItemContext = reactExports.useContext(SpaceCompactItemContext);
+	const compactItemClassnames = reactExports.useMemo(() => {
 		if (!compactItemContext) {
 			return "";
 		}
@@ -14553,13 +17838,17 @@ const useCompactItemContext = (prefixCls, direction) => {
 		b: compactItemClassnames
 	};
 };
-const GroupSizeContext = reactExports.n(void 0);
+const NoCompactStyle = (props) => {
+	const { children } = props;
+	return reactExports.createElement(SpaceCompactItemContext.Provider, { value: null }, children);
+};
+const GroupSizeContext = reactExports.createContext(void 0);
 const ButtonGroup = (props) => {
-	const { getPrefixCls, direction } = reactExports.z(ConfigContext);
+	const { getPrefixCls, direction } = reactExports.useContext(ConfigContext);
 	const { prefixCls: customizePrefixCls, size, className, ...others } = props;
 	const prefixCls = getPrefixCls("btn-group", customizePrefixCls);
 	const [, , hashId] = useToken();
-	const sizeCls = reactExports.I(() => {
+	const sizeCls = reactExports.useMemo(() => {
 		switch (size) {
 			case "large": return "lg";
 			case "small": return "sm";
@@ -14570,7 +17859,7 @@ const ButtonGroup = (props) => {
 		[`${prefixCls}-${sizeCls}`]: sizeCls,
 		[`${prefixCls}-rtl`]: direction === "rtl"
 	}, className, hashId);
-	return reactExports.o(GroupSizeContext.Provider, { value: size }, reactExports.o("div", {
+	return reactExports.createElement(GroupSizeContext.Provider, { value: size }, reactExports.createElement("div", {
 		...others,
 		className: classes
 	}));
@@ -14604,13 +17893,13 @@ function splitCNCharsBySpace(child, needInserted, style, className) {
 		});
 	}
 	if (isString(child)) {
-		return React.o("span", {
+		return React.createElement("span", {
 			className,
 			style
 		}, isTwoCNChar(child) ? child.split("").join(SPACE) : child);
 	}
 	if (isFragment(child)) {
-		return React.o("span", {
+		return React.createElement("span", {
 			className,
 			style
 		}, child);
@@ -14627,7 +17916,7 @@ function splitCNCharsBySpace(child, needInserted, style, className) {
 function spaceChildren(children, needInserted, style, className) {
 	let isPrevChildPure = false;
 	const childList = [];
-	React.b.b(children, (child) => {
+	React.Children.forEach(children, (child) => {
 		const type = typeof child;
 		const isCurrentChildPure = type === "string" || type === "number";
 		if (isPrevChildPure && isCurrentChildPure) {
@@ -14639,31 +17928,31 @@ function spaceChildren(children, needInserted, style, className) {
 		}
 		isPrevChildPure = isCurrentChildPure;
 	});
-	return React.b.a(childList, (child) => splitCNCharsBySpace(child, needInserted, style, className));
+	return React.Children.map(childList, (child) => splitCNCharsBySpace(child, needInserted, style, className));
 }
 [
 	"default",
 	"primary",
 	"danger"
-].concat(_toConsumableArray(PresetColors));
-const IconWrapper = reactExports.q((props, ref) => {
+].concat(_toConsumableArray$8(PresetColors));
+const IconWrapper = reactExports.forwardRef((props, ref) => {
 	const { className, style, children, prefixCls } = props;
 	const iconWrapperCls = clsx(`${prefixCls}-icon`, className);
-	return React.o("span", {
+	return React.createElement("span", {
 		ref,
 		className: iconWrapperCls,
 		style
 	}, children);
 });
-const InnerLoadingIcon = reactExports.q((props, ref) => {
+const InnerLoadingIcon = reactExports.forwardRef((props, ref) => {
 	const { prefixCls, className, style, iconClassName } = props;
 	const mergedIconCls = clsx(`${prefixCls}-loading-icon`, className);
-	return React.o(IconWrapper, {
+	return React.createElement(IconWrapper, {
 		prefixCls,
 		className: mergedIconCls,
 		style,
 		ref
-	}, React.o(RefIcon, { className: iconClassName }));
+	}, React.createElement(RefIcon$6, { className: iconClassName }));
 });
 const getCollapsedWidth = () => ({
 	width: 0,
@@ -14679,13 +17968,13 @@ const DefaultLoadingIcon = (props) => {
 	const { prefixCls, loading, existIcon, className, style, mount } = props;
 	const visible = !!loading;
 	if (existIcon) {
-		return React.o(InnerLoadingIcon, {
+		return React.createElement(InnerLoadingIcon, {
 			prefixCls,
 			className,
 			style
 		});
 	}
-	return React.o(CSSMotion, {
+	return React.createElement(CSSMotion, {
 		visible,
 		motionName: `${prefixCls}-loading-icon-motion`,
 		motionAppear: !mount,
@@ -14703,7 +17992,7 @@ const DefaultLoadingIcon = (props) => {
 			...style,
 			...motionStyle
 		};
-		return React.o(InnerLoadingIcon, {
+		return React.createElement(InnerLoadingIcon, {
 			prefixCls,
 			className: clsx(className, motionCls),
 			style: mergedStyle,
@@ -14715,7 +18004,7 @@ const genButtonBorderStyle = (buttonTypeCls, borderColor) => ({ [`> span, > ${bu
 	"&:not(:last-child)": { [`&, & > ${buttonTypeCls}`]: { "&:not(:disabled)": { borderInlineEndColor: borderColor } } },
 	"&:not(:first-child)": { [`&, & > ${buttonTypeCls}`]: { "&:not(:disabled)": { borderInlineStartColor: borderColor } } }
 } });
-const genGroupStyle = (token) => {
+const genGroupStyle$1 = (token) => {
 	const { componentCls, fontSize, lineWidth, groupBorderColor, colorErrorHover } = token;
 	return { [`${componentCls}-group`]: [
 		{
@@ -14794,7 +18083,7 @@ const toHexFormat = (value, alpha) => value?.replace(/[^0-9a-f]/gi, "").slice(0,
 const getHex = (value, alpha) => value ? toHexFormat(value, alpha) : "";
 let AggregationColor = function() {
 	function AggregationColor(color) {
-		_classCallCheck(this, AggregationColor);
+		_classCallCheck$1(this, AggregationColor);
 		this.cleared = false;
 		// Clone from another AggregationColor
 		if (color instanceof AggregationColor) {
@@ -14821,7 +18110,7 @@ let AggregationColor = function() {
 			this.cleared = true;
 		}
 	}
-	return _createClass(AggregationColor, [
+	return _createClass$1(AggregationColor, [
 		{
 			key: "toHsb",
 			value: function() {
@@ -14902,6 +18191,194 @@ let AggregationColor = function() {
 		}
 	]);
 }();
+function _extends$p() {
+	return _extends$p = Object.assign.bind(), _extends$p.apply(null, arguments);
+}
+const initMotionCommon = (duration) => ({
+	animationDuration: duration,
+	animationFillMode: "both"
+});
+// FIXME: origin less code seems same as initMotionCommon. Maybe we can safe remove
+const initMotionCommonLeave = (duration) => ({
+	animationDuration: duration,
+	animationFillMode: "both"
+});
+const initMotion = (motionCls, inKeyframes, outKeyframes, duration) => {
+	return {
+		[`
+      ${""}${motionCls}-enter,
+      ${""}${motionCls}-appear
+    `]: {
+			...initMotionCommon(duration),
+			animationPlayState: "paused"
+		},
+		[`${""}${motionCls}-leave`]: {
+			...initMotionCommonLeave(duration),
+			animationPlayState: "paused"
+		},
+		[`
+      ${""}${motionCls}-enter${motionCls}-enter-active,
+      ${""}${motionCls}-appear${motionCls}-appear-active
+    `]: {
+			animationName: inKeyframes,
+			animationPlayState: "running"
+		},
+		[`${""}${motionCls}-leave${motionCls}-leave-active`]: {
+			animationName: outKeyframes,
+			animationPlayState: "running",
+			pointerEvents: "none"
+		}
+	};
+};
+const moveDownIn = new Keyframe("antMoveDownIn", {
+	"0%": {
+		transform: "translate3d(0, 100%, 0)",
+		transformOrigin: "0 0",
+		opacity: 0
+	},
+	"100%": {
+		transform: "translate3d(0, 0, 0)",
+		transformOrigin: "0 0",
+		opacity: 1
+	}
+});
+const moveDownOut = new Keyframe("antMoveDownOut", {
+	"0%": {
+		transform: "translate3d(0, 0, 0)",
+		transformOrigin: "0 0",
+		opacity: 1
+	},
+	"100%": {
+		transform: "translate3d(0, 100%, 0)",
+		transformOrigin: "0 0",
+		opacity: 0
+	}
+});
+const moveUpIn = new Keyframe("antMoveUpIn", {
+	"0%": {
+		transform: "translate3d(0, -100%, 0)",
+		transformOrigin: "0 0",
+		opacity: 0
+	},
+	"100%": {
+		transform: "translate3d(0, 0, 0)",
+		transformOrigin: "0 0",
+		opacity: 1
+	}
+});
+const moveUpOut = new Keyframe("antMoveUpOut", {
+	"0%": {
+		transform: "translate3d(0, 0, 0)",
+		transformOrigin: "0 0",
+		opacity: 1
+	},
+	"100%": {
+		transform: "translate3d(0, -100%, 0)",
+		transformOrigin: "0 0",
+		opacity: 0
+	}
+});
+const moveMotion = {
+	"move-up": {
+		a: moveUpIn,
+		b: moveUpOut
+	},
+	"move-down": {
+		a: moveDownIn,
+		b: moveDownOut
+	}
+};
+const initMoveMotion = (token, motionName) => {
+	const { antCls } = token;
+	const motionCls = `${antCls}-${motionName}`;
+	const { a: inKeyframes, b: outKeyframes } = moveMotion[motionName];
+	return [initMotion(motionCls, inKeyframes, outKeyframes, token.motionDurationMid), {
+		[`
+        ${motionCls}-enter,
+        ${motionCls}-appear
+      `]: {
+			opacity: 0,
+			animationTimingFunction: token.motionEaseOutCirc
+		},
+		[`${motionCls}-leave`]: { animationTimingFunction: token.motionEaseInOutCirc }
+	}];
+};
+const slideUpIn = new Keyframe("antSlideUpIn", {
+	"0%": {
+		transform: "scaleY(0.8)",
+		transformOrigin: "0% 0%",
+		opacity: 0
+	},
+	"100%": {
+		transform: "scaleY(1)",
+		transformOrigin: "0% 0%",
+		opacity: 1
+	}
+});
+const slideUpOut = new Keyframe("antSlideUpOut", {
+	"0%": {
+		transform: "scaleY(1)",
+		transformOrigin: "0% 0%",
+		opacity: 1
+	},
+	"100%": {
+		transform: "scaleY(0.8)",
+		transformOrigin: "0% 0%",
+		opacity: 0
+	}
+});
+const slideDownIn = new Keyframe("antSlideDownIn", {
+	"0%": {
+		transform: "scaleY(0.8)",
+		transformOrigin: "100% 100%",
+		opacity: 0
+	},
+	"100%": {
+		transform: "scaleY(1)",
+		transformOrigin: "100% 100%",
+		opacity: 1
+	}
+});
+const slideDownOut = new Keyframe("antSlideDownOut", {
+	"0%": {
+		transform: "scaleY(1)",
+		transformOrigin: "100% 100%",
+		opacity: 1
+	},
+	"100%": {
+		transform: "scaleY(0.8)",
+		transformOrigin: "100% 100%",
+		opacity: 0
+	}
+});
+const slideMotion = {
+	"slide-up": {
+		a: slideUpIn,
+		b: slideUpOut
+	},
+	"slide-down": {
+		a: slideDownIn,
+		b: slideDownOut
+	}
+};
+const initSlideMotion = (token, motionName) => {
+	const { antCls } = token;
+	const motionCls = `${antCls}-${motionName}`;
+	const { a: inKeyframes, b: outKeyframes } = slideMotion[motionName];
+	return [initMotion(motionCls, inKeyframes, outKeyframes, token.motionDurationMid), {
+		[`
+      ${motionCls}-enter,
+      ${motionCls}-appear
+    `]: {
+			transform: "scale(0)",
+			transformOrigin: "0% 0%",
+			opacity: 0,
+			animationTimingFunction: token.motionEaseOutQuint,
+			"&-prepare": { transform: "scale(1)" }
+		},
+		[`${motionCls}-leave`]: { animationTimingFunction: token.motionEaseInQuint }
+	}];
+};
 const isBright = (value) => {
 	const { r, g, b, a } = value.toRgb();
 	const hsv = new Color(value.toRgbString()).onBackground("#fff").toHsv();
@@ -14921,7 +18398,7 @@ const prepareToken = (token) => {
 	});
 	return buttonToken;
 };
-const prepareComponentToken = (token) => {
+const prepareComponentToken$1 = (token) => {
 	const contentFontSize = token.contentFontSize ?? token.fontSize;
 	const contentFontSizeSM = token.contentFontSizeSM ?? token.fontSize;
 	const contentFontSizeLG = token.contentFontSizeLG ?? token.fontSizeLG;
@@ -15336,7 +18813,7 @@ const genBlockButtonStyle = (token) => {
 	return { [componentCls]: { [`&${componentCls}-block`]: { width: "100%" } } };
 };
 // ============================== Export ==============================
-var useStyle = genStyleHooks(0, (token) => {
+var useStyle$1 = genStyleHooks("Button", (token) => {
 	const buttonToken = prepareToken(token);
 	return [
 		genSharedButtonStyle(buttonToken),
@@ -15345,19 +18822,20 @@ var useStyle = genStyleHooks(0, (token) => {
 		genSizeLargeButtonStyle(buttonToken),
 		genBlockButtonStyle(buttonToken),
 		genVariantStyle(buttonToken),
-		genGroupStyle(buttonToken)
+		genGroupStyle$1(buttonToken)
 	];
-}, prepareComponentToken, { unitless: {
+}, prepareComponentToken$1, { unitless: {
 	fontWeight: true,
 	contentLineHeight: true,
 	contentLineHeightSM: true,
 	contentLineHeightLG: true
 } });
 // handle border collapse
-function compactItemBorder(token, parentCls, __unused_2B13, prefixCls) {
+function compactItemBorder(token, parentCls, options, prefixCls) {
+	const { focusElCls, focus } = options;
 	const hoverEffects = [
 		"hover",
-		"focus",
+		focus ? "focus" : null,
 		"active"
 	].filter(Boolean).map((n) => `&:${n} ${""}`).join(",");
 	return {
@@ -15365,7 +18843,7 @@ function compactItemBorder(token, parentCls, __unused_2B13, prefixCls) {
 		[`&-item:not(${prefixCls}-status-success)`]: { zIndex: 2 },
 		"&-item": {
 			[hoverEffects]: { zIndex: 3 },
-			...{},
+			...focusElCls ? { [`&${focusElCls}`]: { zIndex: 3 } } : {},
 			[`&[disabled] ${""}`]: { zIndex: 0 }
 		}
 	};
@@ -15384,12 +18862,12 @@ function compactItemBorderRadius(prefixCls, parentCls) {
 		} }
 	};
 }
-function genCompactItemStyle(token) {
+function genCompactItemStyle(token, options = { focus: true }) {
 	const { componentCls } = token;
 	const mergedComponentCls = componentCls;
 	const compactCls = `${mergedComponentCls}-compact`;
 	return { [compactCls]: {
-		...compactItemBorder(token, compactCls, 0, mergedComponentCls),
+		...compactItemBorder(token, compactCls, options, mergedComponentCls),
 		...compactItemBorderRadius(mergedComponentCls, compactCls)
 	} };
 }
@@ -15466,7 +18944,7 @@ var Compact = genSubStyleComponent(["Button", "compact"], (token) => {
 		genCompactItemVerticalStyle(buttonToken),
 		genButtonCompactStyle(buttonToken)
 	];
-}, prepareComponentToken);
+}, prepareComponentToken$1);
 function getLoadingConfig(loading) {
 	if (typeof loading === "object" && loading) {
 		let delay = loading.delay;
@@ -15488,15 +18966,15 @@ const ButtonTypeMap = {
 	link: ["link", "link"],
 	text: ["default", "text"]
 };
-const InternalCompoundedButton = React.q((props, ref) => {
+const InternalCompoundedButton = React.forwardRef((props, ref) => {
 	const { _skipSemantic, loading = false, prefixCls: customizePrefixCls, color, variant, type, danger = false, shape: customizeShape, size: customizeSize, disabled: customDisabled, className, rootClassName, children, icon, iconPosition, iconPlacement, ghost = false, block = false, htmlType = "button", classNames, styles, style, autoInsertSpace, autoFocus, ...rest } = props;
-	const childNodes = toArray(children);
+	const childNodes = toArray$3(children);
 	// https://github.com/ant-design/ant-design/issues/47605
 	// Compatible with original `type` behavior
 	const mergedType = type || "default";
-	const { button } = React.z(ConfigContext);
+	const { button } = React.useContext(ConfigContext);
 	const shape = customizeShape || button?.shape || "default";
-	const [parsedColor, parsedVariant] = reactExports.I(() => {
+	const [parsedColor, parsedVariant] = reactExports.useMemo(() => {
 		// >>>>> Local
 		// Color & Variant
 		if (color && variant) {
@@ -15524,7 +19002,7 @@ const InternalCompoundedButton = React.q((props, ref) => {
 		button?.variant,
 		mergedType
 	]);
-	const [mergedColor, mergedVariant] = reactExports.I(() => {
+	const [mergedColor, mergedVariant] = reactExports.useMemo(() => {
 		if (ghost && parsedVariant === "solid") {
 			return [parsedColor, "outlined"];
 		}
@@ -15536,24 +19014,24 @@ const InternalCompoundedButton = React.q((props, ref) => {
 	]);
 	const isDanger = mergedColor === "danger";
 	const mergedColorText = isDanger ? "dangerous" : mergedColor;
-	const { getPrefixCls, direction, autoInsertSpace: contextAutoInsertSpace, className: contextClassName, style: contextStyle, classNames: contextClassNames, styles: contextStyles } = useComponentConfig();
+	const { getPrefixCls, direction, autoInsertSpace: contextAutoInsertSpace, className: contextClassName, style: contextStyle, classNames: contextClassNames, styles: contextStyles } = useComponentConfig("button");
 	const mergedInsertSpace = autoInsertSpace ?? contextAutoInsertSpace ?? true;
 	const prefixCls = getPrefixCls("btn", customizePrefixCls);
-	const [hashId, cssVarCls] = useStyle(prefixCls);
-	const disabled = reactExports.z(DisabledContext);
+	const [hashId, cssVarCls] = useStyle$1(prefixCls);
+	const disabled = reactExports.useContext(DisabledContext);
 	const mergedDisabled = customDisabled ?? disabled;
-	const groupSize = reactExports.z(GroupSizeContext);
-	const loadingOrDelay = reactExports.I(() => getLoadingConfig(loading), [loading]);
-	const [innerLoading, setLoading] = reactExports.M(loadingOrDelay.loading);
-	const [hasTwoCNChar, setHasTwoCNChar] = reactExports.M(false);
-	const buttonRef = reactExports.L(null);
+	const groupSize = reactExports.useContext(GroupSizeContext);
+	const loadingOrDelay = reactExports.useMemo(() => getLoadingConfig(loading), [loading]);
+	const [innerLoading, setLoading] = reactExports.useState(loadingOrDelay.loading);
+	const [hasTwoCNChar, setHasTwoCNChar] = reactExports.useState(false);
+	const buttonRef = reactExports.useRef(null);
 	const mergedRef = useComposeRef(ref, buttonRef);
 	const needInserted = childNodes.length === 1 && !icon && !isUnBorderedButtonVariant(mergedVariant);
 	// ========================= Mount ==========================
 	// Record for mount status.
 	// This will help to no to show the animation of loading on the first mount.
-	const isMountRef = reactExports.L(true);
-	React.C(() => {
+	const isMountRef = reactExports.useRef(true);
+	React.useEffect(() => {
 		isMountRef.current = false;
 		return () => {
 			isMountRef.current = true;
@@ -15581,7 +19059,7 @@ const InternalCompoundedButton = React.q((props, ref) => {
 		return cleanupTimer;
 	}, [loadingOrDelay.delay, loadingOrDelay.loading]);
 	// Two chinese characters check
-	reactExports.C(() => {
+	reactExports.useEffect(() => {
 		// FIXME: for HOC usage like <FormatMessage />
 		if (!buttonRef.current || !mergedInsertSpace) {
 			return;
@@ -15596,13 +19074,13 @@ const InternalCompoundedButton = React.q((props, ref) => {
 		}
 	});
 	// Auto focus
-	reactExports.C(() => {
+	reactExports.useEffect(() => {
 		if (autoFocus && buttonRef.current) {
 			buttonRef.current.focus();
 		}
 	}, []);
 	// ========================= Events =========================
-	const handleClick = React.y((e) => {
+	const handleClick = React.useCallback((e) => {
 		// FIXME: https://github.com/ant-design/ant-design/issues/30207
 		if (innerLoading || mergedDisabled) {
 			e.preventDefault();
@@ -15670,11 +19148,11 @@ const InternalCompoundedButton = React.q((props, ref) => {
 	* Extract icon node
 	* If there is a custom icon and not in loading state: show custom icon
 	*/
-	const iconWrapperElement = (child) => React.o(IconWrapper, {
+	const iconWrapperElement = (child) => React.createElement(IconWrapper, {
 		prefixCls,
 		...iconSharedProps
 	}, child);
-	const defaultLoadingIconElement = React.o(DefaultLoadingIcon, {
+	const defaultLoadingIconElement = React.createElement(DefaultLoadingIcon, {
 		existIcon: !!icon,
 		prefixCls,
 		loading: innerLoading,
@@ -15694,7 +19172,7 @@ const InternalCompoundedButton = React.q((props, ref) => {
 	}
 	const contentNode = isNonNullable(children) ? spaceChildren(children, needInserted && mergedInsertSpace, mergedStyles.content, mergedClassNames.content) : null;
 	if (linkButtonRestProps.href !== void 0) {
-		return React.o("a", {
+		return React.createElement("a", {
 			...linkButtonRestProps,
 			className: clsx(classes, { [`${prefixCls}-disabled`]: mergedDisabled }),
 			href: mergedDisabled ? void 0 : linkButtonRestProps.href,
@@ -15705,7 +19183,7 @@ const InternalCompoundedButton = React.q((props, ref) => {
 			"aria-disabled": mergedDisabled
 		}, iconNode, contentNode);
 	}
-	let buttonNode = React.o("button", {
+	let buttonNode = React.createElement("button", {
 		...rest,
 		type: htmlType,
 		className: classes,
@@ -15713,9 +19191,9 @@ const InternalCompoundedButton = React.q((props, ref) => {
 		onClick: handleClick,
 		disabled: mergedDisabled,
 		ref: mergedRef
-	}, iconNode, contentNode, compactItemClassnames && React.o(Compact, { prefixCls }));
+	}, iconNode, contentNode, compactItemClassnames && React.createElement(Compact, { prefixCls }));
 	if (!isUnBorderedButtonVariant(mergedVariant)) {
-		buttonNode = React.o(Wave, {
+		buttonNode = React.createElement(Wave, {
 			component: "Button",
 			disabled: innerLoading
 		}, buttonNode);
@@ -15725,6 +19203,14413 @@ const InternalCompoundedButton = React.q((props, ref) => {
 const Button = InternalCompoundedButton;
 Button.Group = ButtonGroup;
 Button.__ANT_BUTTON = true;
+const HOOK_MARK = "RC_FORM_INTERNAL_HOOKS";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const warningFunc = () => {
+	warningOnce(false, "Can not find FormContext. Please make sure you wrap Field under Form.");
+};
+const Context = reactExports.createContext({
+	getFieldValue: warningFunc,
+	getFieldsValue: warningFunc,
+	getFieldError: warningFunc,
+	getFieldWarning: warningFunc,
+	getFieldsError: warningFunc,
+	isFieldsTouched: warningFunc,
+	isFieldTouched: warningFunc,
+	isFieldValidating: warningFunc,
+	isFieldsValidating: warningFunc,
+	resetFields: warningFunc,
+	setFields: warningFunc,
+	setFieldValue: warningFunc,
+	setFieldsValue: warningFunc,
+	validateFields: warningFunc,
+	submit: warningFunc,
+	getInternalHooks: () => {
+		warningFunc();
+		return {
+			dispatch: warningFunc,
+			initEntityValue: warningFunc,
+			registerField: warningFunc,
+			useSubscribe: warningFunc,
+			setInitialValues: warningFunc,
+			destroyForm: warningFunc,
+			setCallbacks: warningFunc,
+			registerWatch: warningFunc,
+			getFields: warningFunc,
+			setValidateMessages: warningFunc,
+			setPreserve: warningFunc,
+			getInitialValue: warningFunc
+		};
+	}
+});
+const ListContext = reactExports.createContext(null);
+function toArray$1(value) {
+	if (value === void 0 || value === null) {
+		return [];
+	}
+	return Array.isArray(value) ? value : [value];
+}
+function isFormInstance(form) {
+	return form && !!form._init;
+}
+function newMessages() {
+	return {
+		default: "Validation error on field %s",
+		required: "%s is required",
+		enum: "%s must be one of %s",
+		whitespace: "%s cannot be empty",
+		date: {
+			format: "%s date %s is invalid for format %s",
+			parse: "%s date could not be parsed, %s is invalid ",
+			invalid: "%s date %s is invalid"
+		},
+		types: {
+			string: "%s is not a %s",
+			method: "%s is not a %s (function)",
+			array: "%s is not an %s",
+			object: "%s is not an %s",
+			number: "%s is not a %s",
+			date: "%s is not a %s",
+			boolean: "%s is not a %s",
+			integer: "%s is not an %s",
+			float: "%s is not a %s",
+			regexp: "%s is not a valid %s",
+			email: "%s is not a valid %s",
+			tel: "%s is not a valid %s",
+			url: "%s is not a valid %s",
+			hex: "%s is not a valid %s"
+		},
+		string: {
+			len: "%s must be exactly %s characters",
+			min: "%s must be at least %s characters",
+			max: "%s cannot be longer than %s characters",
+			range: "%s must be between %s and %s characters"
+		},
+		number: {
+			len: "%s must equal %s",
+			min: "%s cannot be less than %s",
+			max: "%s cannot be greater than %s",
+			range: "%s must be between %s and %s"
+		},
+		array: {
+			len: "%s must be exactly %s in length",
+			min: "%s cannot be less than %s in length",
+			max: "%s cannot be greater than %s in length",
+			range: "%s must be between %s and %s in length"
+		},
+		pattern: { mismatch: "%s value %s does not match pattern %s" },
+		clone: function() {
+			var cloned = JSON.parse(JSON.stringify(this));
+			cloned.clone = this.clone;
+			return cloned;
+		}
+	};
+}
+var messages = newMessages();
+function _isNativeFunction(t) {
+	try {
+		return -1 !== Function.toString.call(t).indexOf("[native code]");
+	} catch {
+		return true;
+	}
+}
+function _construct(t, e, r) {
+	if (_isNativeReflectConstruct()) return Reflect.construct.apply(null, arguments);
+	var o = [null];
+	o.push.apply(o, e);
+	var p = new (t.bind.apply(t, o))();
+	return r && _setPrototypeOf(p, r.prototype), p;
+}
+function _wrapNativeSuper(t) {
+	var r = new Map();
+	return _wrapNativeSuper = function(t) {
+		if (!_isNativeFunction(t)) return t;
+		if (void 0 !== r) {
+			if (r.has(t)) return r.get(t);
+			r.set(t, Wrapper);
+		}
+		function Wrapper() {
+			return _construct(t, arguments, _getPrototypeOf(this).constructor);
+		}
+		return Wrapper.prototype = Object.create(t.prototype, { constructor: {
+			value: Wrapper,
+			enumerable: false,
+			writable: true,
+			configurable: true
+		} }), _setPrototypeOf(Wrapper, t);
+	}, _wrapNativeSuper(t);
+}
+/* eslint no-console:0 */
+var formatRegExp = /%[sdj%]/g;
+var warning = function() {};
+function convertFieldsError(errors) {
+	if (!errors || !errors.length) return null;
+	var fields = {};
+	errors.forEach(function(error) {
+		var field = error.field;
+		fields[field] = fields[field] || [];
+		fields[field].push(error);
+	});
+	return fields;
+}
+function format(template) {
+	for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+		args[_key - 1] = arguments[_key];
+	}
+	var i = 0;
+	var len = args.length;
+	if (typeof template === "function") {
+		// eslint-disable-next-line prefer-spread
+		return template.apply(null, args);
+	}
+	if (typeof template === "string") {
+		var str = template.replace(formatRegExp, function(x) {
+			if (x === "%%") {
+				return "%";
+			}
+			if (i >= len) {
+				return x;
+			}
+			switch (x) {
+				case "%s": return String(args[i++]);
+				case "%d": return Number(args[i++]);
+				case "%j":
+					try {
+						return JSON.stringify(args[i++]);
+					} catch {
+						return "[Circular]";
+					}
+					break;
+				default: return x;
+			}
+		});
+		return str;
+	}
+	return template;
+}
+function isNativeStringType(type) {
+	return type === "string" || type === "url" || type === "hex" || type === "email" || type === "date" || type === "pattern" || type === "tel";
+}
+function isEmptyValue(value, type) {
+	if (value === void 0 || value === null) {
+		return true;
+	}
+	if (type === "array" && Array.isArray(value) && !value.length) {
+		return true;
+	}
+	if (isNativeStringType(type) && typeof value === "string" && !value) {
+		return true;
+	}
+	return false;
+}
+function asyncParallelArray(arr, func, callback) {
+	var results = [];
+	var total = 0;
+	var arrLength = arr.length;
+	function count(errors) {
+		results.push.apply(results, _toConsumableArray$8(errors || []));
+		total++;
+		if (total === arrLength) {
+			callback(results);
+		}
+	}
+	arr.forEach(function(a) {
+		func(a, count);
+	});
+}
+function asyncSerialArray(arr, func, callback) {
+	var index = 0;
+	var arrLength = arr.length;
+	function next(errors) {
+		if (errors && errors.length) {
+			callback(errors);
+			return;
+		}
+		var original = index;
+		index = index + 1;
+		if (original < arrLength) {
+			func(arr[original], next);
+		} else {
+			callback([]);
+		}
+	}
+	next([]);
+}
+function flattenObjArr(objArr) {
+	var ret = [];
+	Object.keys(objArr).forEach(function(k) {
+		ret.push.apply(ret, _toConsumableArray$8(objArr[k] || []));
+	});
+	return ret;
+}
+var AsyncValidationError = function(_Error) {
+	_inherits(AsyncValidationError, _Error);
+	var _super = _createSuper(AsyncValidationError);
+	function AsyncValidationError(errors, fields) {
+		var _this;
+		_classCallCheck$1(this, AsyncValidationError);
+		_this = _super.call(this, "Async Validation Error");
+		_defineProperty$s(_assertThisInitialized(_this), "errors", void 0);
+		_defineProperty$s(_assertThisInitialized(_this), "fields", void 0);
+		_this.errors = errors;
+		_this.fields = fields;
+		return _this;
+	}
+	return _createClass$1(AsyncValidationError);
+}(_wrapNativeSuper(Error));
+function asyncMap(objArr, option, func, callback, source) {
+	if (option.first) {
+		var _pending = new Promise(function(resolve, reject) {
+			var next = function(errors) {
+				callback(errors);
+				return errors.length ? reject(new AsyncValidationError(errors, convertFieldsError(errors))) : resolve(source);
+			};
+			var flattenArr = flattenObjArr(objArr);
+			asyncSerialArray(flattenArr, func, next);
+		});
+		_pending.catch(function(e) {
+			return e;
+		});
+		return _pending;
+	}
+	var firstFields = option.firstFields === true ? Object.keys(objArr) : option.firstFields || [];
+	var objArrKeys = Object.keys(objArr);
+	var objArrLength = objArrKeys.length;
+	var total = 0;
+	var results = [];
+	var pending = new Promise(function(resolve, reject) {
+		var next = function(errors) {
+			// eslint-disable-next-line prefer-spread
+			results.push.apply(results, errors);
+			total++;
+			if (total === objArrLength) {
+				callback(results);
+				return results.length ? reject(new AsyncValidationError(results, convertFieldsError(results))) : resolve(source);
+			}
+		};
+		if (!objArrKeys.length) {
+			callback(results);
+			resolve(source);
+		}
+		objArrKeys.forEach(function(key) {
+			var arr = objArr[key];
+			if (firstFields.indexOf(key) !== -1) {
+				asyncSerialArray(arr, func, next);
+			} else {
+				asyncParallelArray(arr, func, next);
+			}
+		});
+	});
+	pending.catch(function(e) {
+		return e;
+	});
+	return pending;
+}
+function isErrorObj(obj) {
+	return !!(obj && obj.message !== void 0);
+}
+function getValue(value, path) {
+	var v = value;
+	for (var i = 0; i < path.length; i++) {
+		if (v == void 0) {
+			return v;
+		}
+		v = v[path[i]];
+	}
+	return v;
+}
+function complementError(rule, source) {
+	return function(oe) {
+		var fieldValue;
+		if (rule.fullFields) {
+			fieldValue = getValue(source, rule.fullFields);
+		} else {
+			fieldValue = source[oe.field || rule.fullField];
+		}
+		if (isErrorObj(oe)) {
+			oe.field = oe.field || rule.fullField;
+			oe.fieldValue = fieldValue;
+			return oe;
+		}
+		return {
+			message: typeof oe === "function" ? oe() : oe,
+			fieldValue,
+			field: oe.field || rule.fullField
+		};
+	};
+}
+function deepMerge(target, source) {
+	if (source) {
+		for (var s in source) {
+			if (source.hasOwnProperty(s)) {
+				var value = source[s];
+				if (_typeof$u(value) === "object" && _typeof$u(target[s]) === "object") {
+					target[s] = _objectSpread2(_objectSpread2({}, target[s]), value);
+				} else {
+					target[s] = value;
+				}
+			}
+		}
+	}
+	return target;
+}
+var enumerable$1 = function(rule, value, __unused_CA1B, errors, options) {
+	rule["enum"] = Array.isArray(rule["enum"]) ? rule["enum"] : [];
+	if (rule["enum"].indexOf(value) === -1) {
+		errors.push(format(options.messages["enum"], rule.fullField, rule["enum"].join(", ")));
+	}
+};
+var enumRule = enumerable$1;
+var pattern$3 = function(rule, value, __unused_CA1B_0, errors, options) {
+	if (rule.pattern) {
+		if (rule.pattern instanceof RegExp) {
+			// if a RegExp instance is passed, reset `lastIndex` in case its `global`
+			// flag is accidentally set to `true`, which in a validation scenario
+			// is not necessary and the result might be misleading
+			rule.pattern.lastIndex = 0;
+			if (!rule.pattern.test(value)) {
+				errors.push(format(options.messages.pattern.mismatch, rule.fullField, value, rule.pattern));
+			}
+		} else if (typeof rule.pattern === "string") {
+			var _pattern = new RegExp(rule.pattern);
+			if (!_pattern.test(value)) {
+				errors.push(format(options.messages.pattern.mismatch, rule.fullField, value, rule.pattern));
+			}
+		}
+	}
+};
+var pattern$4 = pattern$3;
+var range = function(rule, value, __unused_CA1B_1, errors, options) {
+	var len = typeof rule.len === "number";
+	var min = typeof rule.min === "number";
+	var max = typeof rule.max === "number";
+	// 正则匹配码点范围从U+010000一直到U+10FFFF的文字（补充平面Supplementary Plane）
+	var spRegexp = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g;
+	var val = value;
+	var key = null;
+	var num = typeof value === "number";
+	var str = typeof value === "string";
+	var arr = Array.isArray(value);
+	if (num) {
+		key = "number";
+	} else if (str) {
+		key = "string";
+	} else if (arr) {
+		key = "array";
+	}
+	// if the value is not of a supported type for range validation
+	// the validation rule rule should use the
+	// type property to also test for a particular type
+	if (!key) {
+		return;
+	}
+	if (arr) {
+		val = value.length;
+	}
+	if (str) {
+		// 处理码点大于U+010000的文字length属性不准确的bug，如"𠮷𠮷𠮷".length !== 3
+		val = value.replace(spRegexp, "_").length;
+	}
+	if (len) {
+		if (val !== rule.len) {
+			errors.push(format(options.messages[key].len, rule.fullField, rule.len));
+		}
+	} else if (min && !max && val < rule.min) {
+		errors.push(format(options.messages[key].min, rule.fullField, rule.min));
+	} else if (max && !min && val > rule.max) {
+		errors.push(format(options.messages[key].max, rule.fullField, rule.max));
+	} else if (min && max && (val < rule.min || val > rule.max)) {
+		errors.push(format(options.messages[key].range, rule.fullField, rule.min, rule.max));
+	}
+};
+var range$1 = range;
+var required$2 = function(rule, value, source, errors, options, type) {
+	if (rule.required && (!source.hasOwnProperty(rule.field) || isEmptyValue(value, type || rule.type))) {
+		errors.push(format(options.messages.required, rule.fullField));
+	}
+};
+var required$3 = required$2;
+// https://github.com/kevva/url-regex/blob/master/index.js
+var urlReg;
+var getUrlRegex = function() {
+	if (urlReg) {
+		return urlReg;
+	}
+	var v4 = "(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)){3}";
+	var v6seg = "[a-fA-F\\d]{1,4}";
+	var v6List = [
+		"(?:".concat(v6seg, ":){7}(?:").concat(v6seg, "|:)"),
+		"(?:".concat(v6seg, ":){6}(?:").concat(v4, "|:").concat(v6seg, "|:)"),
+		"(?:".concat(v6seg, ":){5}(?::").concat(v4, "|(?::").concat(v6seg, "){1,2}|:)"),
+		"(?:".concat(v6seg, ":){4}(?:(?::").concat(v6seg, "){0,1}:").concat(v4, "|(?::").concat(v6seg, "){1,3}|:)"),
+		"(?:".concat(v6seg, ":){3}(?:(?::").concat(v6seg, "){0,2}:").concat(v4, "|(?::").concat(v6seg, "){1,4}|:)"),
+		"(?:".concat(v6seg, ":){2}(?:(?::").concat(v6seg, "){0,3}:").concat(v4, "|(?::").concat(v6seg, "){1,5}|:)"),
+		"(?:".concat(v6seg, ":){1}(?:(?::").concat(v6seg, "){0,4}:").concat(v4, "|(?::").concat(v6seg, "){1,6}|:)"),
+		"(?::(?:(?::".concat(v6seg, "){0,5}:").concat(v4, "|(?::").concat(v6seg, "){1,7}|:))")
+	];
+	var v6Eth0 = "(?:%[0-9a-zA-Z]{1,})?";
+	var v6 = "(?:".concat(v6List.join("|"), ")").concat(v6Eth0);
+	// Pre-compile only the exact regexes because adding a global flag make regexes stateful
+	var __unused_472F = new RegExp("(?:^".concat(v4, "$)|(?:^").concat(v6, "$)"));
+	var __unused_08E8 = new RegExp("^".concat(v4, "$"));
+	var __unused_593A = new RegExp("^".concat(v6, "$"));
+	var ip = function() {};
+	ip.a = function() {
+		return new RegExp("".concat("").concat(v4).concat(""), "g");
+	};
+	ip.b = function() {
+		return new RegExp("".concat("").concat(v6).concat(""), "g");
+	};
+	var protocol = "(?:(?:[a-z]+:)?//)";
+	var auth = "(?:\\S+(?::\\S*)?@)?";
+	var ipv4 = ip.a().source;
+	var ipv6 = ip.b().source;
+	var host = "(?:(?:[a-z\\u00a1-\\uffff0-9][-_]*)*[a-z\\u00a1-\\uffff0-9]+)";
+	var domain = "(?:\\.(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)*";
+	var tld = "(?:\\.(?:[a-z\\u00a1-\\uffff]{2,}))";
+	var port = "(?::\\d{2,5})?";
+	var path = "(?:[/?#][^\\s\"]*)?";
+	var regex = "(?:".concat(protocol, "|www\\.)").concat(auth, "(?:localhost|").concat(ipv4, "|").concat(ipv6, "|").concat(host).concat(domain).concat(tld, ")").concat(port).concat(path);
+	urlReg = new RegExp("(?:^".concat(regex, "$)"), "i");
+	return urlReg;
+};
+/* eslint max-len:0 */
+var pattern$2 = {
+	a: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+\.)+[a-zA-Z\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]{2,}))$/,
+	b: /^(\+[0-9]{1,3}[-\s\u2011]?)?(\([0-9]{1,4}\)[-\s\u2011]?)?([0-9]+[-\s\u2011]?)*[0-9]+$/,
+	c: /^#?([a-f0-9]{6}|[a-f0-9]{3})$/i
+};
+var types = {
+	integer: function(value) {
+		return types.number(value) && parseInt(value, 10) === value;
+	},
+	float: function(value) {
+		return types.number(value) && !types.integer(value);
+	},
+	array: function(value) {
+		return Array.isArray(value);
+	},
+	regexp: function(value) {
+		if (value instanceof RegExp) {
+			return true;
+		}
+		try {
+			return !!new RegExp(value);
+		} catch {
+			return false;
+		}
+	},
+	date: function(value) {
+		return typeof value.getTime === "function" && typeof value.getMonth === "function" && typeof value.getYear === "function" && !isNaN(value.getTime());
+	},
+	number: function(value) {
+		if (isNaN(value)) {
+			return false;
+		}
+		return typeof value === "number";
+	},
+	object: function(value) {
+		return _typeof$u(value) === "object" && !types.array(value);
+	},
+	method: function(value) {
+		return typeof value === "function";
+	},
+	email: function(value) {
+		return typeof value === "string" && value.length <= 320 && !!value.match(pattern$2.a);
+	},
+	tel: function(value) {
+		return typeof value === "string" && value.length <= 32 && !!value.match(pattern$2.b);
+	},
+	url: function(value) {
+		return typeof value === "string" && value.length <= 2048 && !!value.match(getUrlRegex());
+	},
+	hex: function(value) {
+		return typeof value === "string" && !!value.match(pattern$2.c);
+	}
+};
+var type$2 = function(rule, value, source, errors, options) {
+	if (rule.required && value === void 0) {
+		required$3(rule, value, source, errors, options);
+		return;
+	}
+	var custom = [
+		"integer",
+		"float",
+		"array",
+		"regexp",
+		"object",
+		"method",
+		"email",
+		"tel",
+		"number",
+		"date",
+		"url",
+		"hex"
+	];
+	var ruleType = rule.type;
+	if (custom.indexOf(ruleType) > -1) {
+		if (!types[ruleType](value)) {
+			errors.push(format(options.messages.types[ruleType], rule.fullField, rule.type));
+		}
+	} else if (ruleType && _typeof$u(value) !== rule.type) {
+		errors.push(format(options.messages.types[ruleType], rule.fullField, rule.type));
+	}
+};
+var type$3 = type$2;
+/**
+*  Rule for validating whitespace.
+*
+*  @param rule The validation rule.
+*  @param value The value of the field on the source object.
+*  @param source The source object being validated.
+*  @param errors An array of errors that this rule may add
+*  validation errors to.
+*  @param options The validation options.
+*  @param options.messages The validation messages.
+*/
+var whitespace = function(rule, value, __unused_CA1B_2, errors, options) {
+	if (/^\s+$/.test(value) || value === "") {
+		errors.push(format(options.messages.whitespace, rule.fullField));
+	}
+};
+var whitespace$1 = whitespace;
+var rules = {
+	a: required$3,
+	b: whitespace$1,
+	c: type$3,
+	d: range$1,
+	e: enumRule,
+	f: pattern$4
+};
+var any = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+	}
+	callback(errors);
+};
+var any$1 = any;
+var array = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if ((value === void 0 || value === null) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options, "array");
+		if (value !== void 0 && value !== null) {
+			rules.c(rule, value, source, errors, options);
+			rules.d(rule, value, 0, errors, options);
+		}
+	}
+	callback(errors);
+};
+var array$1 = array;
+var boolean = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (value !== void 0) {
+			rules.c(rule, value, source, errors, options);
+		}
+	}
+	callback(errors);
+};
+var boolean$1 = boolean;
+var date = function(rule, value, callback, source, options) {
+	// console.log('integer rule called %j', rule);
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	// console.log('validate on %s value', value);
+	if (validate) {
+		if (isEmptyValue(value, "date") && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (!isEmptyValue(value, "date")) {
+			var dateObject;
+			if (value instanceof Date) {
+				dateObject = value;
+			} else {
+				dateObject = new Date(value);
+			}
+			rules.c(rule, dateObject, source, errors, options);
+			if (dateObject) {
+				rules.d(rule, dateObject.getTime(), 0, errors, options);
+			}
+		}
+	}
+	callback(errors);
+};
+var date$1 = date;
+var enumerable = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (value !== void 0) {
+			rules["e"](rule, value, 0, errors, options);
+		}
+	}
+	callback(errors);
+};
+var enumValidator = enumerable;
+var floatFn = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (value !== void 0) {
+			rules.c(rule, value, source, errors, options);
+			rules.d(rule, value, 0, errors, options);
+		}
+	}
+	callback(errors);
+};
+var float = floatFn;
+var integer = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (value !== void 0) {
+			rules.c(rule, value, source, errors, options);
+			rules.d(rule, value, 0, errors, options);
+		}
+	}
+	callback(errors);
+};
+var integer$1 = integer;
+var method = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (value !== void 0) {
+			rules.c(rule, value, source, errors, options);
+		}
+	}
+	callback(errors);
+};
+var method$1 = method;
+var number = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (value === "") {
+			// eslint-disable-next-line no-param-reassign
+			value = void 0;
+		}
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (value !== void 0) {
+			rules.c(rule, value, source, errors, options);
+			rules.d(rule, value, 0, errors, options);
+		}
+	}
+	callback(errors);
+};
+var number$1 = number;
+var object = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (value !== void 0) {
+			rules.c(rule, value, source, errors, options);
+		}
+	}
+	callback(errors);
+};
+var object$1 = object;
+var pattern = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value, "string") && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (!isEmptyValue(value, "string")) {
+			rules.f(rule, value, 0, errors, options);
+		}
+	}
+	callback(errors);
+};
+var pattern$1 = pattern;
+var regexp = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options);
+		if (!isEmptyValue(value)) {
+			rules.c(rule, value, source, errors, options);
+		}
+	}
+	callback(errors);
+};
+var regexp$1 = regexp;
+var required = function(rule, value, callback, source, options) {
+	var errors = [];
+	var type = Array.isArray(value) ? "array" : _typeof$u(value);
+	rules.a(rule, value, source, errors, options, type);
+	callback(errors);
+};
+var required$1 = required;
+var string = function(rule, value, callback, source, options) {
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value, "string") && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options, "string");
+		if (!isEmptyValue(value, "string")) {
+			rules.c(rule, value, source, errors, options);
+			rules.d(rule, value, 0, errors, options);
+			rules.f(rule, value, 0, errors, options);
+			if (rule.whitespace === true) {
+				rules.b(rule, value, 0, errors, options);
+			}
+		}
+	}
+	callback(errors);
+};
+var string$1 = string;
+var type = function(rule, value, callback, source, options) {
+	var ruleType = rule.type;
+	var errors = [];
+	var validate = rule.required || !rule.required && source.hasOwnProperty(rule.field);
+	if (validate) {
+		if (isEmptyValue(value, ruleType) && !rule.required) {
+			return callback();
+		}
+		rules.a(rule, value, source, errors, options, ruleType);
+		if (!isEmptyValue(value, ruleType)) {
+			rules.c(rule, value, source, errors, options);
+		}
+	}
+	callback(errors);
+};
+var type$1 = type;
+var validators = {
+	string: string$1,
+	method: method$1,
+	number: number$1,
+	boolean: boolean$1,
+	regexp: regexp$1,
+	integer: integer$1,
+	float,
+	array: array$1,
+	object: object$1,
+	enum: enumValidator,
+	pattern: pattern$1,
+	date: date$1,
+	url: type$1,
+	hex: type$1,
+	email: type$1,
+	tel: type$1,
+	required: required$1,
+	any: any$1
+};
+/**
+*  Encapsulates a validation schema.
+*
+*  @param descriptor An object declaring validation rules
+*  for this schema.
+*/
+var Schema = function() {
+	function Schema(descriptor) {
+		_classCallCheck$1(this, Schema);
+		// ======================== Instance ========================
+		_defineProperty$s(this, "rules", null);
+		_defineProperty$s(this, "_messages", messages);
+		this.define(descriptor);
+	}
+	_createClass$1(Schema, [
+		{
+			key: "define",
+			value: function(rules) {
+				var _this = this;
+				if (!rules) {
+					throw new Error("Cannot configure a schema with no rules");
+				}
+				if (_typeof$u(rules) !== "object" || Array.isArray(rules)) {
+					throw new Error("Rules must be an object");
+				}
+				this.rules = {};
+				Object.keys(rules).forEach(function(name) {
+					var item = rules[name];
+					_this.rules[name] = Array.isArray(item) ? item : [item];
+				});
+			}
+		},
+		{
+			key: "messages",
+			value: function(_messages) {
+				if (_messages) {
+					this._messages = deepMerge(newMessages(), _messages);
+				}
+				return this._messages;
+			}
+		},
+		{
+			key: "validate",
+			value: function(source_) {
+				var _this2 = this;
+				var o = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
+				var oc = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : function() {};
+				var source = source_;
+				var options = o;
+				var callback = oc;
+				if (typeof options === "function") {
+					callback = options;
+					options = {};
+				}
+				if (!this.rules || Object.keys(this.rules).length === 0) {
+					if (callback) {
+						callback(null, source);
+					}
+					return Promise.resolve(source);
+				}
+				function complete(results) {
+					var errors = [];
+					var fields = {};
+					function add(e) {
+						if (Array.isArray(e)) {
+							var _errors;
+							errors = (_errors = errors).concat.apply(_errors, _toConsumableArray$8(e));
+						} else {
+							errors.push(e);
+						}
+					}
+					for (var i = 0; i < results.length; i++) {
+						add(results[i]);
+					}
+					if (!errors.length) {
+						callback(null, source);
+					} else {
+						fields = convertFieldsError(errors);
+						callback(errors, fields);
+					}
+				}
+				if (options.messages) {
+					var messages$1 = this.messages();
+					if (messages$1 === messages) {
+						messages$1 = newMessages();
+					}
+					deepMerge(messages$1, options.messages);
+					options.messages = messages$1;
+				} else {
+					options.messages = this.messages();
+				}
+				var series = {};
+				var keys = options.keys || Object.keys(this.rules);
+				keys.forEach(function(z) {
+					var arr = _this2.rules[z];
+					var value = source[z];
+					arr.forEach(function(r) {
+						var rule = r;
+						if (typeof rule.transform === "function") {
+							if (source === source_) {
+								source = _objectSpread2({}, source);
+							}
+							value = source[z] = rule.transform(value);
+							if (value !== void 0 && value !== null) {
+								rule.type = rule.type || (Array.isArray(value) ? "array" : _typeof$u(value));
+							}
+						}
+						if (typeof rule === "function") {
+							rule = { validator: rule };
+						} else {
+							rule = _objectSpread2({}, rule);
+						}
+						// Fill validator. Skip if nothing need to validate
+						rule.validator = _this2.getValidationMethod(rule);
+						if (!rule.validator) {
+							return;
+						}
+						rule.field = z;
+						rule.fullField = rule.fullField || z;
+						rule.type = _this2.getType(rule);
+						series[z] = series[z] || [];
+						series[z].push({
+							rule,
+							value,
+							source,
+							field: z
+						});
+					});
+				});
+				var errorFields = {};
+				return asyncMap(series, options, function(data, doIt) {
+					var rule = data.rule;
+					var deep = (rule.type === "object" || rule.type === "array") && (_typeof$u(rule.fields) === "object" || _typeof$u(rule.defaultField) === "object");
+					deep = deep && (rule.required || !rule.required && data.value);
+					rule.field = data.field;
+					function addFullField(key, schema) {
+						return _objectSpread2(_objectSpread2({}, schema), {}, {
+							fullField: "".concat(rule.fullField, ".").concat(key),
+							fullFields: rule.fullFields ? [].concat(_toConsumableArray$8(rule.fullFields), [key]) : [key]
+						});
+					}
+					function cb() {
+						var e = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : [];
+						var errorList = Array.isArray(e) ? e : [e];
+						if (!options.suppressWarning && errorList.length) {
+							Schema.warning("async-validator:", errorList);
+						}
+						if (errorList.length && rule.message !== void 0 && rule.message !== null) {
+							errorList = [].concat(rule.message);
+						}
+						// Fill error info
+						var filledErrors = errorList.map(complementError(rule, source));
+						if (options.first && filledErrors.length) {
+							errorFields[rule.field] = 1;
+							return doIt(filledErrors);
+						}
+						if (!deep) {
+							doIt(filledErrors);
+						} else {
+							// if rule is required but the target object
+							// does not exist fail at the rule level and don't
+							// go deeper
+							if (rule.required && !data.value) {
+								if (rule.message !== void 0) {
+									filledErrors = [].concat(rule.message).map(complementError(rule, source));
+								} else if (options.error) {
+									filledErrors = [options.error(rule, format(options.messages.required, rule.field))];
+								}
+								return doIt(filledErrors);
+							}
+							var fieldsSchema = {};
+							if (rule.defaultField) {
+								Object.keys(data.value).map(function(key) {
+									fieldsSchema[key] = rule.defaultField;
+								});
+							}
+							fieldsSchema = _objectSpread2(_objectSpread2({}, fieldsSchema), data.rule.fields);
+							var paredFieldsSchema = {};
+							Object.keys(fieldsSchema).forEach(function(field) {
+								var fieldSchema = fieldsSchema[field];
+								var fieldSchemaList = Array.isArray(fieldSchema) ? fieldSchema : [fieldSchema];
+								paredFieldsSchema[field] = fieldSchemaList.map(addFullField.bind(0, field));
+							});
+							var schema = new Schema(paredFieldsSchema);
+							schema.messages(options.messages);
+							if (data.rule.options) {
+								data.rule.options.messages = options.messages;
+								data.rule.options.error = options.error;
+							}
+							schema.validate(data.value, data.rule.options || options, function(errs) {
+								var finalErrors = [];
+								if (filledErrors && filledErrors.length) {
+									finalErrors.push.apply(finalErrors, _toConsumableArray$8(filledErrors));
+								}
+								if (errs && errs.length) {
+									finalErrors.push.apply(finalErrors, _toConsumableArray$8(errs));
+								}
+								doIt(finalErrors.length ? finalErrors : null);
+							});
+						}
+					}
+					var res;
+					if (rule.asyncValidator) {
+						res = rule.asyncValidator(rule, data.value, cb, data.source, options);
+					} else if (rule.validator) {
+						try {
+							res = rule.validator(rule, data.value, cb, data.source, options);
+						} catch (error) {
+							var _console$error, _console;
+							(_console$error = (_console = console).error) === null || _console$error === void 0 || _console$error.call(_console, error);
+							// rethrow to report error
+							if (!options.suppressValidatorError) {
+								setTimeout(function() {
+									throw error;
+								}, 0);
+							}
+							cb(error.message);
+						}
+						if (res === true) {
+							cb();
+						} else if (res === false) {
+							cb(typeof rule.message === "function" ? rule.message(rule.fullField || rule.field) : rule.message || "".concat(rule.fullField || rule.field, " fails"));
+						} else if (res instanceof Array) {
+							cb(res);
+						} else if (res instanceof Error) {
+							cb(res.message);
+						}
+					}
+					if (res && res.then) {
+						res.then(function() {
+							return cb();
+						}, function(e) {
+							return cb(e);
+						});
+					}
+				}, function(results) {
+					complete(results);
+				}, source);
+			}
+		},
+		{
+			key: "getType",
+			value: function(rule) {
+				if (rule.type === void 0 && rule.pattern instanceof RegExp) {
+					rule.type = "pattern";
+				}
+				if (typeof rule.validator !== "function" && rule.type && !validators.hasOwnProperty(rule.type)) {
+					throw new Error(format("Unknown rule type %s", rule.type));
+				}
+				return rule.type || "string";
+			}
+		},
+		{
+			key: "getValidationMethod",
+			value: function(rule) {
+				if (typeof rule.validator === "function") {
+					return rule.validator;
+				}
+				var keys = Object.keys(rule);
+				var messageIndex = keys.indexOf("message");
+				if (messageIndex !== -1) {
+					keys.splice(messageIndex, 1);
+				}
+				if (keys.length === 1 && keys[0] === "required") {
+					return validators.required;
+				}
+				return validators[this.getType(rule)] || void 0;
+			}
+		}
+	]);
+	return Schema;
+}();
+// ========================= Static =========================
+_defineProperty$s(Schema, "register", function(type, validator) {
+	if (typeof validator !== "function") {
+		throw new Error("Cannot register a validator by type, validator is not a function");
+	}
+	validators[type] = validator;
+});
+_defineProperty$s(Schema, "warning", warning);
+_defineProperty$s(Schema, "messages", messages);
+_defineProperty$s(Schema, "validators", validators);
+var RawAsyncValidator = Schema;
+const typeTemplate = "'${name}' is not a valid ${type}";
+const defaultValidateMessages = {
+	default: "Validation error on field '${name}'",
+	required: "'${name}' is required",
+	enum: "'${name}' must be one of [${enum}]",
+	whitespace: "'${name}' cannot be empty",
+	date: {
+		format: "'${name}' is invalid for format date",
+		parse: "'${name}' could not be parsed as date",
+		invalid: "'${name}' is invalid date"
+	},
+	types: {
+		string: typeTemplate,
+		method: typeTemplate,
+		array: typeTemplate,
+		object: typeTemplate,
+		number: typeTemplate,
+		date: typeTemplate,
+		boolean: typeTemplate,
+		integer: typeTemplate,
+		float: typeTemplate,
+		regexp: typeTemplate,
+		email: typeTemplate,
+		tel: typeTemplate,
+		url: typeTemplate,
+		hex: typeTemplate
+	},
+	string: {
+		len: "'${name}' must be exactly ${len} characters",
+		min: "'${name}' must be at least ${min} characters",
+		max: "'${name}' cannot be longer than ${max} characters",
+		range: "'${name}' must be between ${min} and ${max} characters"
+	},
+	number: {
+		len: "'${name}' must equal ${len}",
+		min: "'${name}' cannot be less than ${min}",
+		max: "'${name}' cannot be greater than ${max}",
+		range: "'${name}' must be between ${min} and ${max}"
+	},
+	array: {
+		len: "'${name}' must be exactly ${len} in length",
+		min: "'${name}' cannot be less than ${min} in length",
+		max: "'${name}' cannot be greater than ${max} in length",
+		range: "'${name}' must be between ${min} and ${max} in length"
+	},
+	pattern: { mismatch: "'${name}' does not match pattern ${pattern}" }
+};
+// Remove incorrect original ts define
+const AsyncValidator = RawAsyncValidator;
+/**
+* Replace with template.
+*   `I'm ${name}` + { name: 'bamboo' } = I'm bamboo
+*/
+function replaceMessage(template, kv) {
+	return template.replace(/\\?\$\{\w+\}/g, (str) => {
+		if (str.startsWith("\\")) {
+			return str.slice(1);
+		}
+		const key = str.slice(2, -1);
+		return kv[key];
+	});
+}
+const CODE_LOGIC_ERROR = "CODE_LOGIC_ERROR";
+async function validateRule(name, value, rule, options, messageVariables) {
+	const cloneRule = { ...rule };
+	// Bug of `async-validator`
+	// https://github.com/react-component/field-form/issues/316
+	// https://github.com/react-component/field-form/issues/313
+	delete cloneRule.ruleIndex;
+	// https://github.com/ant-design/ant-design/issues/40497#issuecomment-1422282378
+	AsyncValidator.warning = () => void 0;
+	if (cloneRule.validator) {
+		const originValidator = cloneRule.validator;
+		cloneRule.validator = (...args) => {
+			try {
+				return originValidator(...args);
+			} catch (error) {
+				console.error(error);
+				return Promise.reject(CODE_LOGIC_ERROR);
+			}
+		};
+	}
+	// We should special handle array validate
+	let subRuleField = null;
+	if (cloneRule.type === "array" && cloneRule.defaultField) {
+		subRuleField = cloneRule.defaultField;
+		delete cloneRule.defaultField;
+	}
+	const validator = new AsyncValidator({ [name]: [cloneRule] });
+	const messages = merge$1(defaultValidateMessages, options.validateMessages);
+	validator.messages(messages);
+	let result = [];
+	try {
+		await Promise.resolve(validator.validate({ [name]: value }, { ...options }));
+	} catch (errObj) {
+		if (errObj.errors) {
+			result = errObj.errors.map(({ message }, index) => {
+				const mergedMessage = message === CODE_LOGIC_ERROR ? messages.default : message;
+				return reactExports.isValidElement(mergedMessage) ? reactExports.cloneElement(mergedMessage, { key: `error_${index}` }) : mergedMessage;
+			});
+		}
+	}
+	if (!result.length && subRuleField && Array.isArray(value) && value.length > 0) {
+		const subResults = await Promise.all(value.map((subValue, i) => validateRule(`${name}.${i}`, subValue, subRuleField, options, messageVariables)));
+		return subResults.reduce((prev, errors) => [...prev, ...errors], []);
+	}
+	// Replace message with variables
+	const kv = {
+		...rule,
+		name,
+		enum: (rule.enum || []).join(", "),
+		...messageVariables
+	};
+	const fillVariableResult = result.map((error) => {
+		if (typeof error === "string") {
+			return replaceMessage(error, kv);
+		}
+		return error;
+	});
+	return fillVariableResult;
+}
+/**
+* We use `async-validator` to validate the value.
+* But only check one value in a time to avoid namePath validate issue.
+*/
+function validateRules(namePath, value, rules, options, validateFirst, messageVariables) {
+	const name = namePath.join(".");
+	// Fill rule with context
+	const filledRules = rules.map((currentRule, ruleIndex) => {
+		const originValidatorFunc = currentRule.validator;
+		const cloneRule = {
+			...currentRule,
+			ruleIndex
+		};
+		// Replace validator if needed
+		if (originValidatorFunc) {
+			cloneRule.validator = (rule, val, callback) => {
+				let hasPromise = false;
+				// Wrap callback only accept when promise not provided
+				const wrappedCallback = (...args) => {
+					// Wait a tick to make sure return type is a promise
+					Promise.resolve().then(() => {
+						warningOnce(!hasPromise, "Your validator function has already return a promise. `callback` will be ignored.");
+						if (!hasPromise) {
+							callback(...args);
+						}
+					});
+				};
+				// Get promise
+				const promise = originValidatorFunc(rule, val, wrappedCallback);
+				hasPromise = promise && typeof promise.then === "function" && typeof promise.catch === "function";
+				/**
+				* 1. Use promise as the first priority.
+				* 2. If promise not exist, use callback with warning instead
+				*/
+				warningOnce(hasPromise, "`callback` is deprecated. Please return a promise instead.");
+				if (hasPromise) {
+					promise.then(() => {
+						callback();
+					}).catch((err) => {
+						callback(err || " ");
+					});
+				}
+			};
+		}
+		return cloneRule;
+	}).sort(({ warningOnly: w1, ruleIndex: i1 }, { warningOnly: w2, ruleIndex: i2 }) => {
+		if (!!w1 === !!w2) {
+			// Let keep origin order
+			return i1 - i2;
+		}
+		if (w1) {
+			return 1;
+		}
+		return -1;
+	});
+	// Do validate rules
+	let summaryPromise;
+	if (validateFirst === true) {
+		// >>>>> Validate by serialization
+		summaryPromise = new Promise(async (resolve, reject) => {
+			/* eslint-disable no-await-in-loop */
+			for (let i = 0; i < filledRules.length; i += 1) {
+				const rule = filledRules[i];
+				const errors = await validateRule(name, value, rule, options, messageVariables);
+				if (errors.length) {
+					reject([{
+						errors,
+						rule
+					}]);
+					return;
+				}
+			}
+			/* eslint-enable */
+			resolve([]);
+		});
+	} else {
+		// >>>>> Validate by parallel
+		const rulePromises = filledRules.map((rule) => validateRule(name, value, rule, options, messageVariables).then((errors) => ({
+			errors,
+			rule
+		})));
+		summaryPromise = (validateFirst ? finishOnFirstFailed(rulePromises) : finishOnAllFailed(rulePromises)).then((errors) => {
+			// Always change to rejection for Field to catch
+			return Promise.reject(errors);
+		});
+	}
+	// Internal catch error to avoid console error log.
+	summaryPromise.catch((e) => e);
+	return summaryPromise;
+}
+async function finishOnAllFailed(rulePromises) {
+	return Promise.all(rulePromises).then((errorsList) => {
+		const errors = [].concat(...errorsList);
+		return errors;
+	});
+}
+async function finishOnFirstFailed(rulePromises) {
+	let count = 0;
+	return new Promise((resolve) => {
+		rulePromises.forEach((promise) => {
+			promise.then((ruleError) => {
+				if (ruleError.errors.length) {
+					resolve([ruleError]);
+				}
+				count += 1;
+				if (count === rulePromises.length) {
+					resolve([]);
+				}
+			});
+		});
+	});
+}
+/**
+* Convert name to internal supported format.
+* This function should keep since we still thinking if need support like `a.b.c` format.
+* 'a' => ['a']
+* 123 => [123]
+* ['a', 123] => ['a', 123]
+*/
+function getNamePath(path) {
+	return toArray$1(path);
+}
+/**
+* Create a new store object that contains only the values referenced by
+* the provided list of name paths.
+*/
+function cloneByNamePathList(store, namePathList) {
+	let newStore = {};
+	namePathList.forEach((namePath) => {
+		const value = get(store, namePath);
+		newStore = set(newStore, namePath, value);
+	});
+	return newStore;
+}
+/**
+* Check if `namePathList` includes `namePath`.
+* @param namePathList A list of `InternalNamePath[]`
+* @param namePath Compare `InternalNamePath`
+* @param partialMatch True will make `[a, b]` match `[a, b, c]`
+*/
+function containsNamePath(namePathList, namePath, partialMatch = false) {
+	return namePathList && namePathList.some((path) => matchNamePath(namePath, path, partialMatch));
+}
+/**
+* Check if `namePath` is super set or equal of `subNamePath`.
+* @param namePath A list of `InternalNamePath[]`
+* @param subNamePath Compare `InternalNamePath`
+* @param partialMatch Default false. True will make `[a, b]` match `[a, b, c]`
+*/
+function matchNamePath(namePath, subNamePath, partialMatch = false) {
+	if (!namePath || !subNamePath) {
+		return false;
+	}
+	if (!partialMatch && namePath.length !== subNamePath.length) {
+		return false;
+	}
+	return subNamePath.every((nameUnit, i) => namePath[i] === nameUnit);
+}
+// Like `shallowEqual`, but we not check the data which may cause re-render
+function isSimilar(source, target) {
+	if (source === target) {
+		return true;
+	}
+	if (typeof source !== "object" || typeof target !== "object") {
+		return false;
+	}
+	const sourceKeys = Object.keys(source);
+	const targetKeys = Object.keys(target);
+	const keys = new Set([...sourceKeys, ...targetKeys]);
+	return [...keys].every((key) => {
+		const sourceValue = source[key];
+		const targetValue = target[key];
+		if (typeof sourceValue === "function" && typeof targetValue === "function") {
+			return true;
+		}
+		return sourceValue === targetValue;
+	});
+}
+function defaultGetValueFromEvent(valuePropName, ...args) {
+	const event = args[0];
+	if (event && event.target && typeof event.target === "object" && valuePropName in event.target) {
+		return event.target[valuePropName];
+	}
+	return event;
+}
+/**
+* Moves an array item from one position in an array to another.
+*
+* Note: This is a pure function so a new array will be returned, instead
+* of altering the array argument.
+*
+* @param array         Array in which to move an item.         (required)
+* @param moveIndex     The index of the item to move.          (required)
+* @param toIndex       The index to move item at moveIndex to. (required)
+*/
+function move(array, moveIndex, toIndex) {
+	const { length } = array;
+	if (moveIndex < 0 || moveIndex >= length || toIndex < 0 || toIndex >= length) {
+		return array;
+	}
+	const item = array[moveIndex];
+	const diff = moveIndex - toIndex;
+	if (diff > 0) {
+		// move left
+		return [
+			...array.slice(0, toIndex),
+			item,
+			...array.slice(toIndex, moveIndex),
+			...array.slice(moveIndex + 1, length)
+		];
+	}
+	if (diff < 0) {
+		// move right
+		return [
+			...array.slice(0, moveIndex),
+			...array.slice(moveIndex + 1, toIndex + 1),
+			item,
+			...array.slice(toIndex + 1, length)
+		];
+	}
+	return array;
+}
+function _extends$o() {
+	_extends$o = Object.assign.bind();
+	return _extends$o.apply(this, arguments);
+}
+const EMPTY_ERRORS = [];
+const EMPTY_WARNINGS = [];
+function requireUpdate(shouldUpdate, prev, next, prevValue, nextValue, info) {
+	if (typeof shouldUpdate === "function") {
+		return shouldUpdate(prev, next, "source" in info ? { source: info.source } : {});
+	}
+	return prevValue !== nextValue;
+}
+// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
+// We use Class instead of Hooks here since it will cost much code by using Hooks.
+class Field extends reactExports.Component {
+	static contextType = Context;
+	state = { resetCount: 0 };
+	cancelRegisterFunc = null;
+	mounted = false;
+	/**
+	* Follow state should not management in State since it will async update by React.
+	* This makes first render of form can not get correct state value.
+	*/
+	touched = false;
+	/**
+	* Mark when touched & validated. Currently only used for `dependencies`.
+	* Note that we do not think field with `initialValue` is dirty
+	* but this will be by `isFieldDirty` func.
+	*/
+	dirty = false;
+	validatePromise;
+	prevValidating;
+	errors = EMPTY_ERRORS;
+	warnings = EMPTY_WARNINGS;
+	// ============================== Subscriptions ==============================
+	constructor(props) {
+		super(props);
+		// Register on init
+		if (props.fieldContext) {
+			const { getInternalHooks } = props.fieldContext;
+			const { initEntityValue } = getInternalHooks(HOOK_MARK);
+			initEntityValue(this);
+		}
+	}
+	componentDidMount() {
+		const { shouldUpdate, fieldContext } = this.props;
+		this.mounted = true;
+		// Register on init
+		if (fieldContext) {
+			const { getInternalHooks } = fieldContext;
+			const { registerField } = getInternalHooks(HOOK_MARK);
+			this.cancelRegisterFunc = registerField(this);
+		}
+		// One more render for component in case fields not ready
+		if (shouldUpdate === true) {
+			this.reRender();
+		}
+	}
+	componentWillUnmount() {
+		this.cancelRegister();
+		this.triggerMetaEvent(true);
+		this.mounted = false;
+	}
+	cancelRegister = () => {
+		const { preserve, isListField, name } = this.props;
+		if (this.cancelRegisterFunc) {
+			this.cancelRegisterFunc(isListField, preserve, getNamePath(name));
+		}
+		this.cancelRegisterFunc = null;
+	};
+	// ================================== Utils ==================================
+	getNamePath = () => {
+		const { name, fieldContext } = this.props;
+		const { prefixName = [] } = fieldContext;
+		return name !== void 0 ? [...prefixName, ...name] : [];
+	};
+	getRules = () => {
+		const { rules = [], fieldContext } = this.props;
+		return rules.map((rule) => {
+			if (typeof rule === "function") {
+				return rule(fieldContext);
+			}
+			return rule;
+		});
+	};
+	reRender() {
+		if (!this.mounted) return;
+		this.forceUpdate();
+	}
+	refresh = () => {
+		if (!this.mounted) return;
+		/**
+		* Clean up current node.
+		*/
+		this.setState(({ resetCount }) => ({ resetCount: resetCount + 1 }));
+	};
+	// Event should only trigger when meta changed
+	metaCache = null;
+	triggerMetaEvent = (destroy) => {
+		const { onMetaChange } = this.props;
+		if (onMetaChange) {
+			const meta = {
+				...this.getMeta(),
+				destroy
+			};
+			if (!isEqual(this.metaCache, meta)) {
+				onMetaChange(meta);
+			}
+			this.metaCache = meta;
+		} else {
+			this.metaCache = null;
+		}
+	};
+	// ========================= Field Entity Interfaces =========================
+	// Trigger by store update. Check if need update the component
+	onStoreChange = (prevStore, namePathList, info) => {
+		const { shouldUpdate, dependencies = [], onReset } = this.props;
+		const { store } = info;
+		const namePath = this.getNamePath();
+		const prevValue = this.getValue(prevStore);
+		const curValue = this.getValue(store);
+		const namePathMatch = namePathList && containsNamePath(namePathList, namePath);
+		// `setFieldsValue` is a quick access to update related status
+		if (info.type === "valueUpdate" && info.source === "external" && !isEqual(prevValue, curValue)) {
+			this.touched = true;
+			this.dirty = true;
+			this.validatePromise = null;
+			this.errors = EMPTY_ERRORS;
+			this.warnings = EMPTY_WARNINGS;
+			this.triggerMetaEvent();
+		}
+		switch (info.type) {
+			case "reset":
+				if (!namePathList || namePathMatch) {
+					// Clean up state
+					this.touched = false;
+					this.dirty = false;
+					this.validatePromise = void 0;
+					this.errors = EMPTY_ERRORS;
+					this.warnings = EMPTY_WARNINGS;
+					this.triggerMetaEvent();
+					onReset?.();
+					this.refresh();
+					return;
+				}
+				break;
+			case "remove": {
+				if (shouldUpdate && requireUpdate(shouldUpdate, prevStore, store, prevValue, curValue, info)) {
+					this.reRender();
+					return;
+				}
+				break;
+			}
+			case "setField": {
+				const { data } = info;
+				if (namePathMatch) {
+					if ("touched" in data) {
+						this.touched = data.touched;
+					}
+					if ("validating" in data && !("originRCField" in data)) {
+						this.validatePromise = data.validating ? Promise.resolve([]) : null;
+					}
+					if ("errors" in data) {
+						this.errors = data.errors || EMPTY_ERRORS;
+					}
+					if ("warnings" in data) {
+						this.warnings = data.warnings || EMPTY_WARNINGS;
+					}
+					this.dirty = true;
+					this.triggerMetaEvent();
+					this.reRender();
+					return;
+				} else if ("value" in data && containsNamePath(namePathList, namePath, true)) {
+					// Contains path with value should also check
+					this.reRender();
+					return;
+				}
+				// Handle update by `setField` with `shouldUpdate`
+				if (shouldUpdate && !namePath.length && requireUpdate(shouldUpdate, prevStore, store, prevValue, curValue, info)) {
+					this.reRender();
+					return;
+				}
+				break;
+			}
+			case "dependenciesUpdate": {
+				/**
+				* Trigger when marked `dependencies` updated. Related fields will all update
+				*/
+				const dependencyList = dependencies.map(getNamePath);
+				// No need for `namePathMath` check and `shouldUpdate` check, since `valueUpdate` will be
+				// emitted earlier and they will work there
+				// If set it may cause unnecessary twice rerendering
+				if (dependencyList.some((dependency) => containsNamePath(info.relatedFields, dependency))) {
+					this.reRender();
+					return;
+				}
+				break;
+			}
+			default:
+				// 1. If `namePath` exists in `namePathList`, means it's related value and should update
+				//      For example <List name="list"><Field name={['list', 0]}></List>
+				//      If `namePathList` is [['list']] (List value update), Field should be updated
+				//      If `namePathList` is [['list', 0]] (Field value update), List shouldn't be updated
+				// 2.
+				//   2.1 If `dependencies` is set, `name` is not set and `shouldUpdate` is not set,
+				//       don't use `shouldUpdate`. `dependencies` is view as a shortcut if `shouldUpdate`
+				//       is not provided
+				//   2.2 If `shouldUpdate` provided, use customize logic to update the field
+				//       else to check if value changed
+				if (namePathMatch || (!dependencies.length || namePath.length || shouldUpdate) && requireUpdate(shouldUpdate, prevStore, store, prevValue, curValue, info)) {
+					this.reRender();
+					return;
+				}
+				break;
+		}
+		if (shouldUpdate === true) {
+			this.reRender();
+		}
+	};
+	validateRules = (options) => {
+		// We should fixed namePath & value to avoid developer change then by form function
+		const namePath = this.getNamePath();
+		const currentValue = this.getValue();
+		const { triggerName, validateOnly = false } = options || {};
+		// Force change to async to avoid rule OOD under renderProps field
+		const rootPromise = Promise.resolve().then(async () => {
+			if (!this.mounted) {
+				return [];
+			}
+			const { validateFirst = false, messageVariables, validateDebounce } = this.props;
+			// Start validate
+			let filteredRules = this.getRules();
+			if (triggerName) {
+				filteredRules = filteredRules.filter((rule) => rule).filter((rule) => {
+					const { validateTrigger } = rule;
+					if (!validateTrigger) {
+						return true;
+					}
+					const triggerList = toArray$1(validateTrigger);
+					return triggerList.includes(triggerName);
+				});
+			}
+			// Wait for debounce. Skip if no `triggerName` since its from `validateFields / submit`
+			if (validateDebounce && triggerName) {
+				await new Promise((resolve) => {
+					setTimeout(resolve, validateDebounce);
+				});
+				// Skip since out of date
+				if (this.validatePromise !== rootPromise) {
+					return [];
+				}
+			}
+			const promise = validateRules(namePath, currentValue, filteredRules, options, validateFirst, messageVariables);
+			promise.catch((e) => e).then((ruleErrors = EMPTY_ERRORS) => {
+				if (this.validatePromise === rootPromise) {
+					this.validatePromise = null;
+					// Get errors & warnings
+					const nextErrors = [];
+					const nextWarnings = [];
+					ruleErrors.forEach?.(({ rule: { warningOnly }, errors = EMPTY_ERRORS }) => {
+						if (warningOnly) {
+							nextWarnings.push(...errors);
+						} else {
+							nextErrors.push(...errors);
+						}
+					});
+					this.errors = nextErrors;
+					this.warnings = nextWarnings;
+					this.triggerMetaEvent();
+					this.reRender();
+				}
+			});
+			return promise;
+		});
+		if (validateOnly) {
+			return rootPromise;
+		}
+		this.validatePromise = rootPromise;
+		this.dirty = true;
+		this.errors = EMPTY_ERRORS;
+		this.warnings = EMPTY_WARNINGS;
+		this.triggerMetaEvent();
+		// Force trigger re-render since we need sync renderProps with new meta
+		this.reRender();
+		return rootPromise;
+	};
+	isFieldValidating = () => !!this.validatePromise;
+	isFieldTouched = () => this.touched;
+	isFieldDirty = () => {
+		// Touched or validate or has initialValue
+		if (this.dirty || this.props.initialValue !== void 0) {
+			return true;
+		}
+		// Form set initialValue
+		const { fieldContext } = this.props;
+		const { getInitialValue } = fieldContext.getInternalHooks(HOOK_MARK);
+		if (getInitialValue(this.getNamePath()) !== void 0) {
+			return true;
+		}
+		return false;
+	};
+	getErrors = () => this.errors;
+	getWarnings = () => this.warnings;
+	isListField = () => this.props.isListField;
+	isList = () => this.props.isList;
+	isPreserve = () => this.props.preserve;
+	// ============================= Child Component =============================
+	getMeta = () => {
+		// Make error & validating in cache to save perf
+		this.prevValidating = this.isFieldValidating();
+		const meta = {
+			touched: this.isFieldTouched(),
+			validating: this.prevValidating,
+			errors: this.errors,
+			warnings: this.warnings,
+			name: this.getNamePath(),
+			validated: this.validatePromise === null
+		};
+		return meta;
+	};
+	// Only return validate child node. If invalidate, will do nothing about field.
+	getOnlyChild = (children) => {
+		// Support render props
+		if (typeof children === "function") {
+			const meta = this.getMeta();
+			return {
+				...this.getOnlyChild(children(this.getControlled(), meta, this.props.fieldContext)),
+				isFunction: true
+			};
+		}
+		// Filed element only
+		const childList = toArray$3(children);
+		if (childList.length !== 1 || !reactExports.isValidElement(childList[0])) {
+			return {
+				child: childList,
+				isFunction: false
+			};
+		}
+		return {
+			child: childList[0],
+			isFunction: false
+		};
+	};
+	// ============================== Field Control ==============================
+	getValue = (store) => {
+		const { getFieldsValue } = this.props.fieldContext;
+		const namePath = this.getNamePath();
+		return get(store || getFieldsValue(true), namePath);
+	};
+	getControlled = (childProps = {}) => {
+		const { name, trigger = "onChange", validateTrigger, getValueFromEvent, normalize, valuePropName = "value", getValueProps, fieldContext } = this.props;
+		const mergedValidateTrigger = validateTrigger !== void 0 ? validateTrigger : fieldContext.validateTrigger;
+		const namePath = this.getNamePath();
+		const { getInternalHooks, getFieldsValue } = fieldContext;
+		const { dispatch } = getInternalHooks(HOOK_MARK);
+		const value = this.getValue();
+		const mergedGetValueProps = getValueProps || ((val) => ({ [valuePropName]: val }));
+		const originTriggerFunc = childProps[trigger];
+		const valueProps = name !== void 0 ? mergedGetValueProps(value) : {};
+		const control = {
+			...childProps,
+			...valueProps
+		};
+		// Add trigger
+		control[trigger] = (...args) => {
+			// Mark as touched
+			this.touched = true;
+			this.dirty = true;
+			this.triggerMetaEvent();
+			let newValue;
+			if (getValueFromEvent) {
+				newValue = getValueFromEvent(...args);
+			} else {
+				newValue = defaultGetValueFromEvent(valuePropName, ...args);
+			}
+			if (normalize) {
+				newValue = normalize(newValue, value, getFieldsValue(true));
+			}
+			if (newValue !== value) {
+				dispatch({
+					type: "updateValue",
+					namePath,
+					value: newValue
+				});
+			}
+			if (originTriggerFunc) {
+				originTriggerFunc(...args);
+			}
+		};
+		// Add validateTrigger
+		const validateTriggerList = toArray$1(mergedValidateTrigger || []);
+		validateTriggerList.forEach((triggerName) => {
+			// Wrap additional function of component, so that we can get latest value from store
+			const originTrigger = control[triggerName];
+			control[triggerName] = (...args) => {
+				if (originTrigger) {
+					originTrigger(...args);
+				}
+				// Always use latest rules
+				const { rules } = this.props;
+				if (rules && rules.length) {
+					// We dispatch validate to root,
+					// since it will update related data with other field with same name
+					dispatch({
+						type: "validateField",
+						namePath,
+						triggerName
+					});
+				}
+			};
+		});
+		return control;
+	};
+	render() {
+		const { resetCount } = this.state;
+		const { children } = this.props;
+		const { child, isFunction } = this.getOnlyChild(children);
+		// Not need to `cloneElement` since user can handle this in render function self
+		let returnChildNode;
+		if (isFunction) {
+			returnChildNode = child;
+		} else if (reactExports.isValidElement(child)) {
+			returnChildNode = reactExports.cloneElement(child, this.getControlled(child.props));
+		} else {
+			warningOnce(!child, "`children` of Field is not validate ReactElement.");
+			returnChildNode = child;
+		}
+		return reactExports.createElement(reactExports.Fragment, { key: resetCount }, returnChildNode);
+	}
+}
+function WrapperField({ name, ...restProps }) {
+	const fieldContext = reactExports.useContext(Context);
+	const listContext = reactExports.useContext(ListContext);
+	const namePath = name !== void 0 ? getNamePath(name) : void 0;
+	const isMergedListField = restProps.isListField ?? !!listContext;
+	let key = "keep";
+	if (!isMergedListField) {
+		key = `_${(namePath || []).join("_")}`;
+	}
+	return reactExports.createElement(Field, _extends$o({
+		key,
+		name: namePath,
+		isListField: isMergedListField
+	}, restProps, { fieldContext }));
+}
+function List({ name, initialValue, children, rules, validateTrigger, isListField }) {
+	const context = reactExports.useContext(Context);
+	const wrapperListContext = reactExports.useContext(ListContext);
+	const keyRef = reactExports.useRef({
+		keys: [],
+		id: 0
+	});
+	const keyManager = keyRef.current;
+	const prefixName = reactExports.useMemo(() => {
+		const parentPrefixName = getNamePath(context.prefixName) || [];
+		return [...parentPrefixName, ...getNamePath(name)];
+	}, [context.prefixName, name]);
+	const fieldContext = reactExports.useMemo(() => ({
+		...context,
+		prefixName
+	}), [context, prefixName]);
+	// List context
+	const listContext = reactExports.useMemo(() => ({ getKey: (namePath) => {
+		const len = prefixName.length;
+		const pathName = namePath[len];
+		return [keyManager.keys[pathName], namePath.slice(len + 1)];
+	} }), [keyManager, prefixName]);
+	// User should not pass `children` as other type.
+	if (typeof children !== "function") {
+		warningOnce(false, "Form.List only accepts function as children.");
+		return null;
+	}
+	const shouldUpdate = (prevValue, nextValue, { source }) => {
+		if (source === "internal") {
+			return false;
+		}
+		return prevValue !== nextValue;
+	};
+	return reactExports.createElement(ListContext.Provider, { value: listContext }, reactExports.createElement(Context.Provider, { value: fieldContext }, reactExports.createElement(WrapperField, {
+		name: [],
+		shouldUpdate,
+		rules,
+		validateTrigger,
+		initialValue,
+		isList: true,
+		isListField: isListField ?? !!wrapperListContext
+	}, ({ value = [], onChange }, meta) => {
+		const { getFieldValue } = context;
+		const getNewValue = () => {
+			const values = getFieldValue(prefixName || []);
+			return values || [];
+		};
+		/**
+		* Always get latest value in case user update fields by `form` api.
+		*/
+		const operations = {
+			add: (defaultValue, index) => {
+				// Mapping keys
+				const newValue = getNewValue();
+				if (index >= 0 && index <= newValue.length) {
+					keyManager.keys = [
+						...keyManager.keys.slice(0, index),
+						keyManager.id,
+						...keyManager.keys.slice(index)
+					];
+					onChange([
+						...newValue.slice(0, index),
+						defaultValue,
+						...newValue.slice(index)
+					]);
+				} else {
+					keyManager.keys = [...keyManager.keys, keyManager.id];
+					onChange([...newValue, defaultValue]);
+				}
+				keyManager.id += 1;
+			},
+			remove: (index) => {
+				const newValue = getNewValue();
+				const indexSet = new Set(Array.isArray(index) ? index : [index]);
+				if (indexSet.size <= 0) {
+					return;
+				}
+				keyManager.keys = keyManager.keys.filter((__unused_EF54, keysIndex) => !indexSet.has(keysIndex));
+				// Trigger store change
+				onChange(newValue.filter((__unused_17FF, valueIndex) => !indexSet.has(valueIndex)));
+			},
+			move(from, to) {
+				if (from === to) {
+					return;
+				}
+				const newValue = getNewValue();
+				// Do not handle out of range
+				if (from < 0 || from >= newValue.length || to < 0 || to >= newValue.length) {
+					return;
+				}
+				keyManager.keys = move(keyManager.keys, from, to);
+				// Trigger store change
+				onChange(move(newValue, from, to));
+			}
+		};
+		let listValue = value || [];
+		if (!Array.isArray(listValue)) {
+			listValue = [];
+		}
+		return children(listValue.map((__unused_38A6, index) => {
+			let key = keyManager.keys[index];
+			if (key === void 0) {
+				keyManager.keys[index] = keyManager.id;
+				key = keyManager.keys[index];
+				keyManager.id += 1;
+			}
+			return {
+				name: index,
+				key,
+				isListField: true
+			};
+		}), operations, meta);
+	})));
+}
+function allPromiseFinish(promiseList) {
+	let hasError = false;
+	let count = promiseList.length;
+	const results = [];
+	if (!promiseList.length) {
+		return Promise.resolve([]);
+	}
+	return new Promise((resolve, reject) => {
+		promiseList.forEach((promise, index) => {
+			promise.catch((e) => {
+				hasError = true;
+				return e;
+			}).then((result) => {
+				count -= 1;
+				results[index] = result;
+				if (count > 0) {
+					return;
+				}
+				if (hasError) {
+					reject(results);
+				}
+				resolve(results);
+			});
+		});
+	});
+}
+const SPLIT = "__@field_split__";
+/**
+* Convert name path into string to fast the fetch speed of Map.
+*/
+function normalize(namePath) {
+	return namePath.map((cell) => `${typeof cell}:${cell}`).join(SPLIT);
+}
+/**
+* NameMap like a `Map` but accepts `string[]` as key.
+*/
+class NameMap {
+	kvs = new Map();
+	set(key, value) {
+		this.kvs.set(normalize(key), value);
+	}
+	get(key) {
+		return this.kvs.get(normalize(key));
+	}
+	getAsPrefix(key) {
+		const normalizedKey = normalize(key);
+		const normalizedPrefix = normalizedKey + SPLIT;
+		const results = [];
+		const current = this.kvs.get(normalizedKey);
+		if (current !== void 0) {
+			results.push(current);
+		}
+		this.kvs.forEach((value, itemNormalizedKey) => {
+			if (itemNormalizedKey.startsWith(normalizedPrefix)) {
+				results.push(value);
+			}
+		});
+		return results;
+	}
+	update(key, updater) {
+		const origin = this.get(key);
+		const next = updater(origin);
+		if (!next) {
+			this.delete(key);
+		} else {
+			this.set(key, next);
+		}
+	}
+	delete(key) {
+		this.kvs.delete(normalize(key));
+	}
+	// Since we only use this in test, let simply realize this
+	map(callback) {
+		return [...this.kvs.entries()].map(([key, value]) => {
+			const cells = key.split(SPLIT);
+			return callback({
+				key: cells.map((cell) => {
+					const [, type, unit] = cell.match(/^([^:]*):(.*)$/);
+					return type === "number" ? Number(unit) : unit;
+				}),
+				value
+			});
+		});
+	}
+	toJSON() {
+		const json = {};
+		this.map(({ key, value }) => {
+			json[key.join(".")] = value;
+			return null;
+		});
+		return json;
+	}
+}
+/**
+* Call action with delay in macro task.
+*/
+const macroTask = (fn) => {
+	const channel = new MessageChannel();
+	channel.port1.onmessage = fn;
+	channel.port2.postMessage(null);
+};
+class WatcherCenter {
+	a = [];
+	b = 0;
+	c = new Set();
+	constructor(form) {
+		this.d = form;
+	}
+	e(callback) {
+		this.c.add(callback);
+		return () => {
+			this.c.delete(callback);
+		};
+	}
+	g(namePath) {
+		// Insert with deduplication
+		namePath.forEach((path) => {
+			if (this.a.every((exist) => !matchNamePath(exist, path))) {
+				this.a.push(path);
+			}
+		});
+		this.f();
+	}
+	f() {
+		this.b += 1;
+		const currentId = this.b;
+		macroTask(() => {
+			if (currentId === this.b && this.c.size) {
+				const formInst = this.d.a();
+				const values = formInst.getFieldsValue();
+				const allValues = formInst.getFieldsValue(true);
+				this.c.forEach((callback) => {
+					callback(values, allValues, this.a);
+				});
+				this.a = [];
+			}
+		});
+	}
+}
+class FormStore {
+	b = true;
+	c = {};
+	d = [];
+	e = {};
+	f = {};
+	g = null;
+	h = null;
+	i = null;
+	j = new WatcherCenter(this);
+	constructor(forceRootUpdate) {
+		this.k = forceRootUpdate;
+	}
+	a = () => ({
+		getFieldValue: this.l,
+		getFieldsValue: this.m,
+		getFieldError: this.n,
+		getFieldWarning: this.o,
+		getFieldsError: this.p,
+		isFieldsTouched: this.q,
+		isFieldTouched: this.r,
+		isFieldValidating: this.s,
+		isFieldsValidating: this.t,
+		resetFields: this.u,
+		setFields: this.v,
+		setFieldValue: this.w,
+		setFieldsValue: this.x,
+		validateFields: this.y,
+		submit: this.z,
+		_init: true,
+		getInternalHooks: this.A
+	});
+	// ======================== Internal Hooks ========================
+	A = (key) => {
+		if (key === HOOK_MARK) {
+			return {
+				dispatch: this.B,
+				initEntityValue: this.C,
+				registerField: this.D,
+				useSubscribe: this.E,
+				setInitialValues: this.F,
+				destroyForm: this.G,
+				setCallbacks: this.H,
+				setValidateMessages: this.I,
+				getFields: this.J,
+				setPreserve: this.K,
+				getInitialValue: this.L,
+				registerWatch: this.M
+			};
+		}
+		warningOnce(false, "`getInternalHooks` is internal usage. Should not call directly.");
+		return null;
+	};
+	E = (subscribable) => {
+		this.b = subscribable;
+	};
+	/**
+	* Record prev Form unmount fieldEntities which config preserve false.
+	* This need to be refill with initialValues instead of store value.
+	*/
+	N = null;
+	/**
+	* First time `setInitialValues` should update store with initial value
+	*/
+	F = (initialValues, init) => {
+		this.e = initialValues || {};
+		if (init) {
+			let nextStore = merge$1(initialValues, this.c);
+			// We will take consider prev form unmount fields.
+			// When the field is not `preserve`, we need fill this with initialValues instead of store.
+			// eslint-disable-next-line array-callback-return
+			this.N?.map(({ key: namePath }) => {
+				nextStore = set(nextStore, namePath, get(initialValues, namePath));
+			});
+			this.N = null;
+			this.O(nextStore);
+		}
+	};
+	G = (clearOnDestroy) => {
+		if (clearOnDestroy) {
+			// destroy form reset store
+			this.O({});
+		} else {
+			// Fill preserve fields
+			const prevWithoutPreserves = new NameMap();
+			this.P(true).forEach((entity) => {
+				if (!this.Q(entity.isPreserve())) {
+					prevWithoutPreserves.set(entity.getNamePath(), true);
+				}
+			});
+			this.N = prevWithoutPreserves;
+		}
+	};
+	L = (namePath) => {
+		const initValue = get(this.e, namePath);
+		// Not cloneDeep when without `namePath`
+		return namePath.length ? merge$1(initValue) : initValue;
+	};
+	H = (callbacks) => {
+		this.f = callbacks;
+	};
+	I = (validateMessages) => {
+		this.g = validateMessages;
+	};
+	K = (preserve) => {
+		this.h = preserve;
+	};
+	// ============================= Watch ============================
+	M = (callback) => {
+		return this.j.e(callback);
+	};
+	R = (namePath = []) => {
+		this.j.g(namePath);
+	};
+	// ============================ Store =============================
+	O = (nextStore) => {
+		this.c = nextStore;
+	};
+	// ============================ Fields ============================
+	/**
+	* Get registered field entities.
+	* @param pure Only return field which has a `name`. Default: false
+	*/
+	P = (pure = false) => {
+		if (!pure) {
+			return this.d;
+		}
+		return this.d.filter((field) => field.getNamePath().length);
+	};
+	/**
+	* Get a map of registered field entities with their name path as the key.
+	* @param pure Only include fields which have a `name`. Default: false
+	* @returns A NameMap containing field entities indexed by their name paths
+	*/
+	S = () => {
+		const cache = new NameMap();
+		this.P(true).forEach((field) => {
+			const namePath = field.getNamePath();
+			cache.set(namePath, field);
+		});
+		return cache;
+	};
+	/**
+	* Get field entities based on a list of name paths.
+	* @param nameList - Array of name paths to search for. If not provided, returns all field entities with names.
+	* @param includesSubNamePath - Whether to include fields that have the given name path as a prefix.
+	*/
+	T = (nameList, includesSubNamePath = false) => {
+		if (!nameList) {
+			return this.P(true);
+		}
+		const cache = this.S();
+		if (!includesSubNamePath) {
+			return nameList.map((name) => {
+				const namePath = getNamePath(name);
+				return cache.get(namePath) || { INVALIDATE_NAME_PATH: getNamePath(name) };
+			});
+		}
+		return nameList.flatMap((name) => {
+			const namePath = getNamePath(name);
+			const fields = cache.getAsPrefix(namePath);
+			if (fields.length) {
+				return fields;
+			}
+			return [{ INVALIDATE_NAME_PATH: namePath }];
+		});
+	};
+	m = (nameList, filterFunc) => {
+		// Fill args
+		let mergedNameList;
+		let mergedFilterFunc;
+		if (nameList === true || Array.isArray(nameList)) {
+			mergedNameList = nameList;
+			mergedFilterFunc = filterFunc;
+		} else if (nameList && typeof nameList === "object") {
+			mergedFilterFunc = nameList.filter;
+		}
+		if (mergedNameList === true && !mergedFilterFunc) {
+			return this.c;
+		}
+		const fieldEntities = this.T(Array.isArray(mergedNameList) ? mergedNameList : null, true);
+		const filteredNameList = [];
+		const listNamePaths = [];
+		fieldEntities.forEach((entity) => {
+			const namePath = entity.INVALIDATE_NAME_PATH || entity.getNamePath();
+			// Ignore when it's a list item and not specific the namePath,
+			// since parent field is already take in count
+			if (entity.isList?.()) {
+				listNamePaths.push(namePath);
+				return;
+			}
+			if (!mergedFilterFunc) {
+				filteredNameList.push(namePath);
+			} else {
+				const meta = "getMeta" in entity ? entity.getMeta() : null;
+				if (mergedFilterFunc(meta)) {
+					filteredNameList.push(namePath);
+				}
+			}
+		});
+		let mergedValues = cloneByNamePathList(this.c, filteredNameList.map(getNamePath));
+		// We need fill the list as [] if Form.List is empty
+		listNamePaths.forEach((namePath) => {
+			if (!get(mergedValues, namePath)) {
+				mergedValues = set(mergedValues, namePath, []);
+			}
+		});
+		return mergedValues;
+	};
+	l = (name) => {
+		const namePath = getNamePath(name);
+		return get(this.c, namePath);
+	};
+	p = (nameList) => {
+		const fieldEntities = this.T(nameList);
+		return fieldEntities.map((entity, index) => {
+			if (entity && !entity.INVALIDATE_NAME_PATH) {
+				return {
+					name: entity.getNamePath(),
+					errors: entity.getErrors(),
+					warnings: entity.getWarnings()
+				};
+			}
+			return {
+				name: getNamePath(nameList[index]),
+				errors: [],
+				warnings: []
+			};
+		});
+	};
+	n = (name) => {
+		const namePath = getNamePath(name);
+		const fieldError = this.p([namePath])[0];
+		return fieldError.errors;
+	};
+	o = (name) => {
+		const namePath = getNamePath(name);
+		const fieldError = this.p([namePath])[0];
+		return fieldError.warnings;
+	};
+	q = (...args) => {
+		const [arg0, arg1] = args;
+		let namePathList;
+		let isAllFieldsTouched = false;
+		if (args.length === 0) {
+			namePathList = null;
+		} else if (args.length === 1) {
+			if (Array.isArray(arg0)) {
+				namePathList = arg0.map(getNamePath);
+				isAllFieldsTouched = false;
+			} else {
+				namePathList = null;
+				isAllFieldsTouched = arg0;
+			}
+		} else {
+			namePathList = arg0.map(getNamePath);
+			isAllFieldsTouched = arg1;
+		}
+		const fieldEntities = this.P(true);
+		const isFieldTouched = (field) => field.isFieldTouched();
+		// ===== Will get fully compare when not config namePathList =====
+		if (!namePathList) {
+			return isAllFieldsTouched ? fieldEntities.every((entity) => isFieldTouched(entity) || entity.isList()) : fieldEntities.some(isFieldTouched);
+		}
+		// Generate a nest tree for validate
+		const map = new NameMap();
+		namePathList.forEach((shortNamePath) => {
+			map.set(shortNamePath, []);
+		});
+		fieldEntities.forEach((field) => {
+			const fieldNamePath = field.getNamePath();
+			// Find matched entity and put into list
+			namePathList.forEach((shortNamePath) => {
+				if (shortNamePath.every((nameUnit, i) => fieldNamePath[i] === nameUnit)) {
+					map.update(shortNamePath, (list) => [...list, field]);
+				}
+			});
+		});
+		// Check if NameMap value is touched
+		const isNamePathListTouched = (entities) => entities.some(isFieldTouched);
+		const namePathListEntities = map.map(({ value }) => value);
+		return isAllFieldsTouched ? namePathListEntities.every(isNamePathListTouched) : namePathListEntities.some(isNamePathListTouched);
+	};
+	r = (name) => {
+		return this.q([name]);
+	};
+	t = (nameList) => {
+		const fieldEntities = this.P();
+		if (!nameList) {
+			return fieldEntities.some((testField) => testField.isFieldValidating());
+		}
+		const namePathList = nameList.map(getNamePath);
+		return fieldEntities.some((testField) => {
+			const fieldNamePath = testField.getNamePath();
+			return containsNamePath(namePathList, fieldNamePath) && testField.isFieldValidating();
+		});
+	};
+	s = (name) => {
+		return this.t([name]);
+	};
+	/**
+	* Reset Field with field `initialValue` prop.
+	* Can pass `entities` or `namePathList` or just nothing.
+	*/
+	U = (info = {}) => {
+		// Create cache
+		const cache = new NameMap();
+		const fieldEntities = this.P(true);
+		fieldEntities.forEach((field) => {
+			const { initialValue } = field.props;
+			const namePath = field.getNamePath();
+			// Record only if has `initialValue`
+			if (initialValue !== void 0) {
+				const records = cache.get(namePath) || new Set();
+				records.add({
+					entity: field,
+					value: initialValue
+				});
+				cache.set(namePath, records);
+			}
+		});
+		// Reset
+		const resetWithFields = (entities) => {
+			entities.forEach((field) => {
+				const { initialValue } = field.props;
+				if (initialValue !== void 0) {
+					const namePath = field.getNamePath();
+					const formInitialValue = this.L(namePath);
+					if (formInitialValue !== void 0) {
+						// Warning if conflict with form initialValues and do not modify value
+						warningOnce(false, `Form already set 'initialValues' with path '${namePath.join(".")}'. Field can not overwrite it.`);
+					} else {
+						const records = cache.get(namePath);
+						if (records && records.size > 1) {
+							// Warning if multiple field set `initialValue`and do not modify value
+							warningOnce(false, `Multiple Field with path '${namePath.join(".")}' set 'initialValue'. Can not decide which one to pick.`);
+						} else if (records) {
+							const originValue = this.l(namePath);
+							const isListField = field.isListField();
+							// Set `initialValue`
+							if (!isListField && (!info.skipExist || originValue === void 0)) {
+								this.O(set(this.c, namePath, [...records][0].value));
+							}
+						}
+					}
+				}
+			});
+		};
+		let requiredFieldEntities;
+		if (info.entities) {
+			requiredFieldEntities = info.entities;
+		} else if (info.namePathList) {
+			requiredFieldEntities = [];
+			info.namePathList.forEach((namePath) => {
+				const records = cache.get(namePath);
+				if (records) {
+					requiredFieldEntities.push(...[...records].map((r) => r.entity));
+				}
+			});
+		} else {
+			requiredFieldEntities = fieldEntities;
+		}
+		resetWithFields(requiredFieldEntities);
+	};
+	u = (nameList) => {
+		const prevStore = this.c;
+		if (!nameList) {
+			this.O(merge$1(this.e));
+			this.U();
+			this.V(prevStore, null, { type: "reset" });
+			this.R();
+			return;
+		}
+		// Reset by `nameList`
+		const namePathList = nameList.map(getNamePath);
+		namePathList.forEach((namePath) => {
+			const initialValue = this.L(namePath);
+			this.O(set(this.c, namePath, initialValue));
+		});
+		this.U({ namePathList });
+		this.V(prevStore, namePathList, { type: "reset" });
+		this.R(namePathList);
+	};
+	v = (fields) => {
+		const prevStore = this.c;
+		const namePathList = [];
+		fields.forEach((fieldData) => {
+			const { name, ...data } = fieldData;
+			const namePath = getNamePath(name);
+			namePathList.push(namePath);
+			// Value
+			if ("value" in data) {
+				this.O(set(this.c, namePath, data.value));
+			}
+			this.V(prevStore, [namePath], {
+				type: "setField",
+				data: fieldData
+			});
+		});
+		this.R(namePathList);
+	};
+	J = () => {
+		const entities = this.P(true);
+		const fields = entities.map((field) => {
+			const namePath = field.getNamePath();
+			const meta = field.getMeta();
+			const fieldData = {
+				...meta,
+				name: namePath,
+				value: this.l(namePath)
+			};
+			Object.defineProperty(fieldData, "originRCField", { value: true });
+			return fieldData;
+		});
+		return fields;
+	};
+	// =========================== Observer ===========================
+	/**
+	* This only trigger when a field is on constructor to avoid we get initialValue too late
+	*/
+	C = (entity) => {
+		const { initialValue } = entity.props;
+		if (initialValue !== void 0) {
+			const namePath = entity.getNamePath();
+			const prevValue = get(this.c, namePath);
+			if (prevValue === void 0) {
+				this.O(set(this.c, namePath, initialValue));
+			}
+		}
+	};
+	Q = (fieldPreserve) => {
+		const mergedPreserve = fieldPreserve !== void 0 ? fieldPreserve : this.h;
+		return mergedPreserve ?? true;
+	};
+	D = (entity) => {
+		this.d.push(entity);
+		const namePath = entity.getNamePath();
+		this.R([namePath]);
+		// Set initial values
+		if (entity.props.initialValue !== void 0) {
+			const prevStore = this.c;
+			this.U({
+				entities: [entity],
+				skipExist: true
+			});
+			this.V(prevStore, [entity.getNamePath()], {
+				type: "valueUpdate",
+				source: "internal"
+			});
+		}
+		// un-register field callback
+		return (isListField, preserve, subNamePath = []) => {
+			this.d = this.d.filter((item) => item !== entity);
+			// Clean up store value if not preserve
+			if (!this.Q(preserve) && (!isListField || subNamePath.length > 1)) {
+				const defaultValue = isListField ? void 0 : this.L(namePath);
+				if (namePath.length && this.l(namePath) !== defaultValue && this.d.every((field) => !matchNamePath(field.getNamePath(), namePath))) {
+					const prevStore = this.c;
+					this.O(set(prevStore, namePath, defaultValue, true));
+					// Notify that field is unmount
+					this.V(prevStore, [namePath], { type: "remove" });
+					// Dependencies update
+					this.W(prevStore, namePath);
+				}
+			}
+			this.R([namePath]);
+		};
+	};
+	B = (action) => {
+		switch (action.type) {
+			case "updateValue": {
+				const { namePath, value } = action;
+				this.X(namePath, value);
+				break;
+			}
+			case "validateField": {
+				const { namePath, triggerName } = action;
+				this.y([namePath], { triggerName });
+				break;
+			}
+		}
+	};
+	V = (prevStore, namePathList, info) => {
+		if (this.b) {
+			const mergedInfo = {
+				...info,
+				store: this.m(true)
+			};
+			this.P().forEach(({ onStoreChange }) => {
+				onStoreChange(prevStore, namePathList, mergedInfo);
+			});
+		} else {
+			this.k();
+		}
+	};
+	/**
+	* Notify dependencies children with parent update
+	* We need delay to trigger validate in case Field is under render props
+	*/
+	W = (prevStore, namePath) => {
+		const childrenFields = this.Y(namePath);
+		if (childrenFields.length) {
+			this.y(childrenFields);
+		}
+		this.V(prevStore, childrenFields, {
+			type: "dependenciesUpdate",
+			relatedFields: [namePath, ...childrenFields]
+		});
+		return childrenFields;
+	};
+	X = (name, value) => {
+		const namePath = getNamePath(name);
+		const prevStore = this.c;
+		this.O(set(this.c, namePath, value));
+		this.V(prevStore, [namePath], {
+			type: "valueUpdate",
+			source: "internal"
+		});
+		this.R([namePath]);
+		// Dependencies update
+		const childrenFields = this.W(prevStore, namePath);
+		// trigger callback function
+		const { onValuesChange } = this.f;
+		if (onValuesChange) {
+			const fieldEntity = this.S().get(namePath);
+			const changedValues = cloneByNamePathList(this.c, [namePath]);
+			const allValues = this.m();
+			// Merge changedValues into allValues to ensure allValues contains the latest changes
+			const mergedAllValues = mergeWith([allValues, changedValues], { prepareArray: (current) => fieldEntity?.isList() ? [] : [...current || []] });
+			onValuesChange(changedValues, mergedAllValues);
+		}
+		this.Z([namePath, ...childrenFields]);
+	};
+	// Let all child Field get update.
+	x = (store) => {
+		const prevStore = this.c;
+		if (store) {
+			const nextStore = merge$1(this.c, store);
+			this.O(nextStore);
+		}
+		this.V(prevStore, null, {
+			type: "valueUpdate",
+			source: "external"
+		});
+		this.R();
+	};
+	w = (name, value) => {
+		this.v([{
+			name,
+			value,
+			errors: [],
+			warnings: [],
+			touched: true
+		}]);
+	};
+	Y = (rootNamePath) => {
+		const children = new Set();
+		const childrenFields = [];
+		const dependencies2fields = new NameMap();
+		/**
+		* Generate maps
+		* Can use cache to save perf if user report performance issue with this
+		*/
+		this.P().forEach((field) => {
+			const { dependencies } = field.props;
+			(dependencies || []).forEach((dependency) => {
+				const dependencyNamePath = getNamePath(dependency);
+				dependencies2fields.update(dependencyNamePath, (fields = new Set()) => {
+					fields.add(field);
+					return fields;
+				});
+			});
+		});
+		const fillChildren = (namePath) => {
+			const fields = dependencies2fields.get(namePath) || new Set();
+			fields.forEach((field) => {
+				if (!children.has(field)) {
+					children.add(field);
+					const fieldNamePath = field.getNamePath();
+					if (field.isFieldDirty() && fieldNamePath.length) {
+						childrenFields.push(fieldNamePath);
+						fillChildren(fieldNamePath);
+					}
+				}
+			});
+		};
+		fillChildren(rootNamePath);
+		return childrenFields;
+	};
+	Z = (namePathList, filedErrors) => {
+		const { onFieldsChange } = this.f;
+		if (onFieldsChange) {
+			const fields = this.J();
+			/**
+			* Fill errors since `fields` may be replaced by controlled fields
+			*/
+			if (filedErrors) {
+				const cache = new NameMap();
+				filedErrors.forEach(({ name, errors }) => {
+					cache.set(name, errors);
+				});
+				fields.forEach((field) => {
+					// eslint-disable-next-line no-param-reassign
+					field.errors = cache.get(field.name) || field.errors;
+				});
+			}
+			const changedFields = fields.filter(({ name: fieldName }) => containsNamePath(namePathList, fieldName));
+			if (changedFields.length) {
+				onFieldsChange(changedFields, fields);
+			}
+		}
+	};
+	// =========================== Validate ===========================
+	y = (arg1, arg2) => {
+		let nameList;
+		let options;
+		if (Array.isArray(arg1) || typeof arg1 === "string" || typeof arg2 === "string") {
+			nameList = arg1;
+			options = arg2;
+		} else {
+			options = arg1;
+		}
+		const provideNameList = !!nameList;
+		const namePathList = provideNameList ? nameList.map(getNamePath) : [];
+		// Same namePathList, but does not include Form.List name
+		const finalValueNamePathList = [...namePathList];
+		// Collect result in promise list
+		const promiseList = [];
+		// We temp save the path which need trigger for `onFieldsChange`
+		const TMP_SPLIT = String(Date.now());
+		const validateNamePathList = new Set();
+		const { recursive, dirty } = options || {};
+		this.P(true).forEach((field) => {
+			const fieldNamePath = field.getNamePath();
+			// Add field if not provide `nameList`
+			if (!provideNameList) {
+				if (!field.isList() || !namePathList.some((name) => matchNamePath(name, fieldNamePath, true))) {
+					finalValueNamePathList.push(fieldNamePath);
+				}
+				namePathList.push(fieldNamePath);
+			}
+			// Skip if without rule
+			if (!field.props.rules || !field.props.rules.length) {
+				return;
+			}
+			// Skip if only validate dirty field
+			if (dirty && !field.isFieldDirty()) {
+				return;
+			}
+			validateNamePathList.add(fieldNamePath.join(TMP_SPLIT));
+			// Add field validate rule in to promise list
+			if (!provideNameList || containsNamePath(namePathList, fieldNamePath, recursive)) {
+				const promise = field.validateRules({
+					validateMessages: {
+						...defaultValidateMessages,
+						...this.g
+					},
+					...options
+				});
+				// Wrap promise with field
+				promiseList.push(promise.then(() => ({
+					name: fieldNamePath,
+					errors: [],
+					warnings: []
+				})).catch((ruleErrors) => {
+					const mergedErrors = [];
+					const mergedWarnings = [];
+					ruleErrors.forEach?.(({ rule: { warningOnly }, errors }) => {
+						if (warningOnly) {
+							mergedWarnings.push(...errors);
+						} else {
+							mergedErrors.push(...errors);
+						}
+					});
+					if (mergedErrors.length) {
+						return Promise.reject({
+							name: fieldNamePath,
+							errors: mergedErrors,
+							warnings: mergedWarnings
+						});
+					}
+					return {
+						name: fieldNamePath,
+						errors: mergedErrors,
+						warnings: mergedWarnings
+					};
+				}));
+			}
+		});
+		const summaryPromise = allPromiseFinish(promiseList);
+		this.i = summaryPromise;
+		// Notify fields with rule that validate has finished and need update
+		summaryPromise.catch((results) => results).then((results) => {
+			const resultNamePathList = results.map(({ name }) => name);
+			this.V(this.c, resultNamePathList, { type: "validateFinish" });
+			this.Z(resultNamePathList, results);
+		});
+		const returnPromise = summaryPromise.then(() => {
+			if (this.i === summaryPromise) {
+				return Promise.resolve(this.m(finalValueNamePathList));
+			}
+			return Promise.reject([]);
+		}).catch((results) => {
+			const errorList = results.filter((result) => result && result.errors.length);
+			const errorMessage = errorList[0]?.errors?.[0];
+			return Promise.reject({
+				message: errorMessage,
+				values: this.m(namePathList),
+				errorFields: errorList,
+				outOfDate: this.i !== summaryPromise
+			});
+		});
+		// Do not throw in console
+		returnPromise.catch((e) => e);
+		// `validating` changed. Trigger `onFieldsChange`
+		const triggerNamePathList = namePathList.filter((namePath) => validateNamePathList.has(namePath.join(TMP_SPLIT)));
+		this.Z(triggerNamePathList);
+		return returnPromise;
+	};
+	// ============================ Submit ============================
+	z = () => {
+		this.y().then((values) => {
+			const { onFinish } = this.f;
+			if (onFinish) {
+				try {
+					onFinish(values);
+				} catch (err) {
+					// Should print error if user `onFinish` callback failed
+					console.error(err);
+				}
+			}
+		}).catch((e) => {
+			const { onFinishFailed } = this.f;
+			if (onFinishFailed) {
+				onFinishFailed(e);
+			}
+		});
+	};
+}
+function useForm(form) {
+	const formRef = reactExports.useRef(null);
+	const [, forceUpdate] = reactExports.useState({});
+	// Create singleton FormStore
+	if (!formRef.current) {
+		if (form) {
+			formRef.current = form;
+		} else {
+			// Create a new FormStore if not provided
+			const forceReRender = () => {
+				forceUpdate({});
+			};
+			const formStore = new FormStore(forceReRender);
+			formRef.current = formStore.a();
+		}
+	}
+	return [formRef.current];
+}
+const FormContext = reactExports.createContext({
+	triggerFormChange: () => {},
+	triggerFormFinish: () => {},
+	registerForm: () => {},
+	unregisterForm: () => {}
+});
+const FormProvider = ({ validateMessages, onFormChange, onFormFinish, children }) => {
+	const formContext = reactExports.useContext(FormContext);
+	const formsRef = reactExports.useRef({});
+	return reactExports.createElement(FormContext.Provider, { value: {
+		...formContext,
+		validateMessages: {
+			...formContext.validateMessages,
+			...validateMessages
+		},
+		triggerFormChange: (name, changedFields) => {
+			if (onFormChange) {
+				onFormChange(name, {
+					changedFields,
+					forms: formsRef.current
+				});
+			}
+			formContext.triggerFormChange(name, changedFields);
+		},
+		triggerFormFinish: (name, values) => {
+			if (onFormFinish) {
+				onFormFinish(name, {
+					values,
+					forms: formsRef.current
+				});
+			}
+			formContext.triggerFormFinish(name, values);
+		},
+		registerForm: (name, form) => {
+			if (name) {
+				formsRef.current = {
+					...formsRef.current,
+					[name]: form
+				};
+			}
+			formContext.registerForm(name, form);
+		},
+		unregisterForm: (name) => {
+			const newForms = { ...formsRef.current };
+			delete newForms[name];
+			formsRef.current = newForms;
+			formContext.unregisterForm(name);
+		}
+	} }, children);
+};
+function _extends$n() {
+	_extends$n = Object.assign.bind();
+	return _extends$n.apply(this, arguments);
+}
+const Form = ({ name, initialValues, fields, form, preserve, children, component: Component = "form", validateMessages, validateTrigger = "onChange", onValuesChange, onFieldsChange, onFinish, onFinishFailed, clearOnDestroy, ...restProps }, ref) => {
+	const nativeElementRef = reactExports.useRef(null);
+	const formContext = reactExports.useContext(FormContext);
+	// We customize handle event since Context will makes all the consumer re-render:
+	// https://reactjs.org/docs/context.html#contextprovider
+	const [formInstance] = useForm(form);
+	const { useSubscribe, setInitialValues, setCallbacks, setValidateMessages, setPreserve, destroyForm } = formInstance.getInternalHooks(HOOK_MARK);
+	// Pass ref with form instance
+	reactExports.useImperativeHandle(ref, () => ({
+		...formInstance,
+		nativeElement: nativeElementRef.current
+	}));
+	// Register form into Context
+	reactExports.useEffect(() => {
+		formContext.registerForm(name, formInstance);
+		return () => {
+			formContext.unregisterForm(name);
+		};
+	}, [
+		formContext,
+		formInstance,
+		name
+	]);
+	// Pass props to store
+	setValidateMessages({
+		...formContext.validateMessages,
+		...validateMessages
+	});
+	setCallbacks({
+		onValuesChange,
+		onFieldsChange: (changedFields, ...rest) => {
+			formContext.triggerFormChange(name, changedFields);
+			if (onFieldsChange) {
+				onFieldsChange(changedFields, ...rest);
+			}
+		},
+		onFinish: (values) => {
+			formContext.triggerFormFinish(name, values);
+			if (onFinish) {
+				onFinish(values);
+			}
+		},
+		onFinishFailed
+	});
+	setPreserve(preserve);
+	// Set initial value, init store value when first mount
+	const mountRef = reactExports.useRef(null);
+	setInitialValues(initialValues, !mountRef.current);
+	if (!mountRef.current) {
+		mountRef.current = true;
+	}
+	// ========================== Unmount ===========================
+	reactExports.useEffect(
+		() => () => destroyForm(clearOnDestroy),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[]
+	);
+	// Prepare children by `children` type
+	let childrenNode;
+	const childrenRenderProps = typeof children === "function";
+	if (childrenRenderProps) {
+		const values = formInstance.getFieldsValue(true);
+		childrenNode = children(values, formInstance);
+	} else {
+		childrenNode = children;
+	}
+	// Not use subscribe when using render props
+	useSubscribe(!childrenRenderProps);
+	// Listen if fields provided. We use ref to save prev data here to avoid additional render
+	const prevFieldsRef = reactExports.useRef(null);
+	reactExports.useEffect(() => {
+		if (!isSimilar(prevFieldsRef.current || [], fields || [])) {
+			formInstance.setFields(fields || []);
+		}
+		prevFieldsRef.current = fields;
+	}, [fields, formInstance]);
+	// =========================== Render ===========================
+	const formContextValue = reactExports.useMemo(() => ({
+		...formInstance,
+		validateTrigger
+	}), [formInstance, validateTrigger]);
+	const wrapperNode = reactExports.createElement(ListContext.Provider, { value: null }, reactExports.createElement(Context.Provider, { value: formContextValue }, childrenNode));
+	if (Component === false) {
+		return wrapperNode;
+	}
+	return reactExports.createElement(Component, _extends$n({}, restProps, {
+		ref: nativeElementRef,
+		onSubmit: (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			formInstance.submit();
+		},
+		onReset: (event) => {
+			event.preventDefault();
+			formInstance.resetFields();
+			restProps.onReset?.(event);
+		}
+	}), wrapperNode);
+};
+function stringify(value) {
+	try {
+		return JSON.stringify(value);
+	} catch {
+		return Math.random();
+	}
+}
+// ------- selector type -------
+// ------- selector type end -------
+function useWatch(...args) {
+	const [dependencies, _form = {}] = args;
+	const options = isFormInstance(_form) ? { form: _form } : _form;
+	const form = options.form;
+	const [value, ,] = reactExports.useState(() => typeof dependencies === "function" ? dependencies({}) : void 0);
+	const valueStr = reactExports.useMemo(() => stringify(value), [value]);
+	const valueStrRef = reactExports.useRef(valueStr);
+	valueStrRef.current = valueStr;
+	const fieldContext = reactExports.useContext(Context);
+	const formInstance = form || fieldContext;
+	const isValidForm = formInstance && formInstance._init;
+	// ============================== Form ==============================
+	const { getFieldsValue, getInternalHooks } = formInstance;
+	const { registerWatch } = getInternalHooks(HOOK_MARK);
+	// ============================= Update =============================
+	const triggerUpdate = useEvent((values, allValues) => {
+		const watchValue = options.preserve ? allValues ?? getFieldsValue(true) : values ?? getFieldsValue();
+		const nextValue = typeof dependencies === "function" ? dependencies(watchValue) : get(watchValue, getNamePath(dependencies));
+		{
+			stringify(value), stringify(nextValue);
+		}
+	});
+	// ============================= Effect =============================
+	const flattenDeps = typeof dependencies === "function" ? dependencies : JSON.stringify(dependencies);
+	// Deps changed
+	reactExports.useEffect(() => {
+		// Skip if not exist form instance
+		if (!isValidForm) {
+			return;
+		}
+		triggerUpdate();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isValidForm, flattenDeps]);
+	// Value changed
+	reactExports.useEffect(() => {
+		// Skip if not exist form instance
+		if (!isValidForm) {
+			return;
+		}
+		const cancelRegister = registerWatch((values, allValues) => {
+			triggerUpdate(values, allValues);
+		});
+		return cancelRegister;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isValidForm]);
+	return value;
+}
+const InternalForm = reactExports.forwardRef(Form);
+const RefForm = InternalForm;
+RefForm.FormProvider = FormProvider;
+RefForm.Field = WrapperField;
+RefForm.List = List;
+RefForm.useForm = useForm;
+RefForm.useWatch = useWatch;
+const FormItemInputContext = reactExports.createContext({});
+const NoFormStyle = ({ children, status, override }) => {
+	const formItemInputContext = reactExports.useContext(FormItemInputContext);
+	const newFormItemInputContext = reactExports.useMemo(() => {
+		const newContext = { ...formItemInputContext };
+		if (override) {
+			delete newContext.isFormItemInput;
+		}
+		if (status) {
+			delete newContext.status;
+			delete newContext.hasFeedback;
+			delete newContext.feedbackIcon;
+		}
+		return newContext;
+	}, [
+		status,
+		override,
+		formItemInputContext
+	]);
+	return reactExports.createElement(FormItemInputContext.Provider, { value: newFormItemInputContext }, children);
+};
+const VariantContext = reactExports.createContext(void 0);
+const ContextIsolator = (props) => {
+	const { space, form, children } = props;
+	if (!isNonNullable(children)) {
+		return null;
+	}
+	let result = children;
+	if (form) {
+		result = React.createElement(NoFormStyle, {
+			override: true,
+			status: true
+		}, result);
+	}
+	if (space) {
+		result = React.createElement(NoCompactStyle, null, result);
+	}
+	return result;
+};
+function withPureRenderTheme(Component) {
+	return (props) => reactExports.createElement(ConfigProvider, { theme: { token: {
+		motion: false,
+		zIndexPopupBase: 0
+	} } }, reactExports.createElement(Component, { ...props }));
+}
+/* istanbul ignore next */
+const genPurePanel = (Component) => {
+	const PurePanel = (props) => {
+		const { prefixCls: customizePrefixCls, style } = props;
+		const holderRef = reactExports.useRef(null);
+		const [popupHeight, setPopupHeight] = reactExports.useState(0);
+		const [popupWidth, setPopupWidth] = reactExports.useState(0);
+		const [open, setOpen] = useControlledState(false, props.open);
+		const { getPrefixCls } = reactExports.useContext(ConfigContext);
+		const prefixCls = getPrefixCls("picker", customizePrefixCls);
+		reactExports.useEffect(() => {
+			// We do not care about ssr
+			setOpen(true);
+			if (typeof ResizeObserver !== "undefined") {
+				const resizeObserver = new ResizeObserver((entries) => {
+					const element = entries[0].target;
+					setPopupHeight(element.offsetHeight + 8);
+					setPopupWidth(element.offsetWidth);
+				});
+				const interval = setInterval(() => {
+					const dropdownCls = `.${prefixCls}-dropdown`;
+					const popup = holderRef.current?.querySelector(dropdownCls);
+					if (popup) {
+						clearInterval(interval);
+						resizeObserver.observe(popup);
+					}
+				}, 10);
+				return () => {
+					clearInterval(interval);
+					resizeObserver.disconnect();
+				};
+			}
+		}, [prefixCls]);
+		let mergedProps = {
+			...props,
+			style: {
+				...style,
+				margin: 0
+			},
+			open,
+			getPopupContainer: () => holderRef.current
+		};
+		{
+			Object.assign(mergedProps, { ["popupAlign"]: { overflow: {
+				adjustX: false,
+				adjustY: false
+			} } });
+		}
+		const mergedStyle = {
+			paddingBottom: popupHeight,
+			position: "relative",
+			minWidth: popupWidth
+		};
+		return reactExports.createElement("div", {
+			ref: holderRef,
+			style: mergedStyle
+		}, reactExports.createElement(Component, { ...mergedProps }));
+	};
+	return withPureRenderTheme(PurePanel);
+};
+function InternalItem(props, ref) {
+	const { prefixCls, invalidate, item, renderItem, responsive, responsiveDisabled, registerSize, itemKey, className, style, children, display, order, component: Component = "div", ...restProps } = props;
+	const mergedHidden = responsive && !display;
+	// ================================ Effect ================================
+	function internalRegisterSize(width) {
+		registerSize(itemKey, width);
+	}
+	reactExports.useEffect(() => () => {
+		internalRegisterSize(null);
+	}, []);
+	// ================================ Render ================================
+	const childNode = renderItem && item !== void 0 ? renderItem(item, { index: order }) : children;
+	let overflowStyle;
+	if (!invalidate) {
+		overflowStyle = {
+			opacity: mergedHidden ? 0 : 1,
+			height: mergedHidden ? 0 : void 0,
+			overflowY: mergedHidden ? "hidden" : void 0,
+			order: responsive ? order : void 0,
+			pointerEvents: mergedHidden ? "none" : void 0,
+			position: mergedHidden ? "absolute" : void 0
+		};
+	}
+	const overflowProps = {};
+	if (mergedHidden) {
+		overflowProps["aria-hidden"] = true;
+	}
+	let itemNode = reactExports.createElement(Component, _extends$p({
+		className: clsx(!invalidate && prefixCls, className),
+		style: {
+			...overflowStyle,
+			...style
+		}
+	}, overflowProps, restProps, { ref }), childNode);
+	if (responsive) {
+		itemNode = reactExports.createElement(RefResizeObserver, {
+			onResize: ({ offsetWidth }) => {
+				internalRegisterSize(offsetWidth);
+			},
+			disabled: responsiveDisabled
+		}, itemNode);
+	}
+	return itemNode;
+}
+const Item = reactExports.forwardRef(InternalItem);
+function channelUpdate(callback) {
+	if (typeof MessageChannel === "undefined") {
+		wrapperRaf(callback);
+	} else {
+		const channel = new MessageChannel();
+		channel.port1.onmessage = () => (callback(), void 0);
+		channel.port2.postMessage(void 0);
+	}
+}
+/**
+* Batcher for record any `useEffectState` need update.
+*/
+function useBatcher() {
+	// Updater Trigger
+	const updateFuncRef = reactExports.useRef(null);
+	// Notify update
+	const notifyEffectUpdate = (callback) => {
+		if (!updateFuncRef.current) {
+			updateFuncRef.current = [];
+			channelUpdate(() => {
+				reactDomExports.k(() => {
+					updateFuncRef.current.forEach((fn) => {
+						fn();
+					});
+					updateFuncRef.current = null;
+				});
+			});
+		}
+		updateFuncRef.current.push(callback);
+	};
+	return notifyEffectUpdate;
+}
+/**
+* Trigger state update by `useLayoutEffect` to save perf.
+*/
+function useEffectState(notifyEffectUpdate, defaultValue) {
+	// Value
+	const [stateValue, setStateValue] = reactExports.useState(defaultValue);
+	// Set State
+	const setEffectVal = useEvent((nextValue) => {
+		notifyEffectUpdate(() => {
+			setStateValue(nextValue);
+		});
+	});
+	return [stateValue, setEffectVal];
+}
+const OverflowContext = React.createContext(null);
+const InternalRawItem = (props, ref) => {
+	const context = reactExports.useContext(OverflowContext);
+	// Render directly when context not provided
+	if (!context) {
+		const { component: Component = "div", ...restProps } = props;
+		return reactExports.createElement(Component, _extends$p({}, restProps, { ref }));
+	}
+	const { className: contextClassName, ...restContext } = context;
+	const { className, ...restProps } = props;
+	// Do not pass context to sub item to avoid multiple measure
+	return reactExports.createElement(OverflowContext.Provider, { value: null }, reactExports.createElement(Item, _extends$p({
+		ref,
+		className: clsx(contextClassName, className)
+	}, restContext, restProps)));
+};
+const RawItem = reactExports.forwardRef(InternalRawItem);
+function defaultRenderRest(omittedItems) {
+	return `+ ${omittedItems.length} ...`;
+}
+function Overflow(props, ref) {
+	const { prefixCls = "rc-overflow", data = [], renderItem, renderRawItem, itemKey, itemWidth = 10, ssr, style, className, maxCount, renderRest, renderRawRest, prefix, suffix, component: Component = "div", itemComponent, onVisibleChange, ...restProps } = props;
+	const fullySSR = ssr === "full";
+	const notifyEffectUpdate = useBatcher();
+	const [containerWidth, setContainerWidth] = useEffectState(notifyEffectUpdate, null);
+	const mergedContainerWidth = containerWidth || 0;
+	const [itemWidths, setItemWidths] = useEffectState(notifyEffectUpdate, new Map());
+	const [prevRestWidth, setPrevRestWidth] = useEffectState(notifyEffectUpdate, 0);
+	const [restWidth, setRestWidth] = useEffectState(notifyEffectUpdate, 0);
+	const [prefixWidth, setPrefixWidth] = useEffectState(notifyEffectUpdate, 0);
+	const [suffixWidth, setSuffixWidth] = useEffectState(notifyEffectUpdate, 0);
+	const [suffixFixedStart, setSuffixFixedStart] = reactExports.useState(null);
+	const [displayCount, setDisplayCount] = reactExports.useState(null);
+	const mergedDisplayCount = reactExports.useMemo(() => {
+		if (displayCount === null && fullySSR) {
+			return Number.MAX_SAFE_INTEGER;
+		}
+		return displayCount || 0;
+	}, [displayCount, containerWidth]);
+	const [restReady, setRestReady] = reactExports.useState(false);
+	const itemPrefixCls = `${prefixCls}-item`;
+	// Always use the max width to avoid blink
+	const mergedRestWidth = Math.max(prevRestWidth, restWidth);
+	// ================================= Data =================================
+	const isResponsive = maxCount === "responsive";
+	const shouldResponsive = data.length && isResponsive;
+	const invalidate = maxCount === "invalidate";
+	/**
+	* When is `responsive`, we will always render rest node to get the real width of it for calculation
+	*/
+	const showRest = shouldResponsive || typeof maxCount === "number" && data.length > maxCount;
+	const mergedData = reactExports.useMemo(() => {
+		let items = data;
+		if (shouldResponsive) {
+			if (containerWidth === null && fullySSR) {
+				items = data;
+			} else {
+				items = data.slice(0, Math.min(data.length, mergedContainerWidth / itemWidth));
+			}
+		} else if (typeof maxCount === "number") {
+			items = data.slice(0, maxCount);
+		}
+		return items;
+	}, [
+		data,
+		itemWidth,
+		containerWidth,
+		maxCount,
+		shouldResponsive
+	]);
+	const omittedItems = reactExports.useMemo(() => {
+		if (shouldResponsive) {
+			return data.slice(mergedDisplayCount + 1);
+		}
+		return data.slice(mergedData.length);
+	}, [
+		data,
+		mergedData,
+		shouldResponsive,
+		mergedDisplayCount
+	]);
+	// ================================= Item =================================
+	const getKey = reactExports.useCallback((item, index) => {
+		if (typeof itemKey === "function") {
+			return itemKey(item);
+		}
+		return (itemKey && item?.[itemKey]) ?? index;
+	}, [itemKey]);
+	const mergedRenderItem = reactExports.useCallback(renderItem || ((item) => item), [renderItem]);
+	function updateDisplayCount(count, suffixFixedStartVal, notReady) {
+		// React 18 will sync render even when the value is same in some case.
+		// We take `mergedData` as deps which may cause dead loop if it's dynamic generate.
+		// ref: https://github.com/ant-design/ant-design/issues/36559
+		if (displayCount === count && (suffixFixedStartVal === void 0 || suffixFixedStartVal === suffixFixedStart)) {
+			return;
+		}
+		setDisplayCount(count);
+		if (!notReady) {
+			setRestReady(count < data.length - 1);
+			onVisibleChange?.(count);
+		}
+		if (suffixFixedStartVal !== void 0) {
+			setSuffixFixedStart(suffixFixedStartVal);
+		}
+	}
+	// ================================= Size =================================
+	function onOverflowResize(__unused_73F8, element) {
+		setContainerWidth(element.clientWidth);
+	}
+	function registerSize(key, width) {
+		setItemWidths((origin) => {
+			const clone = new Map(origin);
+			if (width === null) {
+				clone.delete(key);
+			} else {
+				clone.set(key, width);
+			}
+			return clone;
+		});
+	}
+	function registerOverflowSize(__unused_FB48, width) {
+		setRestWidth(width);
+		setPrevRestWidth(restWidth);
+	}
+	function registerPrefixSize(__unused_FB48_0, width) {
+		setPrefixWidth(width);
+	}
+	function registerSuffixSize(__unused_FB48_1, width) {
+		setSuffixWidth(width);
+	}
+	// ================================ Effect ================================
+	function getItemWidth(index) {
+		return itemWidths.get(getKey(mergedData[index], index));
+	}
+	useLayoutEffect(() => {
+		if (mergedContainerWidth && true && mergedData) {
+			let totalWidth = prefixWidth + suffixWidth;
+			const len = mergedData.length;
+			const lastIndex = len - 1;
+			// When data count change to 0, reset this since not loop will reach
+			if (!len) {
+				updateDisplayCount(0, null);
+				return;
+			}
+			for (let i = 0; i < len; i += 1) {
+				let currentItemWidth = getItemWidth(i);
+				// Fully will always render
+				if (fullySSR) {
+					currentItemWidth = currentItemWidth || 0;
+				}
+				// Break since data not ready
+				if (currentItemWidth === void 0) {
+					updateDisplayCount(i - 1, void 0, true);
+					break;
+				}
+				// Find best match
+				totalWidth += currentItemWidth;
+				if (lastIndex === 0 && totalWidth <= mergedContainerWidth || i === lastIndex - 1 && totalWidth + getItemWidth(lastIndex) <= mergedContainerWidth) {
+					// Additional check if match the end
+					updateDisplayCount(lastIndex, null);
+					break;
+				} else if (totalWidth + mergedRestWidth > mergedContainerWidth) {
+					// Can not hold all the content to show rest
+					updateDisplayCount(i - 1, totalWidth - currentItemWidth - suffixWidth + restWidth);
+					break;
+				}
+			}
+			if (suffix && getItemWidth(0) + suffixWidth > mergedContainerWidth) {
+				setSuffixFixedStart(null);
+			}
+		}
+	}, [
+		mergedContainerWidth,
+		itemWidths,
+		restWidth,
+		prefixWidth,
+		suffixWidth,
+		getKey,
+		mergedData
+	]);
+	// ================================ Render ================================
+	const displayRest = restReady && !!omittedItems.length;
+	let suffixStyle = {};
+	if (suffixFixedStart !== null && shouldResponsive) {
+		suffixStyle = {
+			position: "absolute",
+			left: suffixFixedStart,
+			top: 0
+		};
+	}
+	const itemSharedProps = {
+		prefixCls: itemPrefixCls,
+		responsive: shouldResponsive,
+		component: itemComponent,
+		invalidate
+	};
+	// >>>>> Choice render fun by `renderRawItem`
+	const internalRenderItemNode = renderRawItem ? (item, index) => {
+		const key = getKey(item, index);
+		return reactExports.createElement(OverflowContext.Provider, {
+			key,
+			value: {
+				...itemSharedProps,
+				order: index,
+				item,
+				itemKey: key,
+				registerSize,
+				display: index <= mergedDisplayCount
+			}
+		}, renderRawItem(item, index));
+	} : (item, index) => {
+		const key = getKey(item, index);
+		return reactExports.createElement(Item, _extends$p({}, itemSharedProps, {
+			order: index,
+			key,
+			item,
+			renderItem: mergedRenderItem,
+			itemKey: key,
+			registerSize,
+			display: index <= mergedDisplayCount
+		}));
+	};
+	// >>>>> Rest node
+	const restContextProps = {
+		order: displayRest ? mergedDisplayCount : Number.MAX_SAFE_INTEGER,
+		className: `${itemPrefixCls}-rest`,
+		registerSize: registerOverflowSize,
+		display: displayRest
+	};
+	const mergedRenderRest = renderRest || defaultRenderRest;
+	const restNode = renderRawRest ? reactExports.createElement(OverflowContext.Provider, { value: {
+		...itemSharedProps,
+		...restContextProps
+	} }, renderRawRest(omittedItems)) : reactExports.createElement(Item, _extends$p({}, itemSharedProps, restContextProps), typeof mergedRenderRest === "function" ? mergedRenderRest(omittedItems) : mergedRenderRest);
+	const overflowNode = reactExports.createElement(Component, _extends$p({
+		className: clsx(!invalidate && prefixCls, className),
+		style,
+		ref
+	}, restProps), prefix && reactExports.createElement(Item, _extends$p({}, itemSharedProps, {
+		responsive: isResponsive,
+		responsiveDisabled: !shouldResponsive,
+		order: -1,
+		className: `${itemPrefixCls}-prefix`,
+		registerSize: registerPrefixSize,
+		display: true
+	}), prefix), mergedData.map(internalRenderItemNode), showRest ? restNode : null, suffix && reactExports.createElement(Item, _extends$p({}, itemSharedProps, {
+		responsive: isResponsive,
+		responsiveDisabled: !shouldResponsive,
+		order: mergedDisplayCount,
+		className: `${itemPrefixCls}-suffix`,
+		registerSize: registerSuffixSize,
+		display: true,
+		style: suffixStyle
+	}), suffix));
+	return isResponsive ? reactExports.createElement(RefResizeObserver, {
+		onResize: onOverflowResize,
+		disabled: !shouldResponsive
+	}, overflowNode) : overflowNode;
+}
+const ForwardOverflow = reactExports.forwardRef(Overflow);
+ForwardOverflow.Item = RawItem;
+ForwardOverflow.RESPONSIVE = "responsive";
+ForwardOverflow.INVALIDATE = "invalidate";
+const getStatusClassNames = (prefixCls, status, hasFeedback) => {
+	return clsx({
+		[`${prefixCls}-status-success`]: status === "success",
+		[`${prefixCls}-status-warning`]: status === "warning",
+		[`${prefixCls}-status-error`]: status === "error",
+		[`${prefixCls}-status-validating`]: status === "validating",
+		[`${prefixCls}-has-feedback`]: hasFeedback
+	});
+};
+const getMergedStatus = (contextStatus, customStatus) => customStatus || contextStatus;
+/**
+* Compatible for legacy `bordered` prop.
+*/
+const useVariant = (component, variant, legacyBordered) => {
+	const { variant: configVariant, [component]: componentConfig } = reactExports.useContext(ConfigContext);
+	const ctxVariant = reactExports.useContext(VariantContext);
+	const configComponentVariant = componentConfig?.variant;
+	let mergedVariant;
+	if (typeof variant !== "undefined") {
+		mergedVariant = variant;
+	} else if (legacyBordered === false) {
+		mergedVariant = "borderless";
+	} else {
+		// form variant > component global variant > global variant
+		mergedVariant = ctxVariant ?? configComponentVariant ?? configVariant ?? "outlined";
+	}
+	const enableVariantCls = Variants.includes(mergedVariant);
+	return [mergedVariant, enableVariantCls];
+};
+// This icon file is generated automatically.
+var CheckOutlined$1 = {
+	"icon": {
+		"tag": "svg",
+		"attrs": {
+			"viewBox": "64 64 896 896",
+			"focusable": "false"
+		},
+		"children": [{
+			"tag": "path",
+			"attrs": { "d": "M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z" }
+		}]
+	},
+	"name": "check",
+	"theme": "outlined"
+};
+var CheckOutlinedSvg = CheckOutlined$1;
+function _extends$m() {
+	_extends$m = Object.assign.bind();
+	return _extends$m.apply(this, arguments);
+}
+const CheckOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$m({}, props, {
+	ref,
+	icon: CheckOutlinedSvg
+}));
+/**![check](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTkxMiAxOTBoLTY5LjljLTkuOCAwLTE5LjEgNC41LTI1LjEgMTIuMkw0MDQuNyA3MjQuNSAyMDcgNDc0YTMyIDMyIDAgMDAtMjUuMS0xMi4ySDExMmMtNi43IDAtMTAuNCA3LjctNi4zIDEyLjlsMjczLjkgMzQ3YzEyLjggMTYuMiAzNy40IDE2LjIgNTAuMyAwbDQ4OC40LTYxOC45YzQuMS01LjEuNC0xMi44LTYuMy0xMi44eiIgLz48L3N2Zz4=) */
+const RefIcon$5 = reactExports.forwardRef(CheckOutlined);
+// This icon file is generated automatically.
+var DownOutlined$1 = {
+	"icon": {
+		"tag": "svg",
+		"attrs": {
+			"viewBox": "64 64 896 896",
+			"focusable": "false"
+		},
+		"children": [{
+			"tag": "path",
+			"attrs": { "d": "M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z" }
+		}]
+	},
+	"name": "down",
+	"theme": "outlined"
+};
+var DownOutlinedSvg = DownOutlined$1;
+function _extends$l() {
+	_extends$l = Object.assign.bind();
+	return _extends$l.apply(this, arguments);
+}
+const DownOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$l({}, props, {
+	ref,
+	icon: DownOutlinedSvg
+}));
+/**![down](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTg4NCAyNTZoLTc1Yy01LjEgMC05LjkgMi41LTEyLjkgNi42TDUxMiA2NTQuMiAyMjcuOSAyNjIuNmMtMy00LjEtNy44LTYuNi0xMi45LTYuNmgtNzVjLTYuNSAwLTEwLjMgNy40LTYuNSAxMi43bDM1Mi42IDQ4Ni4xYzEyLjggMTcuNiAzOSAxNy42IDUxLjcgMGwzNTIuNi00ODYuMWMzLjktNS4zLjEtMTIuNy02LjQtMTIuN3oiIC8+PC9zdmc+) */
+const __unused_7EDC = reactExports.forwardRef(DownOutlined);
+// This icon file is generated automatically.
+var SearchOutlined$1 = {
+	"icon": {
+		"tag": "svg",
+		"attrs": {
+			"viewBox": "64 64 896 896",
+			"focusable": "false"
+		},
+		"children": [{
+			"tag": "path",
+			"attrs": { "d": "M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z" }
+		}]
+	},
+	"name": "search",
+	"theme": "outlined"
+};
+var SearchOutlinedSvg = SearchOutlined$1;
+function _extends$k() {
+	_extends$k = Object.assign.bind();
+	return _extends$k.apply(this, arguments);
+}
+const SearchOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$k({}, props, {
+	ref,
+	icon: SearchOutlinedSvg
+}));
+/**![search](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTkwOS42IDg1NC41TDY0OS45IDU5NC44QzY5MC4yIDU0Mi43IDcxMiA0NzkgNzEyIDQxMmMwLTgwLjItMzEuMy0xNTUuNC04Ny45LTIxMi4xLTU2LjYtNTYuNy0xMzItODcuOS0yMTIuMS04Ny45cy0xNTUuNSAzMS4zLTIxMi4xIDg3LjlDMTQzLjIgMjU2LjUgMTEyIDMzMS44IDExMiA0MTJjMCA4MC4xIDMxLjMgMTU1LjUgODcuOSAyMTIuMUMyNTYuNSA2ODAuOCAzMzEuOCA3MTIgNDEyIDcxMmM2NyAwIDEzMC42LTIxLjggMTgyLjctNjJsMjU5LjcgMjU5LjZhOC4yIDguMiAwIDAwMTEuNiAwbDQzLjYtNDMuNWE4LjIgOC4yIDAgMDAwLTExLjZ6TTU3MC40IDU3MC40QzUyOCA2MTIuNyA0NzEuOCA2MzYgNDEyIDYzNnMtMTE2LTIzLjMtMTU4LjQtNjUuNkMyMTEuMyA1MjggMTg4IDQ3MS44IDE4OCA0MTJzMjMuMy0xMTYuMSA2NS42LTE1OC40QzI5NiAyMTEuMyAzNTIuMiAxODggNDEyIDE4OHMxMTYuMSAyMy4yIDE1OC40IDY1LjZTNjM2IDM1Mi4yIDYzNiA0MTJzLTIzLjMgMTE2LjEtNjUuNiAxNTguNHoiIC8+PC9zdmc+) */
+const __unused_E73C = reactExports.forwardRef(SearchOutlined);
+function useIcons$1({ suffixIcon, clearIcon, menuItemSelectedIcon, removeIcon, loading, multiple, hasFeedback, showSuffixIcon, feedbackIcon, showArrow }) {
+	// Clear Icon
+	const mergedClearIcon = clearIcon ?? reactExports.createElement(RefIcon$8, null);
+	// Validation Feedback Icon
+	const getSuffixIconNode = (arrowIcon) => {
+		if (suffixIcon === null && !hasFeedback && !showArrow) {
+			return;
+		}
+		return reactExports.createElement(reactExports.Fragment, null, showSuffixIcon !== false && arrowIcon, hasFeedback && feedbackIcon);
+	};
+	if (suffixIcon !== void 0) {
+		getSuffixIconNode(suffixIcon);
+	} else if (loading) {
+		getSuffixIconNode(reactExports.createElement(RefIcon$6, { spin: true }));
+	}
+	if (!(menuItemSelectedIcon !== void 0)) {
+		if (multiple) {
+			reactExports.createElement(RefIcon$5, null);
+		}
+	}
+	let mergedRemoveIcon = null;
+	if (removeIcon !== void 0) {
+		mergedRemoveIcon = removeIcon;
+	} else {
+		mergedRemoveIcon = reactExports.createElement(RefIcon$7, null);
+	}
+	return {
+		a: mergedClearIcon,
+		b: mergedRemoveIcon
+	};
+}
+function getArrowToken(token) {
+	const { sizePopupArrow, borderRadiusXS, borderRadiusOuter } = token;
+	const unitWidth = sizePopupArrow / 2;
+	const ay = unitWidth;
+	const bx = borderRadiusOuter * 1 / Math.sqrt(2);
+	const by = unitWidth - borderRadiusOuter * (1 - 1 / Math.sqrt(2));
+	const cx = unitWidth - borderRadiusXS * (1 / Math.sqrt(2));
+	const cy = borderRadiusOuter * (Math.sqrt(2) - 1) + borderRadiusXS * (1 / Math.sqrt(2));
+	const dx = 2 * unitWidth - cx;
+	const dy = cy;
+	const ex = 2 * unitWidth - bx;
+	const ey = by;
+	const fx = 2 * unitWidth - 0;
+	const fy = ay;
+	const shadowWidth = unitWidth * Math.sqrt(2) + borderRadiusOuter * (Math.sqrt(2) - 2);
+	const polygonOffset = borderRadiusOuter * (Math.sqrt(2) - 1);
+	const arrowPolygon = `polygon(${polygonOffset}px 100%, 50% ${polygonOffset}px, ${2 * unitWidth - polygonOffset}px 100%, ${polygonOffset}px 100%)`;
+	const arrowPath = `path('M ${0} ${ay} A ${borderRadiusOuter} ${borderRadiusOuter} 0 0 0 ${bx} ${by} L ${cx} ${cy} A ${borderRadiusXS} ${borderRadiusXS} 0 0 1 ${dx} ${dy} L ${ex} ${ey} A ${borderRadiusOuter} ${borderRadiusOuter} 0 0 0 ${fx} ${fy} Z')`;
+	return {
+		arrowShadowWidth: shadowWidth,
+		arrowPath,
+		arrowPolygon
+	};
+}
+const genRoundedArrow = (token, bgColor, boxShadow) => {
+	const { sizePopupArrow, arrowPolygon, arrowPath, arrowShadowWidth, borderRadiusXS, calc } = token;
+	return {
+		pointerEvents: "none",
+		width: sizePopupArrow,
+		height: sizePopupArrow,
+		overflow: "hidden",
+		"&::before": {
+			position: "absolute",
+			bottom: 0,
+			insetInlineStart: 0,
+			width: sizePopupArrow,
+			height: calc(sizePopupArrow).div(2).equal(),
+			background: bgColor,
+			clipPath: {
+				_multi_value_: true,
+				value: [arrowPolygon, arrowPath]
+			},
+			content: "\"\""
+		},
+		"&::after": {
+			content: "\"\"",
+			position: "absolute",
+			width: arrowShadowWidth,
+			height: arrowShadowWidth,
+			bottom: 0,
+			insetInline: 0,
+			margin: "auto",
+			borderRadius: {
+				_skip_check_: true,
+				value: `0 0 ${unit$1(borderRadiusXS)} 0`
+			},
+			transform: "translateY(50%) rotate(-135deg)",
+			boxShadow,
+			zIndex: 0,
+			background: "transparent"
+		}
+	};
+};
+var dayjs_min$1 = {};
+function requireDayjs_min() {
+	(function(module) {
+		(function(__unused_F8B0, e) {
+			module.a = e();
+		})(0, function() {
+			var n = 36e5, $ = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/, y = /\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g, M = {
+				name: "en",
+				weekdays: "Sunday_Monday_Tuesday_Wednesday_Thursday_Friday_Saturday".split("_"),
+				months: "January_February_March_April_May_June_July_August_September_October_November_December".split("_"),
+				ordinal: function(t) {
+					var e = [
+						"th",
+						"st",
+						"nd",
+						"rd"
+					], n = t % 100;
+					return "[" + t + (e[(n - 20) % 10] || e[n] || "th") + "]";
+				}
+			}, m = function(t, e, n) {
+				var r = String(t);
+				return !r || r.length >= e ? t : "" + Array(e + 1 - r.length).join(n) + t;
+			}, v = {
+				s: m,
+				z: function(t) {
+					var e = -t.utcOffset(), n = Math.abs(e), r = Math.floor(n / 60), i = n % 60;
+					return (e <= 0 ? "+" : "-") + m(r, 2, "0") + ":" + m(i, 2, "0");
+				},
+				m: function t(e, n) {
+					if (e.date() < n.date()) return -t(n, e);
+					var r = 12 * (n.year() - e.year()) + (n.month() - e.month()), i = e.clone().add(r, "month"), s = n - i < 0, u = e.clone().add(r + (s ? -1 : 1), "month");
+					return +(-(r + (n - i) / (s ? i - u : u - i)) || 0);
+				},
+				a: function(t) {
+					return t < 0 ? Math.ceil(t) || 0 : Math.floor(t);
+				},
+				p: function(t) {
+					return {
+						M: "month",
+						y: "year",
+						w: "week",
+						d: "day",
+						D: "date",
+						h: "hour",
+						m: "minute",
+						s: "second",
+						ms: "millisecond",
+						Q: "quarter"
+					}[t] || String(t || "").toLowerCase().replace(/s$/, "");
+				},
+				u: function(t) {
+					return void 0 === t;
+				}
+			}, g = "en", D = {};
+			D["en"] = M;
+			var p = "$isDayjsObject", S = function(t) {
+				return t instanceof _ || !(!t || !t[p]);
+			}, w = function t(e, n, r) {
+				var i;
+				if (!e) return g;
+				if ("string" == typeof e) {
+					var s = e.toLowerCase();
+					D[s] && (i = s), n && (D[s] = n, i = s);
+					var u = e.split("-");
+					if (!i && u.length > 1) return t(u[0]);
+				} else {
+					var a = e.name;
+					D[a] = e, i = a;
+				}
+				return !r && i && (g = i), i || !r && g;
+			}, O = function(t, e) {
+				if (S(t)) return t.clone();
+				var n = "object" == typeof e ? e : {};
+				return n.date = t, n.args = arguments, new _(n);
+			}, b = v;
+			b.l = w, b.i = S, b.w = function(t, e) {
+				return O(t, {
+					locale: e.$L,
+					utc: e.$u,
+					x: e.$x,
+					$offset: e.$offset
+				});
+			};
+			var _ = function() {
+				function M(t) {
+					this.$L = w(t.locale, null, true), this.parse(t), this.$x = this.$x || t.x || {}, this[p] = true;
+				}
+				var m = M.prototype;
+				return m.parse = function(t) {
+					this.$d = function(t) {
+						var e = t.date, n = t.utc;
+						if (null === e) return new Date(NaN);
+						if (b.u(e)) return new Date();
+						if (e instanceof Date) return new Date(e);
+						if ("string" == typeof e && !/Z$/i.test(e)) {
+							var r = e.match($);
+							if (r) {
+								var i = r[2] - 1 || 0, s = (r[7] || "0").substring(0, 3);
+								return n ? new Date(Date.UTC(r[1], i, r[3] || 1, r[4] || 0, r[5] || 0, r[6] || 0, s)) : new Date(r[1], i, r[3] || 1, r[4] || 0, r[5] || 0, r[6] || 0, s);
+							}
+						}
+						return new Date(e);
+					}(t), this.init();
+				}, m.init = function() {
+					var t = this.$d;
+					this.$y = t.getFullYear(), this.$M = t.getMonth(), this.$D = t.getDate(), this.$W = t.getDay(), this.$H = t.getHours(), this.$m = t.getMinutes(), this.$s = t.getSeconds(), this.$ms = t.getMilliseconds();
+				}, m.$utils = function() {
+					return b;
+				}, m.isValid = function() {
+					return !(this.$d.toString() === "Invalid Date");
+				}, m.isSame = function(t, e) {
+					var n = O(t);
+					return this.startOf(e) <= n && n <= this.endOf(e);
+				}, m.isAfter = function(t, e) {
+					return O(t) < this.startOf(e);
+				}, m.isBefore = function(t, e) {
+					return this.endOf(e) < O(t);
+				}, m.$g = function(t, e, n) {
+					return b.u(t) ? this[e] : this.set(n, t);
+				}, m.unix = function() {
+					return Math.floor(this.valueOf() / 1e3);
+				}, m.valueOf = function() {
+					return this.$d.getTime();
+				}, m.startOf = function(t, e) {
+					var n = this, r = !!b.u(e) || e, f = b.p(t), l = function(t, e) {
+						var i = b.w(n.$u ? Date.UTC(n.$y, e, t) : new Date(n.$y, e, t), n);
+						return r ? i : i.endOf("day");
+					}, $ = function(t, e) {
+						return b.w(n.toDate()[t].apply(n.toDate("s"), (r ? [
+							0,
+							0,
+							0,
+							0
+						] : [
+							23,
+							59,
+							59,
+							999
+						]).slice(e)), n);
+					}, y = this.$W, M = this.$M, m = this.$D, v = "set" + (this.$u ? "UTC" : "");
+					switch (f) {
+						case "year": return r ? l(1, 0) : l(31, 11);
+						case "month": return r ? l(1, M) : l(0, M + 1);
+						case "week":
+							var g = this.$locale().weekStart || 0, D = (y < g ? y + 7 : y) - g;
+							return l(r ? m - D : m + (6 - D), M);
+						case "day":
+						case "date": return $(v + "Hours", 0);
+						case "hour": return $(v + "Minutes", 1);
+						case "minute": return $(v + "Seconds", 2);
+						case "second": return $(v + "Milliseconds", 3);
+						default: return this.clone();
+					}
+				}, m.endOf = function(t) {
+					return this.startOf(t, false);
+				}, m.$set = function(t, e) {
+					var n, o = b.p(t), f = "set" + (this.$u ? "UTC" : ""), l = (n = {}, n["day"] = f + "Date", n["date"] = f + "Date", n["month"] = f + "Month", n["year"] = f + "FullYear", n["hour"] = f + "Hours", n["minute"] = f + "Minutes", n["second"] = f + "Seconds", n["millisecond"] = f + "Milliseconds", n)[o], $ = o === "day" ? this.$D + (e - this.$W) : e;
+					if (o === "month" || o === "year") {
+						var y = this.clone().set("date", 1);
+						y.$d[l]($), y.init(), this.$d = y.set("date", Math.min(this.$D, y.daysInMonth())).$d;
+					} else l && this.$d[l]($);
+					return this.init(), this;
+				}, m.set = function(t, e) {
+					return this.clone().$set(t, e);
+				}, m.get = function(t) {
+					return this[b.p(t)]();
+				}, m.add = function(r, f) {
+					var d, l = this;
+					r = Number(r);
+					var $ = b.p(f), y = function(t) {
+						var e = O(l);
+						return b.w(e.date(e.date() + Math.round(t * r)), l);
+					};
+					if ($ === "month") return this.set("month", this.$M + r);
+					if ($ === "year") return this.set("year", this.$y + r);
+					if ($ === "day") return y(1);
+					if ($ === "week") return y(7);
+					var M = (d = {}, d["minute"] = 6e4, d["hour"] = n, d["second"] = 1e3, d)[$] || 1, m = this.$d.getTime() + r * M;
+					return b.w(m, this);
+				}, m.subtract = function(t, e) {
+					return this.add(-1 * t, e);
+				}, m.format = function(t) {
+					var e = this, n = this.$locale();
+					if (!this.isValid()) return n.invalidDate || "Invalid Date";
+					var r = t || "YYYY-MM-DDTHH:mm:ssZ", i = b.z(this), s = this.$H, u = this.$m, a = this.$M, o = n.weekdays, c = n.months, f = n.meridiem, h = function(t, n, i, s) {
+						return t && (t[n] || t(e, r)) || i[n].slice(0, s);
+					}, d = function(t) {
+						return b.s(s % 12 || 12, t, "0");
+					}, $ = f || function(t, __unused_9722, n) {
+						var r = t < 12 ? "AM" : "PM";
+						return n ? r.toLowerCase() : r;
+					};
+					return r.replace(y, function(t, r) {
+						return r || function(t) {
+							switch (t) {
+								case "YY": return String(e.$y).slice(-2);
+								case "YYYY": return b.s(e.$y, 4, "0");
+								case "M": return a + 1;
+								case "MM": return b.s(a + 1, 2, "0");
+								case "MMM": return h(n.monthsShort, a, c, 3);
+								case "MMMM": return h(c, a);
+								case "D": return e.$D;
+								case "DD": return b.s(e.$D, 2, "0");
+								case "d": return String(e.$W);
+								case "dd": return h(n.weekdaysMin, e.$W, o, 2);
+								case "ddd": return h(n.weekdaysShort, e.$W, o, 3);
+								case "dddd": return o[e.$W];
+								case "H": return String(s);
+								case "HH": return b.s(s, 2, "0");
+								case "h": return d(1);
+								case "hh": return d(2);
+								case "a": return $(s, u, true);
+								case "A": return $(s, u, false);
+								case "m": return String(u);
+								case "mm": return b.s(u, 2, "0");
+								case "s": return String(e.$s);
+								case "ss": return b.s(e.$s, 2, "0");
+								case "SSS": return b.s(e.$ms, 3, "0");
+								case "Z": return i;
+							}
+							return null;
+						}(t) || i.replace(":", "");
+					});
+				}, m.utcOffset = function() {
+					return 15 * -Math.round(this.$d.getTimezoneOffset() / 15);
+				}, m.diff = function(r, d, l) {
+					var $, y = this, M = b.p(d), m = O(r), v = (m.utcOffset() - this.utcOffset()) * 6e4, g = this - m, D = function() {
+						return b.m(y, m);
+					};
+					switch (M) {
+						case "year":
+							$ = D() / 12;
+							break;
+						case "month":
+							$ = D();
+							break;
+						case "quarter":
+							$ = D() / 3;
+							break;
+						case "week":
+							$ = (g - v) / 6048e5;
+							break;
+						case "day":
+							$ = (g - v) / 864e5;
+							break;
+						case "hour":
+							$ = g / n;
+							break;
+						case "minute":
+							$ = g / 6e4;
+							break;
+						case "second":
+							$ = g / 1e3;
+							break;
+						default: $ = g;
+					}
+					return l ? $ : b.a($);
+				}, m.daysInMonth = function() {
+					return this.endOf("month").$D;
+				}, m.$locale = function() {
+					return D[this.$L];
+				}, m.locale = function(t, e) {
+					if (!t) return this.$L;
+					var n = this.clone(), r = w(t, e, true);
+					return r && (n.$L = r), n;
+				}, m.clone = function() {
+					return b.w(this.$d, this);
+				}, m.toDate = function() {
+					return new Date(this.valueOf());
+				}, m.toJSON = function() {
+					return this.isValid() ? this.toISOString() : null;
+				}, m.toISOString = function() {
+					return this.$d.toISOString();
+				}, m.toString = function() {
+					return this.$d.toUTCString();
+				}, M;
+			}(), k = _.prototype;
+			return [
+				["$ms", "millisecond"],
+				["$s", "second"],
+				["$m", "minute"],
+				["$H", "hour"],
+				["$W", "day"],
+				["$M", "month"],
+				["$y", "year"],
+				["$D", "date"]
+			].forEach(function(t) {
+				k[t[1]] = function(e) {
+					return this.$g(e, t[0], t[1]);
+				};
+			}), O.extend = function(t) {
+				return t(0, _, O);
+			}, O.Ls = D, O;
+		});
+	})(dayjs_min$1);
+	return dayjs_min$1.a;
+}
+var dayjs_minExports = requireDayjs_min();
+var dayjs = getDefaultExportFromCjs(dayjs_minExports);
+var weekday$2 = {};
+function requireWeekday() {
+	(function(module) {
+		(function(__unused_1D3C, t) {
+			module.a = t();
+		})(0, function() {
+			return function(__unused_B5F1, t) {
+				t.prototype.weekday = function(e) {
+					var t = this.$locale().weekStart || 0, i = this.$W, n = (i < t ? i + 7 : i) - t;
+					return this.$utils().u(e) ? n : this.subtract(n, "day").add(e, "day");
+				};
+			};
+		});
+	})(weekday$2);
+	return weekday$2.a;
+}
+var weekdayExports = requireWeekday();
+var weekday = getDefaultExportFromCjs(weekdayExports);
+var localeData$2 = {};
+function requireLocaleData() {
+	(function(module) {
+		(function(__unused_DF76, e) {
+			module.a = e();
+		})(0, function() {
+			return function(__unused_C219, e) {
+				var r = e.prototype, o = function(n) {
+					return n && (n.indexOf ? n : n.s);
+				}, u = function(n, e, t, r) {
+					var i = n.name ? n : n.$locale(), a = o(i[e]), s = o(i[t]), f = a || s.map(function(n) {
+						return n.slice(0, r);
+					});
+					{
+						return f;
+					}
+				}, a = function(n, e) {
+					return n.formats[e] || function(n) {
+						return n.replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g, function(__unused_C219_0, e, t) {
+							return e || t.slice(1);
+						});
+					}(n.formats[e.toUpperCase()]);
+				}, s = function() {
+					var n = this;
+					return {
+						months: function(e) {
+							return e ? e.format("MMMM") : u(n, "months");
+						},
+						monthsShort: function(e) {
+							return e ? e.format("MMM") : u(n, "monthsShort", "months", 3);
+						},
+						firstDayOfWeek: function() {
+							return n.$locale().weekStart || 0;
+						},
+						weekdays: function(e) {
+							return e ? e.format("dddd") : u(n, "weekdays");
+						},
+						weekdaysMin: function(e) {
+							return e ? e.format("dd") : u(n, "weekdaysMin", "weekdays", 2);
+						},
+						weekdaysShort: function(e) {
+							return e ? e.format("ddd") : u(n, "weekdaysShort", "weekdays", 3);
+						},
+						longDateFormat: function(e) {
+							return a(n.$locale(), e);
+						},
+						meridiem: this.$locale().meridiem,
+						ordinal: this.$locale().ordinal
+					};
+				};
+				r.localeData = function() {
+					return s.bind(this)();
+				};
+			};
+		});
+	})(localeData$2);
+	return localeData$2.a;
+}
+var localeDataExports = requireLocaleData();
+var localeData = getDefaultExportFromCjs(localeDataExports);
+var weekOfYear$2 = {};
+function requireWeekOfYear() {
+	(function(module) {
+		(function(__unused_1D3C_0, t) {
+			module.a = t();
+		})(0, function() {
+			return function(__unused_CC67, n, r) {
+				var f = n.prototype;
+				f.week = function(i) {
+					if (void 0 === i && (i = null), null !== i) return this.add(7 * (i - this.week()), "day");
+					var n = this.$locale().yearStart || 1;
+					if (11 === this.month() && this.date() > 25) {
+						var f = r(this).startOf("year").add(1, "year").date(n), s = r(this).endOf("week");
+						if (f.isBefore(s)) return 1;
+					}
+					var a = r(this).startOf("year").date(n).startOf("week").subtract(1, "millisecond"), o = this.diff(a, "week", true);
+					return o < 0 ? r(this).startOf("week").week() : Math.ceil(o);
+				}, f.weeks = function(e) {
+					return void 0 === e && (e = null), this.week(e);
+				};
+			};
+		});
+	})(weekOfYear$2);
+	return weekOfYear$2.a;
+}
+var weekOfYearExports = requireWeekOfYear();
+var weekOfYear = getDefaultExportFromCjs(weekOfYearExports);
+var weekYear$2 = {};
+function requireWeekYear() {
+	(function(module) {
+		(function(__unused_1D3C_1, t) {
+			module.a = t();
+		})(0, function() {
+			return function(__unused_B5F1_0, t) {
+				t.prototype.weekYear = function() {
+					var e = this.month(), t = this.week(), n = this.year();
+					return 1 === t && 11 === e ? n + 1 : 0 === e && t >= 52 ? n - 1 : n;
+				};
+			};
+		});
+	})(weekYear$2);
+	return weekYear$2.a;
+}
+var weekYearExports = requireWeekYear();
+var weekYear = getDefaultExportFromCjs(weekYearExports);
+var advancedFormat$2 = {};
+function requireAdvancedFormat() {
+	(function(module) {
+		(function(__unused_1D3C_2, t) {
+			module.a = t();
+		})(0, function() {
+			return function(__unused_03F7, t) {
+				var r = t.prototype, n = r.format;
+				r.format = function(e) {
+					var t = this, r = this.$locale();
+					if (!this.isValid()) return n.bind(this)(e);
+					var s = this.$utils(), a = (e || "YYYY-MM-DDTHH:mm:ssZ").replace(/\[([^\]]+)]|Q|wo|ww|w|WW|W|zzz|z|gggg|GGGG|Do|X|x|k{1,2}|S/g, function(e) {
+						switch (e) {
+							case "Q": return Math.ceil((t.$M + 1) / 3);
+							case "Do": return r.ordinal(t.$D);
+							case "gggg": return t.weekYear();
+							case "GGGG": return t.isoWeekYear();
+							case "wo": return r.ordinal(t.week(), "W");
+							case "w":
+							case "ww": return s.s(t.week(), "w" === e ? 1 : 2, "0");
+							case "W":
+							case "WW": return s.s(t.isoWeek(), "W" === e ? 1 : 2, "0");
+							case "k":
+							case "kk": return s.s(String(0 === t.$H ? 24 : t.$H), "k" === e ? 1 : 2, "0");
+							case "X": return Math.floor(t.$d.getTime() / 1e3);
+							case "x": return t.$d.getTime();
+							case "z": return "[" + t.offsetName() + "]";
+							case "zzz": return "[" + t.offsetName("long") + "]";
+							default: return e;
+						}
+					});
+					return n.bind(this)(a);
+				};
+			};
+		});
+	})(advancedFormat$2);
+	return advancedFormat$2.a;
+}
+var advancedFormatExports = requireAdvancedFormat();
+var advancedFormat = getDefaultExportFromCjs(advancedFormatExports);
+var customParseFormat$2 = {};
+function requireCustomParseFormat() {
+	(function(module) {
+		(function(__unused_1D3C_3, t) {
+			module.a = t();
+		})(0, function() {
+			var e = {
+				LTS: "h:mm:ss A",
+				LT: "h:mm A",
+				L: "MM/DD/YYYY",
+				LL: "MMMM D, YYYY",
+				LLL: "MMMM D, YYYY h:mm A",
+				LLLL: "dddd, MMMM D, YYYY h:mm A"
+			}, t = /(\[[^[]*\])|([-_:/.,()\s]+)|(A|a|Q|YYYY|YY?|ww?|MM?M?M?|Do|DD?|hh?|HH?|mm?|ss?|S{1,3}|z|ZZ?)/g, n = /\d/, r = /\d\d/, i = /\d\d?/, o = /\d*[^-_:/,()\s\d]+/, s = {}, a = function(e) {
+				return (e = +e) + (e > 68 ? 1900 : 2e3);
+			};
+			var f = function(e) {
+				return function(t) {
+					this[e] = +t;
+				};
+			}, h = [/[+-]\d\d:?(\d\d)?|Z/, function(e) {
+				(this.zone || (this.zone = {})).offset = function(e) {
+					if (!e) return 0;
+					if ("Z" === e) return 0;
+					var t = e.match(/([+-]|\d\d)/g), n = 60 * t[1] + (+t[2] || 0);
+					return 0 === n ? 0 : "+" === t[0] ? -n : n;
+				}(e);
+			}], u = function(e) {
+				var t = s[e];
+				return t && (t.indexOf ? t : t.s.concat(t.f));
+			}, d = function(e, t) {
+				var n, r = s.meridiem;
+				if (r) {
+					for (var i = 1; i <= 24; i += 1) if (e.indexOf(r(i, 0, t)) > -1) {
+						n = i > 12;
+						break;
+					}
+				} else n = e === (t ? "pm" : "PM");
+				return n;
+			}, c = {
+				A: [o, function(e) {
+					this.afternoon = d(e, false);
+				}],
+				a: [o, function(e) {
+					this.afternoon = d(e, true);
+				}],
+				Q: [n, function(e) {
+					this.month = 3 * (e - 1) + 1;
+				}],
+				S: [n, function(e) {
+					this.milliseconds = 100 * +e;
+				}],
+				SS: [r, function(e) {
+					this.milliseconds = 10 * +e;
+				}],
+				SSS: [/\d{3}/, function(e) {
+					this.milliseconds = +e;
+				}],
+				s: [i, f("seconds")],
+				ss: [i, f("seconds")],
+				m: [i, f("minutes")],
+				mm: [i, f("minutes")],
+				H: [i, f("hours")],
+				h: [i, f("hours")],
+				HH: [i, f("hours")],
+				hh: [i, f("hours")],
+				D: [i, f("day")],
+				DD: [r, f("day")],
+				Do: [o, function(e) {
+					var t = s.ordinal, n = e.match(/\d+/);
+					if (this.day = n[0], t) for (var r = 1; r <= 31; r += 1) t(r).replace(/\[|\]/g, "") === e && (this.day = r);
+				}],
+				w: [i, f("week")],
+				ww: [r, f("week")],
+				M: [i, f("month")],
+				MM: [r, f("month")],
+				MMM: [o, function(e) {
+					var t = u("months"), n = (u("monthsShort") || t.map(function(e) {
+						return e.slice(0, 3);
+					})).indexOf(e) + 1;
+					if (n < 1) throw new Error();
+					this.month = n % 12 || n;
+				}],
+				MMMM: [o, function(e) {
+					var t = u("months").indexOf(e) + 1;
+					if (t < 1) throw new Error();
+					this.month = t % 12 || t;
+				}],
+				Y: [/[+-]?\d+/, f("year")],
+				YY: [r, function(e) {
+					this.year = a(e);
+				}],
+				YYYY: [/\d{4}/, f("year")],
+				Z: h,
+				ZZ: h
+			};
+			function l(n) {
+				var r, i;
+				r = n, i = s && s.formats;
+				for (var o = r.replace(/(\[[^\]]+])|(LTS?|l{1,4}|L{1,4})/g, function(__unused_4BE4, n, r) {
+					var o = r && r.toUpperCase();
+					return n || i[r] || e[r] || i[o].replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g, function(__unused_17A1, t, n) {
+						return t || n.slice(1);
+					});
+				}).match(t), a = o.length, f = 0; f < a; f += 1) {
+					var h = o[f], u = c[h], d = u && u[0], l = u && u[1];
+					o[f] = l ? {
+						regex: d,
+						parser: l
+					} : h.replace(/^\[|\]$/g, "");
+				}
+				return function(e) {
+					for (var t = {}, n = 0, r = 0; n < a; n += 1) {
+						var i = o[n];
+						if ("string" == typeof i) r += i.length;
+						else {
+							var s = i.regex, f = i.parser, h = e.slice(r), u = s.exec(h)[0];
+							f.call(t, u), e = e.replace(u, "");
+						}
+					}
+					return function(e) {
+						var t = e.afternoon;
+						if (void 0 !== t) {
+							var n = e.hours;
+							t ? n < 12 && (e.hours += 12) : 12 === n && (e.hours = 0), delete e.afternoon;
+						}
+					}(t), t;
+				};
+			}
+			return function(__unused_17A1_0, t, n) {
+				var r = t.prototype, i = r.parse;
+				r.parse = function(e) {
+					var t = e.date, r = e.utc, o = e.args;
+					this.$u = r;
+					var a = o[1];
+					if ("string" == typeof a) {
+						var f = true === o[2], h = true === o[3], u = f || h, d = o[2];
+						h && (d = o[2]), s = this.$locale(), !f && d && (s = n.Ls[d]), this.$d = function(e, t, n, r) {
+							try {
+								if (["x", "X"].indexOf(t) > -1) return new Date(("X" === t ? 1e3 : 1) * e);
+								var i = l(t)(e), o = i.year, s = i.month, a = i.day, f = i.hours, h = i.minutes, u = i.seconds, d = i.milliseconds, c = i.zone, m = i.week, M = new Date(), Y = a || (o || s ? 1 : M.getDate()), p = o || M.getFullYear(), v = 0;
+								o && !s || (v = s > 0 ? s - 1 : M.getMonth());
+								var D, w = f || 0, g = h || 0, y = u || 0, L = d || 0;
+								return c ? new Date(Date.UTC(p, v, Y, w, g, y, L + 60 * c.offset * 1e3)) : n ? new Date(Date.UTC(p, v, Y, w, g, y, L)) : (D = new Date(p, v, Y, w, g, y, L), m && (D = r(D).week(m).toDate()), D);
+							} catch {
+								return new Date("");
+							}
+						}(t, a, r, n), this.init(), d && true !== d && (this.$L = this.locale(d).$L), u && t != this.format(a) && (this.$d = new Date("")), s = {};
+					} else if (a instanceof Array) for (var c = a.length, m = 1; m <= c; m += 1) {
+						o[1] = a[m - 1];
+						var M = n.apply(0, o);
+						if (M.isValid()) {
+							this.$d = M.$d, this.$L = M.$L, this.init();
+							break;
+						}
+						m === c && (this.$d = new Date(""));
+					}
+					else i.call(this, e);
+				};
+			};
+		});
+	})(customParseFormat$2);
+	return customParseFormat$2.a;
+}
+var customParseFormatExports = requireCustomParseFormat();
+var customParseFormat = getDefaultExportFromCjs(customParseFormatExports);
+dayjs.extend(customParseFormat);
+dayjs.extend(advancedFormat);
+dayjs.extend(weekday);
+dayjs.extend(localeData);
+dayjs.extend(weekOfYear);
+dayjs.extend(weekYear);
+dayjs.extend(function(__unused_325D, c) {
+	// todo support Wo (ISO week)
+	var proto = c.prototype;
+	var oldFormat = proto.format;
+	proto.format = function(formatStr) {
+		var str = (formatStr || "").replace("Wo", "wo");
+		return oldFormat.bind(this)(str);
+	};
+});
+var localeMap = {
+	bn_BD: "bn-bd",
+	by_BY: "be",
+	en_GB: "en-gb",
+	en_US: "en",
+	fr_BE: "fr",
+	fr_CA: "fr-ca",
+	hy_AM: "hy-am",
+	kmr_IQ: "ku",
+	nl_BE: "nl-be",
+	pt_BR: "pt-br",
+	zh_CN: "zh-cn",
+	zh_HK: "zh-hk",
+	zh_TW: "zh-tw"
+};
+var parseLocale = function(locale) {
+	var mapLocale = localeMap[locale];
+	return mapLocale || locale.split("_")[0];
+};
+var generateConfig = {
+	getNow: function() {
+		var now = dayjs();
+		// https://github.com/ant-design/ant-design/discussions/50934
+		if (typeof now.tz === "function") {
+			return now.tz();
+		}
+		return now;
+	},
+	getFixedDate: function(string) {
+		return dayjs(string, ["YYYY-M-DD", "YYYY-MM-DD"]);
+	},
+	getEndDate: function(date) {
+		return date.endOf("month");
+	},
+	getWeekDay: function(date) {
+		var clone = date.locale("en");
+		return clone.weekday() + clone.localeData().firstDayOfWeek();
+	},
+	getYear: function(date) {
+		return date.year();
+	},
+	getMonth: function(date) {
+		return date.month();
+	},
+	getDate: function(date) {
+		return date.date();
+	},
+	getHour: function(date) {
+		return date.hour();
+	},
+	getMinute: function(date) {
+		return date.minute();
+	},
+	getSecond: function(date) {
+		return date.second();
+	},
+	getMillisecond: function(date) {
+		return date.millisecond();
+	},
+	addYear: function(date, diff) {
+		return date.add(diff, "year");
+	},
+	addMonth: function(date, diff) {
+		return date.add(diff, "month");
+	},
+	addDate: function(date, diff) {
+		return date.add(diff, "day");
+	},
+	setYear: function(date, year) {
+		return date.year(year);
+	},
+	setMonth: function(date, month) {
+		return date.month(month);
+	},
+	setDate: function(date, num) {
+		return date.date(num);
+	},
+	setHour: function(date, hour) {
+		return date.hour(hour);
+	},
+	setMinute: function(date, minute) {
+		return date.minute(minute);
+	},
+	setSecond: function(date, second) {
+		return date.second(second);
+	},
+	setMillisecond: function(date, milliseconds) {
+		return date.millisecond(milliseconds);
+	},
+	isAfter: function(date1, date2) {
+		return date1.isAfter(date2);
+	},
+	isValidate: function(date) {
+		return date.isValid();
+	},
+	locale: {
+		getWeekFirstDay: function(locale) {
+			return dayjs().locale(parseLocale(locale)).localeData().firstDayOfWeek();
+		},
+		getWeekFirstDate: function(locale, date) {
+			return date.locale(parseLocale(locale)).weekday(0);
+		},
+		getWeek: function(locale, date) {
+			return date.locale(parseLocale(locale)).week();
+		},
+		getShortWeekDays: function(locale) {
+			return dayjs().locale(parseLocale(locale)).localeData().weekdaysMin();
+		},
+		getShortMonths: function(locale) {
+			return dayjs().locale(parseLocale(locale)).localeData().monthsShort();
+		},
+		format: function(locale, date, _format) {
+			return date.locale(parseLocale(locale)).format(_format);
+		},
+		parse: function(locale, text, formats) {
+			var localeStr = parseLocale(locale);
+			for (var i = 0; i < formats.length; i += 1) {
+				var format = formats[i];
+				var formatText = text;
+				if (format.includes("wo") || format.includes("Wo")) {
+					// parse Wo
+					var year = formatText.split("-")[0];
+					var weekStr = formatText.split("-")[1];
+					var firstWeek = dayjs(year, "YYYY").startOf("year").locale(localeStr);
+					for (var j = 0; j <= 52; j += 1) {
+						var nextWeek = firstWeek.add(j, "week");
+						if (nextWeek.format("Wo") === weekStr) {
+							return nextWeek;
+						}
+					}
+					return null;
+				}
+				var date = dayjs(formatText, format, true).locale(localeStr);
+				if (date.isValid()) {
+					return date;
+				}
+			}
+			return null;
+		}
+	}
+};
+var dayjsGenerateConfig = generateConfig;
+// ====================== Mode ======================
+function getRealPlacement(placement, rtl) {
+	if (placement !== void 0) {
+		return placement;
+	}
+	return rtl ? "bottomRight" : "bottomLeft";
+}
+var PickerContext = reactExports.createContext(null);
+var PickerContext$1 = PickerContext;
+function _typeof$s(o) {
+	"@babel/helpers - typeof";
+	return _typeof$s = function(o) {
+		return typeof o;
+	}, _typeof$s(o);
+}
+function _defineProperty$q(obj, key, value) {
+	key = _toPropertyKey$q(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$q(t) {
+	var i = _toPrimitive$q(t);
+	return "symbol" == _typeof$s(i) ? i : String(i);
+}
+function _toPrimitive$q(t) {
+	if ("object" != _typeof$s(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$s(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+var BUILT_IN_PLACEMENTS = {
+	bottomLeft: {
+		points: ["tl", "bl"],
+		offset: [0, 4],
+		overflow: {
+			adjustX: 1,
+			adjustY: 1
+		}
+	},
+	bottomRight: {
+		points: ["tr", "br"],
+		offset: [0, 4],
+		overflow: {
+			adjustX: 1,
+			adjustY: 1
+		}
+	},
+	topLeft: {
+		points: ["bl", "tl"],
+		offset: [0, -4],
+		overflow: {
+			adjustX: 0,
+			adjustY: 1
+		}
+	},
+	topRight: {
+		points: ["br", "tr"],
+		offset: [0, -4],
+		overflow: {
+			adjustX: 0,
+			adjustY: 1
+		}
+	}
+};
+function PickerTrigger(_ref) {
+	var popupElement = _ref.popupElement, popupStyle = _ref.popupStyle, popupClassName = _ref.popupClassName, popupAlign = _ref.popupAlign, transitionName = _ref.transitionName, getPopupContainer = _ref.getPopupContainer, children = _ref.children, range = _ref.range, placement = _ref.placement, _ref$builtinPlacement = _ref.builtinPlacements, builtinPlacements = _ref$builtinPlacement === void 0 ? BUILT_IN_PLACEMENTS : _ref$builtinPlacement, direction = _ref.direction, visible = _ref.visible, onClose = _ref.onClose;
+	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls;
+	var dropdownPrefixCls = "".concat(prefixCls, "-dropdown");
+	var realPlacement = getRealPlacement(placement, direction === "rtl");
+	return reactExports.createElement(Trigger, {
+		showAction: [],
+		hideAction: ["click"],
+		popupPlacement: realPlacement,
+		builtinPlacements,
+		prefixCls: dropdownPrefixCls,
+		popupMotion: { motionName: transitionName },
+		popup: popupElement,
+		popupAlign,
+		popupVisible: visible,
+		popupClassName: clsx(popupClassName, _defineProperty$q(_defineProperty$q({}, "".concat(dropdownPrefixCls, "-range"), range), "".concat(dropdownPrefixCls, "-rtl"), direction === "rtl")),
+		popupStyle,
+		stretch: "minWidth",
+		getPopupContainer,
+		onPopupVisibleChange: function(nextVisible) {
+			if (!nextVisible) {
+				onClose();
+			}
+		}
+	}, children);
+}
+function _toConsumableArray$7(arr) {
+	return _arrayWithoutHoles$7(arr) || _iterableToArray$7(arr) || _unsupportedIterableToArray$x(arr) || _nonIterableSpread$7();
+}
+function _nonIterableSpread$7() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$x(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$x(o);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$x(o);
+}
+function _iterableToArray$7(iter) {
+	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+}
+function _arrayWithoutHoles$7(arr) {
+	if (Array.isArray(arr)) return _arrayLikeToArray$x(arr);
+}
+function _arrayLikeToArray$x(arr, len) {
+	{
+		len = arr.length;
+	}
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function leftPad(str, length) {
+	var fill = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : "0";
+	var current = String(str);
+	while (current.length < length) {
+		current = "".concat(fill).concat(current);
+	}
+	return current;
+}
+/**
+* Convert `value` to array. Will provide `[]` if is null or undefined.
+*/
+function toArray(val) {
+	if (val === null || val === void 0) {
+		return [];
+	}
+	return Array.isArray(val) ? val : [val];
+}
+function fillIndex(ori, index, value) {
+	var clone = _toConsumableArray$7(ori);
+	clone[index] = value;
+	return clone;
+}
+/** Pick props from the key list. Will filter empty value */
+function pickProps(props, keys) {
+	var clone = {};
+	var mergedKeys = keys;
+	mergedKeys.forEach(function(key) {
+		if (props[key] !== void 0) {
+			clone[key] = props[key];
+		}
+	});
+	return clone;
+}
+function getRowFormat(picker, locale, format) {
+	if (format) {
+		return format;
+	}
+	switch (picker) {
+		case "time": return locale.fieldTimeFormat;
+		case "datetime": return locale.fieldDateTimeFormat;
+		case "month": return locale.fieldMonthFormat;
+		case "year": return locale.fieldYearFormat;
+		case "quarter": return locale.fieldQuarterFormat;
+		case "week": return locale.fieldWeekFormat;
+		default: return locale.fieldDateFormat;
+	}
+}
+function getFromDate(calendarValues, activeIndexList, activeIndex) {
+	var mergedActiveIndex = activeIndex !== void 0 ? activeIndex : activeIndexList[activeIndexList.length - 1];
+	var firstValuedIndex = activeIndexList.find(function(index) {
+		return calendarValues[index];
+	});
+	return mergedActiveIndex !== firstValuedIndex ? calendarValues[firstValuedIndex] : void 0;
+}
+function pickTriggerProps(props) {
+	return pickProps(props, [
+		"placement",
+		"builtinPlacements",
+		"popupAlign",
+		"getPopupContainer",
+		"transitionName",
+		"direction"
+	]);
+}
+function _typeof$r(o) {
+	"@babel/helpers - typeof";
+	return _typeof$r = function(o) {
+		return typeof o;
+	}, _typeof$r(o);
+}
+function ownKeys$g(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$g(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$g(Object(t), true).forEach(function(r) {
+			_defineProperty$p(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$g(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$p(obj, key, value) {
+	key = _toPropertyKey$p(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$p(t) {
+	var i = _toPrimitive$p(t);
+	return "symbol" == _typeof$r(i) ? i : String(i);
+}
+function _toPrimitive$p(t) {
+	if ("object" != _typeof$r(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$r(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function useCellRender(cellRender, dateRender, monthCellRender, range) {
+	// ======================== Render ========================
+	// Merged render
+	var mergedCellRender = reactExports.useMemo(function() {
+		if (cellRender) {
+			return cellRender;
+		}
+		return function(current, info) {
+			var date = current;
+			if (dateRender && info.type === "date") {
+				return dateRender(date, info.today);
+			}
+			if (monthCellRender && info.type === "month") {
+				return monthCellRender(date, info.locale);
+			}
+			return info.originNode;
+		};
+	}, [
+		cellRender,
+		monthCellRender,
+		dateRender
+	]);
+	// Cell render
+	var onInternalCellRender = reactExports.useCallback(function(date, info) {
+		return mergedCellRender(date, _objectSpread$g(_objectSpread$g({}, info), {}, { range }));
+	}, [mergedCellRender, range]);
+	return onInternalCellRender;
+}
+function _slicedToArray$u(arr) {
+	return _arrayWithHoles$u(arr) || _iterableToArrayLimit$u(arr) || _unsupportedIterableToArray$w(arr) || _nonIterableRest$u();
+}
+function _nonIterableRest$u() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$w(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$w(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$w(o, 2);
+}
+function _arrayLikeToArray$w(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$u(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$u(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+/**
+* Used to control each fields invalidate status
+*/
+function useFieldsInvalidate(calendarValue, isInvalidateDate) {
+	var allowEmpty = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : [];
+	var _React$useState = reactExports.useState([false, false]), _React$useState2 = _slicedToArray$u(_React$useState), fieldsInvalidates = _React$useState2[0], setFieldsInvalidates = _React$useState2[1];
+	var onSelectorInvalid = function(invalid, index) {
+		setFieldsInvalidates(function(ori) {
+			return fillIndex(ori, index, invalid);
+		});
+	};
+	/**
+	* For the Selector Input to mark as `aria-disabled`
+	*/
+	var submitInvalidates = reactExports.useMemo(function() {
+		return fieldsInvalidates.map(function(invalid, index) {
+			// If typing invalidate
+			if (invalid) {
+				return true;
+			}
+			var current = calendarValue[index];
+			// Not check if all empty
+			if (!current) {
+				return false;
+			}
+			// Not allow empty
+			if (!allowEmpty[index] && !current) {
+				return true;
+			}
+			// Invalidate
+			if (current && isInvalidateDate(current, { activeIndex: index })) {
+				return true;
+			}
+			return false;
+		});
+	}, [
+		calendarValue,
+		fieldsInvalidates,
+		isInvalidateDate,
+		allowEmpty
+	]);
+	return [submitInvalidates, onSelectorInvalid];
+}
+function _typeof$q(o) {
+	"@babel/helpers - typeof";
+	return _typeof$q = function(o) {
+		return typeof o;
+	}, _typeof$q(o);
+}
+function ownKeys$f(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$f(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$f(Object(t), true).forEach(function(r) {
+			_defineProperty$o(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$f(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$o(obj, key, value) {
+	key = _toPropertyKey$o(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$o(t) {
+	var i = _toPrimitive$o(t);
+	return "symbol" == _typeof$q(i) ? i : String(i);
+}
+function _toPrimitive$o(t) {
+	if ("object" != _typeof$q(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$q(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function fillTimeFormat(showHour, showMinute, showSecond, showMillisecond, showMeridiem) {
+	var timeFormat;
+	// Base HH:mm:ss
+	var cells = [];
+	if (showHour) {
+		cells.push(showMeridiem ? "hh" : "HH");
+	}
+	if (showMinute) {
+		cells.push("mm");
+	}
+	if (showSecond) {
+		cells.push("ss");
+	}
+	timeFormat = cells.join(":");
+	// Millisecond
+	if (showMillisecond) {
+		timeFormat += ".SSS";
+	}
+	// Meridiem
+	if (showMeridiem) {
+		timeFormat += " A";
+	}
+	return timeFormat;
+}
+/**
+* Used for `useFilledProps` since it already in the React.useMemo
+*/
+function fillLocale(locale, showHour, showMinute, showSecond, showMillisecond, use12Hours) {
+	// Not fill `monthFormat` since `locale.shortMonths` handle this
+	// Not fill `cellMeridiemFormat` since AM & PM by default
+	var fieldDateTimeFormat = locale.fieldDateTimeFormat, fieldDateFormat = locale.fieldDateFormat, fieldTimeFormat = locale.fieldTimeFormat, fieldMonthFormat = locale.fieldMonthFormat, fieldYearFormat = locale.fieldYearFormat, fieldWeekFormat = locale.fieldWeekFormat, fieldQuarterFormat = locale.fieldQuarterFormat, yearFormat = locale.yearFormat, cellYearFormat = locale.cellYearFormat, cellQuarterFormat = locale.cellQuarterFormat, dayFormat = locale.dayFormat, cellDateFormat = locale.cellDateFormat;
+	var timeFormat = fillTimeFormat(showHour, showMinute, showSecond, showMillisecond, use12Hours);
+	return _objectSpread$f(_objectSpread$f({}, locale), {}, {
+		fieldDateTimeFormat: fieldDateTimeFormat || "YYYY-MM-DD ".concat(timeFormat),
+		fieldDateFormat: fieldDateFormat || "YYYY-MM-DD",
+		fieldTimeFormat: fieldTimeFormat || timeFormat,
+		fieldMonthFormat: fieldMonthFormat || "YYYY-MM",
+		fieldYearFormat: fieldYearFormat || "YYYY",
+		fieldWeekFormat: fieldWeekFormat || "gggg-wo",
+		fieldQuarterFormat: fieldQuarterFormat || "YYYY-[Q]Q",
+		yearFormat: yearFormat || "YYYY",
+		cellYearFormat: cellYearFormat || "YYYY",
+		cellQuarterFormat: cellQuarterFormat || "[Q]Q",
+		cellDateFormat: cellDateFormat || dayFormat || "D"
+	});
+}
+/**
+* Fill locale format as start up
+*/
+function useLocale(locale, showProps) {
+	var showHour = showProps.showHour, showMinute = showProps.showMinute, showSecond = showProps.showSecond, showMillisecond = showProps.showMillisecond, use12Hours = showProps.use12Hours;
+	return React.useMemo(function() {
+		return fillLocale(locale, showHour, showMinute, showSecond, showMillisecond, use12Hours);
+	}, [
+		locale,
+		showHour,
+		showMinute,
+		showSecond,
+		showMillisecond,
+		use12Hours
+	]);
+}
+function ownKeys$e(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$e(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$e(Object(t), true).forEach(function(r) {
+			_defineProperty$n(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$e(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$n(obj, key, value) {
+	key = _toPropertyKey$n(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$n(t) {
+	var i = _toPrimitive$n(t);
+	return "symbol" == _typeof$p(i) ? i : String(i);
+}
+function _toPrimitive$n(t) {
+	if ("object" != _typeof$p(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$p(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$t(arr, i) {
+	return _arrayWithHoles$t(arr) || _iterableToArrayLimit$t(arr, i) || _unsupportedIterableToArray$v(arr, i) || _nonIterableRest$t();
+}
+function _nonIterableRest$t() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$v(o, minLen) {
+	if (!o) return;
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$v(o, minLen);
+}
+function _arrayLikeToArray$v(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$t(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$t(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function _typeof$p(o) {
+	"@babel/helpers - typeof";
+	return _typeof$p = function(o) {
+		return typeof o;
+	}, _typeof$p(o);
+}
+function checkShow(format, keywords, show) {
+	return show !== null && show !== void 0 ? show : keywords.some(function(keyword) {
+		return format.includes(keyword);
+	});
+}
+var showTimeKeys = [
+	"showNow",
+	"showHour",
+	"showMinute",
+	"showSecond",
+	"showMillisecond",
+	"use12Hours",
+	"hourStep",
+	"minuteStep",
+	"secondStep",
+	"millisecondStep",
+	"hideDisabledOptions",
+	"defaultValue",
+	"disabledHours",
+	"disabledMinutes",
+	"disabledSeconds",
+	"disabledMilliseconds",
+	"disabledTime",
+	"changeOnScroll",
+	"defaultOpenValue"
+];
+/**
+* Get SharedTimeProps from props.
+*/
+function pickTimeProps(props) {
+	var timeProps = pickProps(props, showTimeKeys);
+	var format = props.format, picker = props.picker;
+	var propFormat = null;
+	if (format) {
+		propFormat = format;
+		if (Array.isArray(propFormat)) {
+			propFormat = propFormat[0];
+		}
+		propFormat = _typeof$p(propFormat) === "object" ? propFormat.format : propFormat;
+	}
+	if (picker === "time") {
+		timeProps.format = propFormat;
+	}
+	return [timeProps, propFormat];
+}
+function isStringFormat(format) {
+	return format && typeof format === "string";
+}
+/** Check if all the showXXX is `undefined` */
+function existShowConfig(showHour, showMinute, showSecond, showMillisecond) {
+	return [
+		showHour,
+		showMinute,
+		showSecond,
+		showMillisecond
+	].some(function(show) {
+		return show !== void 0;
+	});
+}
+/** Fill the showXXX if needed */
+function fillShowConfig(hasShowConfig, showHour, showMinute, showSecond, showMillisecond) {
+	var parsedShowHour = showHour;
+	var parsedShowMinute = showMinute;
+	var parsedShowSecond = showSecond;
+	if (!hasShowConfig && !parsedShowHour && !parsedShowMinute && !parsedShowSecond && !showMillisecond) {
+		parsedShowHour = true;
+		parsedShowMinute = true;
+		parsedShowSecond = true;
+	} else if (hasShowConfig) {
+		var _parsedShowHour, _parsedShowMinute, _parsedShowSecond;
+		var existFalse = [
+			parsedShowHour,
+			parsedShowMinute,
+			parsedShowSecond
+		].some(function(show) {
+			return show === false;
+		});
+		var existTrue = [
+			parsedShowHour,
+			parsedShowMinute,
+			parsedShowSecond
+		].some(function(show) {
+			return show === true;
+		});
+		var defaultShow = existFalse ? true : !existTrue;
+		parsedShowHour = (_parsedShowHour = parsedShowHour) !== null && _parsedShowHour !== void 0 ? _parsedShowHour : defaultShow;
+		parsedShowMinute = (_parsedShowMinute = parsedShowMinute) !== null && _parsedShowMinute !== void 0 ? _parsedShowMinute : defaultShow;
+		parsedShowSecond = (_parsedShowSecond = parsedShowSecond) !== null && _parsedShowSecond !== void 0 ? _parsedShowSecond : defaultShow;
+	}
+	return [
+		parsedShowHour,
+		parsedShowMinute,
+		parsedShowSecond,
+		showMillisecond
+	];
+}
+/**
+* Get `showHour`, `showMinute`, `showSecond` or other from the props.
+* This is pure function, will not get `showXXX` from the `format` prop.
+*/
+function getTimeProps(componentProps) {
+	var showTime = componentProps.showTime;
+	var _pickTimeProps = pickTimeProps(componentProps), _pickTimeProps2 = _slicedToArray$t(_pickTimeProps, 2), pickedProps = _pickTimeProps2[0], propFormat = _pickTimeProps2[1];
+	var showTimeConfig = showTime && _typeof$p(showTime) === "object" ? showTime : {};
+	var timeConfig = _objectSpread$e(_objectSpread$e({ defaultOpenValue: showTimeConfig.defaultOpenValue || showTimeConfig.defaultValue }, pickedProps), showTimeConfig);
+	var showMillisecond = timeConfig.showMillisecond;
+	var showHour = timeConfig.showHour, showMinute = timeConfig.showMinute, showSecond = timeConfig.showSecond;
+	var hasShowConfig = existShowConfig(showHour, showMinute, showSecond, showMillisecond);
+	var _fillShowConfig = fillShowConfig(hasShowConfig, showHour, showMinute, showSecond, showMillisecond);
+	var _fillShowConfig2 = _slicedToArray$t(_fillShowConfig, 3);
+	showHour = _fillShowConfig2[0];
+	showMinute = _fillShowConfig2[1];
+	showSecond = _fillShowConfig2[2];
+	return [
+		timeConfig,
+		_objectSpread$e(_objectSpread$e({}, timeConfig), {}, {
+			showHour,
+			showMinute,
+			showSecond,
+			showMillisecond
+		}),
+		timeConfig.format,
+		propFormat
+	];
+}
+function fillShowTimeConfig(picker, showTimeFormat, propFormat, timeConfig, locale) {
+	var isTimePicker = picker === "time";
+	if (picker === "datetime" || isTimePicker) {
+		var pickedProps = timeConfig;
+		// ====================== BaseFormat ======================
+		var defaultLocaleFormat = getRowFormat(picker, locale, null);
+		var baselineFormat = defaultLocaleFormat;
+		var formatList = [showTimeFormat, propFormat];
+		for (var i = 0; i < 2; i += 1) {
+			var format = toArray(formatList[i])[0];
+			if (isStringFormat(format)) {
+				baselineFormat = format;
+				break;
+			}
+		}
+		// ========================= Show =========================
+		var showHour = pickedProps.showHour, showMinute = pickedProps.showMinute, showSecond = pickedProps.showSecond, showMillisecond = pickedProps.showMillisecond;
+		var use12Hours = pickedProps.use12Hours;
+		var showMeridiem = checkShow(baselineFormat, [
+			"a",
+			"A",
+			"LT",
+			"LLL",
+			"LTS"
+		], use12Hours);
+		var hasShowConfig = existShowConfig(showHour, showMinute, showSecond, showMillisecond);
+		// Fill with format, if needed
+		if (!hasShowConfig) {
+			showHour = checkShow(baselineFormat, [
+				"H",
+				"h",
+				"k",
+				"LT",
+				"LLL"
+			]);
+			showMinute = checkShow(baselineFormat, [
+				"m",
+				"LT",
+				"LLL"
+			]);
+			showSecond = checkShow(baselineFormat, ["s", "LTS"]);
+			showMillisecond = checkShow(baselineFormat, ["SSS"]);
+		}
+		// Fallback if all can not see
+		// ======================== Format ========================
+		var _fillShowConfig3 = fillShowConfig(hasShowConfig, showHour, showMinute, showSecond, showMillisecond);
+		var _fillShowConfig4 = _slicedToArray$t(_fillShowConfig3, 3);
+		showHour = _fillShowConfig4[0];
+		showMinute = _fillShowConfig4[1];
+		showSecond = _fillShowConfig4[2];
+		var timeFormat = showTimeFormat || fillTimeFormat(showHour, showMinute, showSecond, showMillisecond, showMeridiem);
+		// ======================== Props =========================
+		return _objectSpread$e(_objectSpread$e({}, pickedProps), {}, {
+			format: timeFormat,
+			showHour,
+			showMinute,
+			showSecond,
+			showMillisecond,
+			use12Hours: showMeridiem
+		});
+	}
+	return null;
+}
+function _typeof$o(o) {
+	"@babel/helpers - typeof";
+	return _typeof$o = function(o) {
+		return typeof o;
+	}, _typeof$o(o);
+}
+/**
+* Used for `useFilledProps` since it already in the React.useMemo
+*/
+function fillClearIcon(prefixCls, allowClear, clearIcon) {
+	if (allowClear === false) {
+		return null;
+	}
+	var config = allowClear && _typeof$o(allowClear) === "object" ? allowClear : {};
+	return config.clearIcon || clearIcon || reactExports.createElement("span", { className: "".concat(prefixCls, "-clear-btn") });
+}
+/**
+* Wrap the compare logic.
+* This will compare the each of value is empty first.
+* 1. All is empty, return true.
+* 2. One is empty, return false.
+* 3. return customize compare logic.
+*/
+function nullableCompare(value1, value2, oriCompareFn) {
+	if (!value1 && !value2 || value1 === value2) {
+		return true;
+	}
+	if (!value1 || !value2) {
+		return false;
+	}
+	return oriCompareFn();
+}
+function isSameDecade(generateConfig, decade1, decade2) {
+	return nullableCompare(decade1, decade2, function() {
+		var num1 = Math.floor(generateConfig.getYear(decade1) / 10);
+		var num2 = Math.floor(generateConfig.getYear(decade2) / 10);
+		return num1 === num2;
+	});
+}
+function isSameYear(generateConfig, year1, year2) {
+	return nullableCompare(year1, year2, function() {
+		return generateConfig.getYear(year1) === generateConfig.getYear(year2);
+	});
+}
+function getQuarter(generateConfig, date) {
+	var quota = Math.floor(generateConfig.getMonth(date) / 3);
+	return quota + 1;
+}
+function isSameQuarter(generateConfig, quarter1, quarter2) {
+	return nullableCompare(quarter1, quarter2, function() {
+		return isSameYear(generateConfig, quarter1, quarter2) && getQuarter(generateConfig, quarter1) === getQuarter(generateConfig, quarter2);
+	});
+}
+function isSameMonth(generateConfig, month1, month2) {
+	return nullableCompare(month1, month2, function() {
+		return isSameYear(generateConfig, month1, month2) && generateConfig.getMonth(month1) === generateConfig.getMonth(month2);
+	});
+}
+function isSameDate(generateConfig, date1, date2) {
+	return nullableCompare(date1, date2, function() {
+		return isSameYear(generateConfig, date1, date2) && isSameMonth(generateConfig, date1, date2) && generateConfig.getDate(date1) === generateConfig.getDate(date2);
+	});
+}
+function isSameTime(generateConfig, time1, time2) {
+	return nullableCompare(time1, time2, function() {
+		return generateConfig.getHour(time1) === generateConfig.getHour(time2) && generateConfig.getMinute(time1) === generateConfig.getMinute(time2) && generateConfig.getSecond(time1) === generateConfig.getSecond(time2);
+	});
+}
+/**
+* Check if the Date is all the same of timestamp
+*/
+function isSameTimestamp(generateConfig, time1, time2) {
+	return nullableCompare(time1, time2, function() {
+		return isSameDate(generateConfig, time1, time2) && isSameTime(generateConfig, time1, time2) && generateConfig.getMillisecond(time1) === generateConfig.getMillisecond(time2);
+	});
+}
+function isSameWeek(generateConfig, locale, date1, date2) {
+	return nullableCompare(date1, date2, function() {
+		var weekStartDate1 = generateConfig.locale.getWeekFirstDate(locale, date1);
+		var weekStartDate2 = generateConfig.locale.getWeekFirstDate(locale, date2);
+		return isSameYear(generateConfig, weekStartDate1, weekStartDate2) && generateConfig.locale.getWeek(locale, date1) === generateConfig.locale.getWeek(locale, date2);
+	});
+}
+function isSame(generateConfig, locale, source, target, type) {
+	switch (type) {
+		case "date": return isSameDate(generateConfig, source, target);
+		case "week": return isSameWeek(generateConfig, locale.locale, source, target);
+		case "month": return isSameMonth(generateConfig, source, target);
+		case "quarter": return isSameQuarter(generateConfig, source, target);
+		case "year": return isSameYear(generateConfig, source, target);
+		case "decade": return isSameDecade(generateConfig, source, target);
+		case "time": return isSameTime(generateConfig, source, target);
+		default: return isSameTimestamp(generateConfig, source, target);
+	}
+}
+/** Between in date but not equal of date */
+function isInRange(generateConfig, startDate, endDate, current) {
+	if (!startDate || !endDate || !current) {
+		return false;
+	}
+	return generateConfig.isAfter(current, startDate) && generateConfig.isAfter(endDate, current);
+}
+function isSameOrAfter(generateConfig, locale, date1, date2, type) {
+	if (isSame(generateConfig, locale, date1, date2, type)) {
+		return true;
+	}
+	return generateConfig.isAfter(date1, date2);
+}
+function getWeekStartDate(locale, generateConfig, value) {
+	var weekFirstDay = generateConfig.locale.getWeekFirstDay(locale);
+	var monthStartDate = generateConfig.setDate(value, 1);
+	var startDateWeekDay = generateConfig.getWeekDay(monthStartDate);
+	var alignStartDate = generateConfig.addDate(monthStartDate, weekFirstDay - startDateWeekDay);
+	if (generateConfig.getMonth(alignStartDate) === generateConfig.getMonth(value) && generateConfig.getDate(alignStartDate) > 1) {
+		alignStartDate = generateConfig.addDate(alignStartDate, -7);
+	}
+	return alignStartDate;
+}
+function formatValue(value, _ref) {
+	var generateConfig = _ref.a, locale = _ref.b, format = _ref.c;
+	if (!value) {
+		return "";
+	}
+	return typeof format === "function" ? format(value) : generateConfig.locale.format(locale.locale, value, format);
+}
+/**
+* Fill the time info into Date if provided.
+*/
+function fillTime(generateConfig, date, time) {
+	var tmpDate = date;
+	var getFn = [
+		"getHour",
+		"getMinute",
+		"getSecond",
+		"getMillisecond"
+	];
+	var setFn = [
+		"setHour",
+		"setMinute",
+		"setSecond",
+		"setMillisecond"
+	];
+	setFn.forEach(function(fn, index) {
+		if (time) {
+			tmpDate = generateConfig[fn](tmpDate, generateConfig[getFn[index]](time));
+		} else {
+			tmpDate = generateConfig[fn](tmpDate, 0);
+		}
+	});
+	return tmpDate;
+}
+/**
+* Merge `disabledDate` with `minDate` & `maxDate`.
+*/
+function useDisabledBoundary(generateConfig, locale, disabledDate, minDate, maxDate) {
+	var mergedDisabledDate = useEvent(function(date, info) {
+		if (disabledDate && disabledDate(date, info)) {
+			return true;
+		}
+		if (minDate && generateConfig.isAfter(minDate, date) && !isSame(generateConfig, locale, minDate, date, info.type)) {
+			return true;
+		}
+		if (maxDate && generateConfig.isAfter(date, maxDate) && !isSame(generateConfig, locale, maxDate, date, info.type)) {
+			return true;
+		}
+		return false;
+	});
+	return mergedDisabledDate;
+}
+function _typeof$n(o) {
+	"@babel/helpers - typeof";
+	return _typeof$n = function(o) {
+		return typeof o;
+	}, _typeof$n(o);
+}
+function useFieldFormat(picker, locale, format) {
+	return reactExports.useMemo(function() {
+		var rawFormat = getRowFormat(picker, locale, format);
+		var formatList = toArray(rawFormat);
+		var firstFormat = formatList[0];
+		var maskFormat = _typeof$n(firstFormat) === "object" && firstFormat.type === "mask" ? firstFormat.format : null;
+		return [formatList.map(function(config) {
+			return typeof config === "string" || typeof config === "function" ? config : config.format;
+		}), maskFormat];
+	}, [
+		picker,
+		locale,
+		format
+	]);
+}
+function useInputReadOnly(formatList, inputReadOnly, multiple) {
+	if (typeof formatList[0] === "function" || multiple) {
+		return true;
+	}
+	return inputReadOnly;
+}
+function _typeof$m(o) {
+	"@babel/helpers - typeof";
+	return _typeof$m = function(o) {
+		return typeof o;
+	}, _typeof$m(o);
+}
+function ownKeys$d(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$d(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$d(Object(t), true).forEach(function(r) {
+			_defineProperty$m(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$d(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$m(obj, key, value) {
+	key = _toPropertyKey$m(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$m(t) {
+	var i = _toPrimitive$m(t);
+	return "symbol" == _typeof$m(i) ? i : String(i);
+}
+function _toPrimitive$m(t) {
+	if ("object" != _typeof$m(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$m(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+/**
+* Check if provided date is valid for the `disabledDate` & `showTime.disabledTime`.
+*/
+function useInvalidate(generateConfig, picker, disabledDate, showTime) {
+	// Check disabled date
+	var isInvalidate = useEvent(function(date, info) {
+		var outsideInfo = _objectSpread$d({ type: picker }, info);
+		delete outsideInfo.activeIndex;
+		if (!generateConfig.isValidate(date) || disabledDate && disabledDate(date, outsideInfo)) {
+			return true;
+		}
+		if ((picker === "date" || picker === "time") && showTime) {
+			var _showTime$disabledTim;
+			var range = info && info.activeIndex === 1 ? "end" : "start";
+			var _ref = ((_showTime$disabledTim = showTime.disabledTime) === null || _showTime$disabledTim === void 0 ? void 0 : _showTime$disabledTim.call(showTime, date, range, { from: outsideInfo.from })) || {}, disabledHours = _ref.disabledHours, disabledMinutes = _ref.disabledMinutes, disabledSeconds = _ref.disabledSeconds, disabledMilliseconds = _ref.disabledMilliseconds;
+			var legacyDisabledHours = showTime.disabledHours, legacyDisabledMinutes = showTime.disabledMinutes, legacyDisabledSeconds = showTime.disabledSeconds;
+			var mergedDisabledHours = disabledHours || legacyDisabledHours;
+			var mergedDisabledMinutes = disabledMinutes || legacyDisabledMinutes;
+			var mergedDisabledSeconds = disabledSeconds || legacyDisabledSeconds;
+			var hour = generateConfig.getHour(date);
+			var minute = generateConfig.getMinute(date);
+			var second = generateConfig.getSecond(date);
+			var millisecond = generateConfig.getMillisecond(date);
+			if (mergedDisabledHours && mergedDisabledHours().includes(hour)) {
+				return true;
+			}
+			if (mergedDisabledMinutes && mergedDisabledMinutes(hour).includes(minute)) {
+				return true;
+			}
+			if (mergedDisabledSeconds && mergedDisabledSeconds(hour, minute).includes(second)) {
+				return true;
+			}
+			if (disabledMilliseconds && disabledMilliseconds(hour, minute, second).includes(millisecond)) {
+				return true;
+			}
+		}
+		return false;
+	});
+	return isInvalidate;
+}
+function _typeof$l(o) {
+	"@babel/helpers - typeof";
+	return _typeof$l = function(o) {
+		return typeof o;
+	}, _typeof$l(o);
+}
+function ownKeys$c(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$c(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$c(Object(t), true).forEach(function(r) {
+			_defineProperty$l(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$c(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$l(obj, key, value) {
+	key = _toPropertyKey$l(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$l(t) {
+	var i = _toPrimitive$l(t);
+	return "symbol" == _typeof$l(i) ? i : String(i);
+}
+function _toPrimitive$l(t) {
+	if ("object" != _typeof$l(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$l(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$s(arr, i) {
+	return _arrayWithHoles$s(arr) || _iterableToArrayLimit$s(arr, i) || _unsupportedIterableToArray$u(arr, i) || _nonIterableRest$s();
+}
+function _nonIterableRest$s() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$u(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$u(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$u(o, minLen);
+}
+function _arrayLikeToArray$u(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$s(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$s(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function useList(value) {
+	var fillMode = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
+	var values = reactExports.useMemo(function() {
+		var list = value ? toArray(value) : value;
+		if (fillMode && list) {
+			list[1] = list[1] || list[0];
+		}
+		return list;
+	}, [value, fillMode]);
+	return values;
+}
+/**
+* Align the outer props with unique typed and fill undefined props.
+* This is shared with both RangePicker and Picker. This will do:
+* - Convert `value` & `defaultValue` to array
+* - handle the legacy props fill like `clearIcon` + `allowClear` = `clearIcon`
+*/
+function useFilledProps(props, updater) {
+	var generateConfig = props.generateConfig, locale = props.locale, _props$picker = props.picker, picker = _props$picker === void 0 ? "date" : _props$picker, _props$prefixCls = props.prefixCls, prefixCls = _props$prefixCls === void 0 ? "rc-picker" : _props$prefixCls, _props$previewValue = props.previewValue, previewValue = _props$previewValue === void 0 ? "hover" : _props$previewValue, _props$styles = props.styles, styles = _props$styles === void 0 ? {} : _props$styles, _props$classNames = props.classNames, classNames = _props$classNames === void 0 ? {} : _props$classNames, _props$order = props.order, order = _props$order === void 0 ? true : _props$order, _props$components = props.components, components = _props$components === void 0 ? {} : _props$components, inputRender = props.inputRender, allowClear = props.allowClear, clearIcon = props.clearIcon, needConfirm = props.needConfirm, multiple = props.multiple, format = props.format, inputReadOnly = props.inputReadOnly, disabledDate = props.disabledDate, minDate = props.minDate, maxDate = props.maxDate, showTime = props.showTime, value = props.value, defaultValue = props.defaultValue, pickerValue = props.pickerValue, defaultPickerValue = props.defaultPickerValue;
+	var values = useList(value);
+	var defaultValues = useList(defaultValue);
+	var pickerValues = useList(pickerValue);
+	var defaultPickerValues = useList(defaultPickerValue);
+	// ======================== Picker ========================
+	/** Almost same as `picker`, but add `datetime` for `date` with `showTime` */
+	var internalPicker = picker === "date" && showTime ? "datetime" : picker;
+	/** The picker is `datetime` or `time` */
+	var multipleInteractivePicker = internalPicker === "time" || internalPicker === "datetime";
+	var complexPicker = multipleInteractivePicker || multiple;
+	var mergedNeedConfirm = needConfirm !== null && needConfirm !== void 0 ? needConfirm : multipleInteractivePicker;
+	// ========================== Time ==========================
+	// Auto `format` need to check `showTime.showXXX` first.
+	// And then merge the `locale` into `mergedShowTime`.
+	var _getTimeProps = getTimeProps(props), _getTimeProps2 = _slicedToArray$s(_getTimeProps, 4), timeProps = _getTimeProps2[0], localeTimeProps = _getTimeProps2[1], showTimeFormat = _getTimeProps2[2], propFormat = _getTimeProps2[3];
+	// ======================= Locales ========================
+	var mergedLocale = useLocale(locale, localeTimeProps);
+	var mergedShowTime = reactExports.useMemo(function() {
+		return fillShowTimeConfig(internalPicker, showTimeFormat, propFormat, timeProps, mergedLocale);
+	}, [
+		internalPicker,
+		showTimeFormat,
+		propFormat,
+		timeProps,
+		mergedLocale
+	]);
+	// ======================== Props =========================
+	var filledProps = reactExports.useMemo(function() {
+		return _objectSpread$c(_objectSpread$c({}, props), {}, {
+			previewValue,
+			prefixCls,
+			locale: mergedLocale,
+			picker,
+			styles,
+			classNames,
+			order,
+			components: _objectSpread$c({ input: inputRender }, components),
+			clearIcon: fillClearIcon(prefixCls, allowClear, clearIcon),
+			showTime: mergedShowTime,
+			value: values,
+			defaultValue: defaultValues,
+			pickerValue: pickerValues,
+			defaultPickerValue: defaultPickerValues
+		}, updater === void 0 ? void 0 : updater());
+	}, [props]);
+	// ======================== Format ========================
+	var _useFieldFormat = useFieldFormat(internalPicker, mergedLocale, format), _useFieldFormat2 = _slicedToArray$s(_useFieldFormat, 2), formatList = _useFieldFormat2[0], maskFormat = _useFieldFormat2[1];
+	// ======================= ReadOnly =======================
+	var mergedInputReadOnly = useInputReadOnly(formatList, inputReadOnly, multiple);
+	// ======================= Boundary =======================
+	var disabledBoundaryDate = useDisabledBoundary(generateConfig, locale, disabledDate, minDate, maxDate);
+	// ====================== Invalidate ======================
+	var isInvalidateDate = useInvalidate(generateConfig, picker, disabledBoundaryDate, mergedShowTime);
+	// ======================== Merged ========================
+	var mergedProps = reactExports.useMemo(function() {
+		return _objectSpread$c(_objectSpread$c({}, filledProps), {}, {
+			needConfirm: mergedNeedConfirm,
+			inputReadOnly: mergedInputReadOnly,
+			disabledDate: disabledBoundaryDate
+		});
+	}, [
+		filledProps,
+		mergedNeedConfirm,
+		mergedInputReadOnly,
+		disabledBoundaryDate
+	]);
+	return [
+		mergedProps,
+		internalPicker,
+		complexPicker,
+		formatList,
+		maskFormat,
+		isInvalidateDate
+	];
+}
+function _slicedToArray$r(arr) {
+	return _arrayWithHoles$r(arr) || _iterableToArrayLimit$r(arr) || _unsupportedIterableToArray$t(arr) || _nonIterableRest$r();
+}
+function _nonIterableRest$r() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$t(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$t(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$t(o, 2);
+}
+function _arrayLikeToArray$t(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$r(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$r(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+/**
+* Will be `true` immediately for next effect.
+* But will be `false` for a delay of effect.
+*/
+function useDelayState(value, defaultValue, onChange) {
+	var _useControlledState = useControlledState(defaultValue, value), _useControlledState2 = _slicedToArray$r(_useControlledState), state = _useControlledState2[0], setState = _useControlledState2[1];
+	// Need force update to ensure React re-render
+	var _React$useState = React.useState({}), _React$useState2 = _slicedToArray$r(_React$useState), forceUpdate = _React$useState2[1];
+	var triggerUpdate = useEvent(function(nextState) {
+		setState(nextState);
+		forceUpdate({});
+	});
+	var nextValueRef = React.useRef(value);
+	// ============================= Update =============================
+	var rafRef = React.useRef();
+	var cancelRaf = function() {
+		wrapperRaf.a(rafRef.current);
+	};
+	var doUpdate = useEvent(function() {
+		triggerUpdate(nextValueRef.current);
+		if (onChange && state !== nextValueRef.current) {
+			onChange(nextValueRef.current);
+		}
+	});
+	var updateValue = useEvent(function(next, immediately) {
+		cancelRaf();
+		nextValueRef.current = next;
+		if (next || immediately) {
+			doUpdate();
+		} else {
+			rafRef.current = wrapperRaf(doUpdate);
+		}
+	});
+	React.useEffect(function() {
+		return cancelRaf;
+	}, []);
+	return [state, updateValue];
+}
+function _slicedToArray$q(arr) {
+	return _arrayWithHoles$q(arr) || _iterableToArrayLimit$q(arr) || _unsupportedIterableToArray$s(arr) || _nonIterableRest$q();
+}
+function _nonIterableRest$q() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$s(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$s(o, 2);
+}
+function _arrayLikeToArray$s(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$q(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$q(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+/**
+* Control the open state.
+* Will not close if activeElement is on the popup.
+*/
+function useOpen(open, defaultOpen) {
+	var disabledList = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : [];
+	var onOpenChange = arguments.length > 3 ? arguments[3] : void 0;
+	var mergedOpen = disabledList.every(function(disabled) {
+		return disabled;
+	}) ? false : open;
+	// Delay for handle the open state, in case fast shift from `open` -> `close` -> `open`
+	// const [rafOpen, setRafOpen] = useLockState(open, defaultOpen || false, onOpenChange);
+	var _useDelayState = useDelayState(mergedOpen, defaultOpen || false, onOpenChange), _useDelayState2 = _slicedToArray$q(_useDelayState), rafOpen = _useDelayState2[0], setRafOpen = _useDelayState2[1];
+	function setOpen(next) {
+		var config = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
+		if (!config.inherit || rafOpen) {
+			setRafOpen(next, config.force);
+		}
+	}
+	return [rafOpen, setOpen];
+}
+function usePickerRef(ref) {
+	var selectorRef = reactExports.useRef();
+	reactExports.useImperativeHandle(ref, function() {
+		var _selectorRef$current;
+		return {
+			nativeElement: (_selectorRef$current = selectorRef.current) === null || _selectorRef$current === void 0 ? void 0 : _selectorRef$current.nativeElement,
+			focus: function(options) {
+				var _selectorRef$current2;
+				(_selectorRef$current2 = selectorRef.current) === null || _selectorRef$current2 === void 0 || _selectorRef$current2.focus(options);
+			},
+			blur: function() {
+				var _selectorRef$current3;
+				(_selectorRef$current3 = selectorRef.current) === null || _selectorRef$current3 === void 0 || _selectorRef$current3.blur();
+			}
+		};
+	});
+	return selectorRef;
+}
+function _slicedToArray$p(arr) {
+	return _arrayWithHoles$p(arr) || _iterableToArrayLimit$p(arr) || _unsupportedIterableToArray$r(arr) || _nonIterableRest$p();
+}
+function _nonIterableRest$p() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$r(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$r(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$r(o, 2);
+}
+function _arrayLikeToArray$r(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$p(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$p(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function usePresets(presets, legacyRanges) {
+	return reactExports.useMemo(function() {
+		if (presets) {
+			return presets;
+		}
+		if (legacyRanges) {
+			warningOnce(false, "`ranges` is deprecated. Please use `presets` instead.");
+			return Object.entries(legacyRanges).map(function(_ref) {
+				var _ref2 = _slicedToArray$p(_ref), label = _ref2[0], value = _ref2[1];
+				return {
+					label,
+					value
+				};
+			});
+		}
+		return [];
+	}, [presets, legacyRanges]);
+}
+/**
+* Trigger `callback` immediately when `condition` is `true`.
+* But trigger `callback` in next frame when `condition` is `false`.
+*/
+function useLockEffect(condition, callback) {
+	var delayFrames = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : 1;
+	var callbackRef = reactExports.useRef(callback);
+	callbackRef.current = callback;
+	useLayoutUpdateEffect(function() {
+		if (condition) {
+			callbackRef.current(condition);
+		} else {
+			var id = wrapperRaf(function() {
+				callbackRef.current(condition);
+			}, delayFrames);
+			return function() {
+				wrapperRaf.a(id);
+			};
+		}
+	}, [condition]);
+}
+function _slicedToArray$o(arr) {
+	return _arrayWithHoles$o(arr) || _iterableToArrayLimit$o(arr) || _unsupportedIterableToArray$q(arr) || _nonIterableRest$o();
+}
+function _nonIterableRest$o() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$q(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$q(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$q(o, 2);
+}
+function _arrayLikeToArray$q(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$o(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$o(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+/**
+* When user first focus one input, any submit will trigger focus another one.
+* When second time focus one input, submit will not trigger focus again.
+* When click outside to close the panel, trigger event if it can trigger onChange.
+*/
+function useRangeActive(disabled) {
+	var empty = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : [];
+	var mergedOpen = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : false;
+	var _React$useState = reactExports.useState(0), _React$useState2 = _slicedToArray$o(_React$useState), activeIndex = _React$useState2[0], setActiveIndex = _React$useState2[1];
+	var _React$useState3 = reactExports.useState(false), _React$useState4 = _slicedToArray$o(_React$useState3), focused = _React$useState4[0], setFocused = _React$useState4[1];
+	var activeListRef = reactExports.useRef([]);
+	var submitIndexRef = reactExports.useRef(null);
+	var lastOperationRef = reactExports.useRef(null);
+	var updateSubmitIndex = function(index) {
+		submitIndexRef.current = index;
+	};
+	var hasActiveSubmitValue = function(index) {
+		return submitIndexRef.current === index;
+	};
+	var triggerFocus = function(nextFocus) {
+		setFocused(nextFocus);
+	};
+	// ============================= Record =============================
+	var lastOperation = function(type) {
+		if (type) {
+			lastOperationRef.current = type;
+		}
+		return lastOperationRef.current;
+	};
+	// ============================ Strategy ============================
+	// Trigger when input enter or input blur or panel close
+	var nextActiveIndex = function(nextValue) {
+		var list = activeListRef.current;
+		var filledActiveSet = new Set(list.filter(function(index) {
+			return nextValue[index] || empty[index];
+		}));
+		var nextIndex = list[list.length - 1] === 0 ? 1 : 0;
+		if (filledActiveSet.size >= 2 || disabled[nextIndex]) {
+			return null;
+		}
+		return nextIndex;
+	};
+	// ============================= Effect =============================
+	// Wait in case it's from the click outside to blur
+	useLockEffect(focused || mergedOpen, function() {
+		if (!focused) {
+			activeListRef.current = [];
+			updateSubmitIndex(null);
+		}
+	});
+	reactExports.useEffect(function() {
+		if (focused) {
+			activeListRef.current.push(activeIndex);
+		}
+	}, [focused, activeIndex]);
+	return [
+		focused,
+		triggerFocus,
+		lastOperation,
+		activeIndex,
+		setActiveIndex,
+		nextActiveIndex,
+		activeListRef.current,
+		updateSubmitIndex,
+		hasActiveSubmitValue
+	];
+}
+function _typeof$k(o) {
+	"@babel/helpers - typeof";
+	return _typeof$k = function(o) {
+		return typeof o;
+	}, _typeof$k(o);
+}
+function ownKeys$b(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$b(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$b(Object(t), true).forEach(function(r) {
+			_defineProperty$k(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$b(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$k(obj, key, value) {
+	key = _toPropertyKey$k(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$k(t) {
+	var i = _toPrimitive$k(t);
+	return "symbol" == _typeof$k(i) ? i : String(i);
+}
+function _toPrimitive$k(t) {
+	if ("object" != _typeof$k(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$k(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$n(arr) {
+	return _arrayWithHoles$n(arr) || _iterableToArrayLimit$n(arr) || _unsupportedIterableToArray$p(arr) || _nonIterableRest$n();
+}
+function _nonIterableRest$n() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$p(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$p(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$p(o, 2);
+}
+function _arrayLikeToArray$p(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$n(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$n(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+/**
+* RangePicker need additional logic to handle the `disabled` case. e.g.
+* [disabled, enabled] should end date not before start date
+*/
+function useRangeDisabledDate(values, disabled, activeIndexList, generateConfig, locale, disabledDate) {
+	var activeIndex = activeIndexList[activeIndexList.length - 1];
+	var rangeDisabledDate = function(date, info) {
+		var _values = _slicedToArray$n(values), start = _values[0], end = _values[1];
+		var mergedInfo = _objectSpread$b(_objectSpread$b({}, info), {}, { from: getFromDate(values, activeIndexList) });
+		// ============================ Disabled ============================
+		// Should not select days before the start date
+		if (activeIndex === 1 && disabled[0] && start && !isSame(generateConfig, locale, start, date, mergedInfo.type) && generateConfig.isAfter(start, date)) {
+			return true;
+		}
+		// Should not select days after the end date
+		if (activeIndex === 0 && disabled[1] && end && !isSame(generateConfig, locale, end, date, mergedInfo.type) && generateConfig.isAfter(date, end)) {
+			return true;
+		}
+		// ============================= Origin =============================
+		return disabledDate === null || disabledDate === void 0 ? void 0 : disabledDate(date, mergedInfo);
+	};
+	return rangeDisabledDate;
+}
+function _slicedToArray$m(arr) {
+	return _arrayWithHoles$m(arr) || _iterableToArrayLimit$m(arr) || _unsupportedIterableToArray$o(arr) || _nonIterableRest$m();
+}
+function _nonIterableRest$m() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$o(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$o(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$o(o, 2);
+}
+function _arrayLikeToArray$o(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$m(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$m(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function offsetPanelDate(generateConfig, picker, date, offset) {
+	switch (picker) {
+		case "date":
+		case "week": return generateConfig.addMonth(date, offset);
+		case "month":
+		case "quarter": return generateConfig.addYear(date, offset);
+		case "year": return generateConfig.addYear(date, offset * 10);
+		case "decade": return generateConfig.addYear(date, offset * 100);
+		default: return date;
+	}
+}
+var EMPTY_LIST = [];
+function useRangePickerValue(generateConfig, locale, calendarValue, modes, open, activeIndex, pickerMode, multiplePanel) {
+	var defaultPickerValue = arguments.length > 8 && arguments[8] !== void 0 ? arguments[8] : EMPTY_LIST;
+	var pickerValue = arguments.length > 9 && arguments[9] !== void 0 ? arguments[9] : EMPTY_LIST;
+	var timeDefaultValue = arguments.length > 10 && arguments[10] !== void 0 ? arguments[10] : EMPTY_LIST;
+	var onPickerValueChange = arguments.length > 11 ? arguments[11] : void 0;
+	var minDate = arguments.length > 12 ? arguments[12] : void 0;
+	var maxDate = arguments.length > 13 ? arguments[13] : void 0;
+	var isTimePicker = pickerMode === "time";
+	// ======================== Active ========================
+	// `activeIndex` must be valid to avoid getting empty `pickerValue`
+	var mergedActiveIndex = activeIndex || 0;
+	// ===================== Picker Value =====================
+	var getDefaultPickerValue = function(index) {
+		var now = generateConfig.getNow();
+		if (isTimePicker) {
+			now = fillTime(generateConfig, now);
+		}
+		return defaultPickerValue[index] || calendarValue[index] || now;
+	};
+	// Align `pickerValue` with `showTime.defaultValue`
+	var _pickerValue = _slicedToArray$m(pickerValue), startPickerValue = _pickerValue[0], endPickerValue = _pickerValue[1];
+	// PickerValue state
+	var _useControlledState = useControlledState(function() {
+		return getDefaultPickerValue(0);
+	}, startPickerValue), _useControlledState2 = _slicedToArray$m(_useControlledState), mergedStartPickerValue = _useControlledState2[0], setStartPickerValue = _useControlledState2[1];
+	var _useControlledState3 = useControlledState(function() {
+		return getDefaultPickerValue(1);
+	}, endPickerValue), _useControlledState4 = _slicedToArray$m(_useControlledState3), mergedEndPickerValue = _useControlledState4[0], setEndPickerValue = _useControlledState4[1];
+	// Current PickerValue
+	var currentPickerValue = reactExports.useMemo(function() {
+		var current = [mergedStartPickerValue, mergedEndPickerValue][mergedActiveIndex];
+		// Merge the `showTime.defaultValue` into `pickerValue`
+		return isTimePicker ? current : fillTime(generateConfig, current, timeDefaultValue[mergedActiveIndex]);
+	}, [
+		isTimePicker,
+		mergedStartPickerValue,
+		mergedEndPickerValue,
+		mergedActiveIndex,
+		generateConfig,
+		timeDefaultValue
+	]);
+	var setCurrentPickerValue = function(nextPickerValue) {
+		var source = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : "panel";
+		var updater = [setStartPickerValue, setEndPickerValue][mergedActiveIndex];
+		updater(nextPickerValue);
+		var clone = [mergedStartPickerValue, mergedEndPickerValue];
+		clone[mergedActiveIndex] = nextPickerValue;
+		if (onPickerValueChange && (!isSame(generateConfig, locale, mergedStartPickerValue, clone[0], pickerMode) || !isSame(generateConfig, locale, mergedEndPickerValue, clone[1], pickerMode))) {
+			onPickerValueChange(clone, {
+				source,
+				range: mergedActiveIndex === 1 ? "end" : "start",
+				mode: modes
+			});
+		}
+	};
+	// ======================== Effect ========================
+	/**
+	* EndDate pickerValue is little different. It should be:
+	* - If date picker (without time), endDate is not same year & month as startDate
+	*   - pickerValue minus one month
+	* - Else pass directly
+	*/
+	var getEndDatePickerValue = function(startDate, endDate) {
+		if (multiplePanel) {
+			// Basic offset
+			var SAME_CHECKER = {
+				date: "month",
+				week: "month",
+				month: "year",
+				quarter: "year"
+			};
+			var mode = SAME_CHECKER[pickerMode];
+			if (mode && !isSame(generateConfig, 0, startDate, endDate, mode)) {
+				return offsetPanelDate(generateConfig, pickerMode, endDate, -1);
+			}
+			// Year offset
+			if (pickerMode === "year" && startDate) {
+				var srcYear = Math.floor(generateConfig.getYear(startDate) / 10);
+				var tgtYear = Math.floor(generateConfig.getYear(endDate) / 10);
+				if (srcYear !== tgtYear) {
+					return offsetPanelDate(generateConfig, pickerMode, endDate, -1);
+				}
+			}
+		}
+		return endDate;
+	};
+	// >>> When switch field, reset the picker value as prev field picker value
+	var prevActiveIndexRef = reactExports.useRef(null);
+	useLayoutEffect(function() {
+		if (open) {
+			if (!defaultPickerValue[mergedActiveIndex]) {
+				var nextPickerValue = isTimePicker ? null : generateConfig.getNow();
+				/**
+				* 1. If has prevActiveIndex, use it to avoid panel jump
+				* 2. If current field has value
+				*    - If `activeIndex` is 1 and `calendarValue[0]` is not same panel as `calendarValue[1]`,
+				*      offset `calendarValue[1]` and set it
+				*    - Else use `calendarValue[activeIndex]`
+				* 3. If current field has no value but another field has value, use another field value
+				* 4. Else use now (not any `calendarValue` can ref)
+				*/
+				if (prevActiveIndexRef.current !== null && prevActiveIndexRef.current !== mergedActiveIndex) {
+					// If from another field, not jump picker value
+					nextPickerValue = [mergedStartPickerValue, mergedEndPickerValue][mergedActiveIndex ^ 1];
+				} else if (calendarValue[mergedActiveIndex]) {
+					// Current field has value
+					nextPickerValue = mergedActiveIndex === 0 ? calendarValue[0] : getEndDatePickerValue(calendarValue[0], calendarValue[1]);
+				} else if (calendarValue[mergedActiveIndex ^ 1]) {
+					// Current field has no value but another field has value
+					nextPickerValue = calendarValue[mergedActiveIndex ^ 1];
+				}
+				// Only sync when has value, this will sync in the `min-max` logic
+				if (nextPickerValue) {
+					// nextPickerValue < minDate
+					if (minDate && generateConfig.isAfter(minDate, nextPickerValue)) {
+						nextPickerValue = minDate;
+					}
+					// maxDate < nextPickerValue
+					var offsetPickerValue = multiplePanel ? offsetPanelDate(generateConfig, pickerMode, nextPickerValue, 1) : nextPickerValue;
+					if (maxDate && generateConfig.isAfter(offsetPickerValue, maxDate)) {
+						nextPickerValue = multiplePanel ? offsetPanelDate(generateConfig, pickerMode, maxDate, -1) : maxDate;
+					}
+					setCurrentPickerValue(nextPickerValue, "reset");
+				}
+			}
+		}
+	}, [
+		open,
+		mergedActiveIndex,
+		calendarValue[mergedActiveIndex]
+	]);
+	// >>> Reset prevActiveIndex when panel closed
+	reactExports.useEffect(function() {
+		if (open) {
+			prevActiveIndexRef.current = mergedActiveIndex;
+		} else {
+			prevActiveIndexRef.current = null;
+		}
+	}, [open, mergedActiveIndex]);
+	// >>> defaultPickerValue: Resync to `defaultPickerValue` for each panel focused
+	useLayoutEffect(function() {
+		if (open && defaultPickerValue) {
+			if (defaultPickerValue[mergedActiveIndex]) {
+				setCurrentPickerValue(defaultPickerValue[mergedActiveIndex], "reset");
+			}
+		}
+	}, [open, mergedActiveIndex]);
+	return [currentPickerValue, setCurrentPickerValue];
+}
+function _slicedToArray$l(arr) {
+	return _arrayWithHoles$l(arr) || _iterableToArrayLimit$l(arr) || _unsupportedIterableToArray$n(arr) || _nonIterableRest$l();
+}
+function _nonIterableRest$l() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$n(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$n(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$n(o, 2);
+}
+function _arrayLikeToArray$n(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$l(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$l(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+/**
+* Sync value with state.
+* This should only used for internal which not affect outside calculation.
+* Since it's not safe for suspense.
+*/
+function useSyncState(defaultValue) {
+	var valueRef = reactExports.useRef(defaultValue);
+	var _React$useState = reactExports.useState({}), _React$useState2 = _slicedToArray$l(_React$useState), forceUpdate = _React$useState2[1];
+	var getter = function() {
+		return valueRef.current;
+	};
+	var setter = function(nextValue) {
+		valueRef.current = nextValue;
+		forceUpdate({});
+	};
+	return [
+		getter,
+		setter,
+		getter()
+	];
+}
+function _slicedToArray$k(arr, i) {
+	return _arrayWithHoles$k(arr) || _iterableToArrayLimit$k(arr, i) || _unsupportedIterableToArray$m(arr, i) || _nonIterableRest$k();
+}
+function _nonIterableRest$k() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _iterableToArrayLimit$k(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$k(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function _toConsumableArray$6(arr) {
+	return _arrayWithoutHoles$6(arr) || _iterableToArray$6(arr) || _unsupportedIterableToArray$m(arr) || _nonIterableSpread$6();
+}
+function _nonIterableSpread$6() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$m(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$m(o, minLen);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$m(o, minLen);
+}
+function _iterableToArray$6(iter) {
+	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+}
+function _arrayWithoutHoles$6(arr) {
+	if (Array.isArray(arr)) return _arrayLikeToArray$m(arr);
+}
+function _arrayLikeToArray$m(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+var EMPTY_VALUE = [];
+// Submit Logic:
+// * ✅ Value:
+//    * merged value using controlled value, if not, use stateValue
+//    * When merged value change, [1] resync calendar value and submit value
+// * ✅ Calender Value:
+//    * 💻 When user typing is validate, change the calendar value
+//    * 🌅 When user click on the panel, change the calendar value
+// * Submit Value:
+//    * 💻 When user blur the input, flush calendar value to submit value
+//    * 🌅 When user click on the panel is no needConfirm, flush calendar value to submit value
+//    * 🌅 When user click on the panel is needConfirm and click OK, flush calendar value to submit value
+// * Blur logic & close logic:
+//    * ✅ For value, always try flush submit
+//    * ✅ If `needConfirm`, reset as [1]
+//    * Else (`!needConfirm`)
+//      * If has another index field, active another index
+// * ✅ Flush submit:
+//    * If all the start & end field is confirmed or all blur or panel closed
+//    * Update `needSubmit` mark to true
+//    * trigger onChange by `needSubmit` and update stateValue
+function useUtil(generateConfig, locale, formatList) {
+	var getDateTexts = function(dates) {
+		return dates.map(function(date) {
+			return formatValue(date, {
+				a: generateConfig,
+				b: locale,
+				c: formatList[0]
+			});
+		});
+	};
+	var isSameDates = function(source, target) {
+		var maxLen = Math.max(source.length, target.length);
+		var diffIndex = -1;
+		for (var i = 0; i < maxLen; i += 1) {
+			var prev = source[i] || null;
+			var next = target[i] || null;
+			if (prev !== next && !isSameTimestamp(generateConfig, prev, next)) {
+				diffIndex = i;
+				break;
+			}
+		}
+		return [diffIndex < 0, diffIndex !== 0];
+	};
+	return [getDateTexts, isSameDates];
+}
+function orderDates(dates, generateConfig) {
+	return _toConsumableArray$6(dates).sort(function(a, b) {
+		return generateConfig.isAfter(a, b) ? 1 : -1;
+	});
+}
+/**
+* Used for internal value management.
+* It should always use `mergedValue` in render logic
+*/
+function useCalendarValue(mergedValue) {
+	var _useSyncState = useSyncState(mergedValue), _useSyncState2 = _slicedToArray$k(_useSyncState, 2), calendarValue = _useSyncState2[0], setCalendarValue = _useSyncState2[1];
+	/** Sync calendarValue & submitValue back with value */
+	var syncWithValue = useEvent(function() {
+		setCalendarValue(mergedValue);
+	});
+	reactExports.useEffect(function() {
+		syncWithValue();
+	}, [mergedValue]);
+	return [calendarValue, setCalendarValue];
+}
+/**
+* Control the internal `value` align with prop `value` and provide a temp `calendarValue` for ui.
+* `calendarValue` will be reset when blur & focus & open.
+*/
+function useInnerValue(generateConfig, locale, formatList, rangeValue, order, defaultValue, value, onCalendarChange, onOk) {
+	// This is the root value which will sync with controlled or uncontrolled value
+	var _useControlledState = useControlledState(defaultValue, value), _useControlledState2 = _slicedToArray$k(_useControlledState, 2), innerValue = _useControlledState2[0], setInnerValue = _useControlledState2[1];
+	var mergedValue = innerValue || EMPTY_VALUE;
+	// ========================= Inner Values =========================
+	var _useCalendarValue = useCalendarValue(mergedValue), _useCalendarValue2 = _slicedToArray$k(_useCalendarValue, 2), calendarValue = _useCalendarValue2[0], setCalendarValue = _useCalendarValue2[1];
+	// ============================ Change ============================
+	var _useUtil = useUtil(generateConfig, locale, formatList), _useUtil2 = _slicedToArray$k(_useUtil, 2), getDateTexts = _useUtil2[0], isSameDates = _useUtil2[1];
+	var triggerCalendarChange = useEvent(function(nextCalendarValues) {
+		var clone = _toConsumableArray$6(nextCalendarValues);
+		if (rangeValue) {
+			for (var i = 0; i < 2; i += 1) {
+				clone[i] = clone[i] || null;
+			}
+		} else if (order) {
+			clone = orderDates(clone.filter(function(date) {
+				return date;
+			}), generateConfig);
+		}
+		// Update merged value
+		var _isSameDates = isSameDates(calendarValue(), clone), _isSameDates2 = _slicedToArray$k(_isSameDates, 2), isSameMergedDates = _isSameDates2[0], isSameStart = _isSameDates2[1];
+		if (!isSameMergedDates) {
+			setCalendarValue(clone);
+			// Trigger calendar change event
+			if (onCalendarChange) {
+				var cellTexts = getDateTexts(clone);
+				onCalendarChange(clone, cellTexts, { range: isSameStart ? "end" : "start" });
+			}
+		}
+	});
+	var triggerOk = function() {
+		if (onOk) {
+			onOk(calendarValue());
+		}
+	};
+	return [
+		mergedValue,
+		setInnerValue,
+		calendarValue,
+		triggerCalendarChange,
+		triggerOk
+	];
+}
+function useRangeValue(info, mergedValue, setInnerValue, getCalendarValue, triggerCalendarChange, disabled, formatList, focused, open, isInvalidateDate) {
+	var generateConfig = info.generateConfig, locale = info.locale, picker = info.picker, onChange = info.onChange, allowEmpty = info.allowEmpty, order = info.order;
+	var orderOnChange = disabled.some(function(d) {
+		return d;
+	}) ? false : order;
+	// ============================= Util =============================
+	var _useUtil3 = useUtil(generateConfig, locale, formatList), _useUtil4 = _slicedToArray$k(_useUtil3, 2), getDateTexts = _useUtil4[0], isSameDates = _useUtil4[1];
+	// ============================ Values ============================
+	// Used for trigger `onChange` event.
+	// Record current value which is wait for submit.
+	var _useSyncState3 = useSyncState(mergedValue), _useSyncState4 = _slicedToArray$k(_useSyncState3, 2), submitValue = _useSyncState4[0], setSubmitValue = _useSyncState4[1];
+	/** Sync calendarValue & submitValue back with value */
+	var syncWithValue = useEvent(function() {
+		setSubmitValue(mergedValue);
+	});
+	reactExports.useEffect(function() {
+		syncWithValue();
+	}, [mergedValue]);
+	// ============================ Submit ============================
+	var triggerSubmit = useEvent(function(nextValue) {
+		var isNullValue = nextValue === null;
+		var clone = _toConsumableArray$6(nextValue || submitValue());
+		// Fill null value
+		if (isNullValue) {
+			var maxLen = Math.max(disabled.length, clone.length);
+			for (var i = 0; i < maxLen; i += 1) {
+				if (!disabled[i]) {
+					clone[i] = null;
+				}
+			}
+		}
+		// Only when exist value to sort
+		if (orderOnChange && clone[0] && clone[1]) {
+			clone = orderDates(clone, generateConfig);
+		}
+		// Sync `calendarValue`
+		triggerCalendarChange(clone);
+		// ========= Validate check =========
+		var _clone = clone, _clone2 = _slicedToArray$k(_clone, 2), start = _clone2[0], end = _clone2[1];
+		// >>> Empty
+		var startEmpty = !start;
+		var endEmpty = !end;
+		var validateEmptyDateRange = allowEmpty ? (!startEmpty || allowEmpty[0]) && (!endEmpty || allowEmpty[1]) : true;
+		// >>> Order
+		var validateOrder = !order || startEmpty || endEmpty || isSame(generateConfig, locale, start, end, picker) || generateConfig.isAfter(end, start);
+		// >>> Invalid
+		var validateDates = (disabled[0] || !start || !isInvalidateDate(start, { activeIndex: 0 })) && (disabled[1] || !end || !isInvalidateDate(end, {
+			from: start,
+			activeIndex: 1
+		}));
+		// >>> Result
+		var allPassed = isNullValue || validateEmptyDateRange && validateOrder && validateDates;
+		if (allPassed) {
+			// Sync value with submit value
+			setInnerValue(clone);
+			var _isSameDates3 = isSameDates(clone, mergedValue), _isSameDates4 = _slicedToArray$k(_isSameDates3, 1), isSameMergedDates = _isSameDates4[0];
+			// Trigger `onChange` if needed
+			if (onChange && !isSameMergedDates) {
+				var everyEmpty = clone.every(function(val) {
+					return !val;
+				});
+				onChange(
+					// Return null directly if all date are empty
+					isNullValue && everyEmpty ? null : clone,
+					everyEmpty ? null : getDateTexts(clone)
+				);
+			}
+		}
+		return allPassed;
+	});
+	// ========================= Flush Submit =========================
+	var flushSubmit = useEvent(function(index, needTriggerChange) {
+		var nextSubmitValue = fillIndex(submitValue(), index, getCalendarValue()[index]);
+		setSubmitValue(nextSubmitValue);
+		if (needTriggerChange) {
+			triggerSubmit();
+		}
+	});
+	// ============================ Effect ============================
+	// All finished action trigger after 2 frames
+	var interactiveFinished = !focused && !open;
+	useLockEffect(!interactiveFinished, function() {
+		if (interactiveFinished) {
+			// Always try to trigger submit first
+			triggerSubmit();
+			// Trigger calendar change since this is a effect reset
+			// https://github.com/ant-design/ant-design/issues/22351
+			triggerCalendarChange(mergedValue);
+			// Sync with value anyway
+			syncWithValue();
+		}
+	}, 2);
+	// ============================ Return ============================
+	return [flushSubmit, triggerSubmit];
+}
+function useShowNow(picker, mode, showNow, showToday, rangePicker) {
+	if (mode !== "date" && mode !== "time") {
+		return false;
+	}
+	if (showNow !== void 0) {
+		return showNow;
+	}
+	// Compatible with old version `showToday`
+	if (showToday !== void 0) {
+		return showToday;
+	}
+	return !rangePicker && (picker === "date" || picker === "time");
+}
+function _toConsumableArray$5(arr) {
+	return _arrayWithoutHoles$5(arr) || _iterableToArray$5(arr) || _unsupportedIterableToArray$l(arr) || _nonIterableSpread$5();
+}
+function _nonIterableSpread$5() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$l(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$l(o);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$l(o);
+}
+function _iterableToArray$5(iter) {
+	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+}
+function _arrayWithoutHoles$5(arr) {
+	if (Array.isArray(arr)) return _arrayLikeToArray$l(arr);
+}
+function _arrayLikeToArray$l(arr, len) {
+	{
+		len = arr.length;
+	}
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function findValidateTime(date, getHourUnits, getMinuteUnits, getSecondUnits, getMillisecondUnits, generateConfig) {
+	var nextDate = date;
+	function alignValidate(getUnitValue, setUnitValue, units) {
+		var nextValue = generateConfig[getUnitValue](nextDate);
+		var nextUnit = units.find(function(unit) {
+			return unit.value === nextValue;
+		});
+		if (!nextUnit || nextUnit.disabled) {
+			// Find most closest unit
+			var validateUnits = units.filter(function(unit) {
+				return !unit.disabled;
+			});
+			var reverseEnabledUnits = _toConsumableArray$5(validateUnits).reverse();
+			var validateUnit = reverseEnabledUnits.find(function(unit) {
+				return unit.value <= nextValue;
+			}) || validateUnits[0];
+			if (validateUnit) {
+				nextValue = validateUnit.value;
+				nextDate = generateConfig[setUnitValue](nextDate, nextValue);
+			}
+		}
+		return nextValue;
+	}
+	// Find validate hour
+	var nextHour = alignValidate("getHour", "setHour", getHourUnits());
+	// Find validate minute
+	var nextMinute = alignValidate("getMinute", "setMinute", getMinuteUnits(nextHour));
+	// Find validate second
+	var nextSecond = alignValidate("getSecond", "setSecond", getSecondUnits(nextHour, nextMinute));
+	// Find validate millisecond
+	alignValidate("getMillisecond", "setMillisecond", getMillisecondUnits(nextHour, nextMinute, nextSecond));
+	return nextDate;
+}
+function _typeof$j(o) {
+	"@babel/helpers - typeof";
+	return _typeof$j = function(o) {
+		return typeof o;
+	}, _typeof$j(o);
+}
+function ownKeys$a(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$a(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$a(Object(t), true).forEach(function(r) {
+			_defineProperty$j(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$a(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$j(obj, key, value) {
+	key = _toPropertyKey$j(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$j(t) {
+	var i = _toPrimitive$j(t);
+	return "symbol" == _typeof$j(i) ? i : String(i);
+}
+function _toPrimitive$j(t) {
+	if ("object" != _typeof$j(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$j(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$j(arr) {
+	return _arrayWithHoles$j(arr) || _iterableToArrayLimit$j(arr) || _unsupportedIterableToArray$k(arr) || _nonIterableRest$j();
+}
+function _nonIterableRest$j() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$k(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$k(o, 4);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$k(o, 4);
+}
+function _arrayLikeToArray$k(arr, len) {
+	if (4 == null || 4 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$j(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 4); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$j(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function emptyDisabled() {
+	return [];
+}
+function generateUnits(start, end) {
+	var step = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : 1;
+	var hideDisabledOptions = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : false;
+	var disabledUnits = arguments.length > 4 && arguments[4] !== void 0 ? arguments[4] : [];
+	var pad = arguments.length > 5 && arguments[5] !== void 0 ? arguments[5] : 2;
+	var units = [];
+	var integerStep = step >= 1 ? step | 0 : 1;
+	for (var i = start; i <= end; i += integerStep) {
+		var disabled = disabledUnits.includes(i);
+		if (!disabled || !hideDisabledOptions) {
+			units.push({
+				label: leftPad(i, pad),
+				value: i,
+				disabled
+			});
+		}
+	}
+	return units;
+}
+/**
+* Parse time props to get util info
+*/
+function useTimeInfo(generateConfig) {
+	var props = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
+	var date = arguments.length > 2 ? arguments[2] : void 0;
+	var _ref = props || {}, use12Hours = _ref.use12Hours, _ref$hourStep = _ref.hourStep, hourStep = _ref$hourStep === void 0 ? 1 : _ref$hourStep, _ref$minuteStep = _ref.minuteStep, minuteStep = _ref$minuteStep === void 0 ? 1 : _ref$minuteStep, _ref$secondStep = _ref.secondStep, secondStep = _ref$secondStep === void 0 ? 1 : _ref$secondStep, _ref$millisecondStep = _ref.millisecondStep, millisecondStep = _ref$millisecondStep === void 0 ? 100 : _ref$millisecondStep, hideDisabledOptions = _ref.hideDisabledOptions, disabledTime = _ref.disabledTime, disabledHours = _ref.disabledHours, disabledMinutes = _ref.disabledMinutes, disabledSeconds = _ref.disabledSeconds;
+	var mergedDate = reactExports.useMemo(function() {
+		return date || generateConfig.getNow();
+	}, [date, generateConfig]);
+	// ======================== Disabled ========================
+	var getDisabledTimes = reactExports.useCallback(function(targetDate) {
+		var disabledConfig = (disabledTime === null || disabledTime === void 0 ? void 0 : disabledTime(targetDate)) || {};
+		return [
+			disabledConfig.disabledHours || disabledHours || emptyDisabled,
+			disabledConfig.disabledMinutes || disabledMinutes || emptyDisabled,
+			disabledConfig.disabledSeconds || disabledSeconds || emptyDisabled,
+			disabledConfig.disabledMilliseconds || emptyDisabled
+		];
+	}, [
+		disabledTime,
+		disabledHours,
+		disabledMinutes,
+		disabledSeconds
+	]);
+	var _React$useMemo = reactExports.useMemo(function() {
+		return getDisabledTimes(mergedDate);
+	}, [mergedDate, getDisabledTimes]), _React$useMemo2 = _slicedToArray$j(_React$useMemo), mergedDisabledHours = _React$useMemo2[0], mergedDisabledMinutes = _React$useMemo2[1], mergedDisabledSeconds = _React$useMemo2[2], mergedDisabledMilliseconds = _React$useMemo2[3];
+	// ========================= Column =========================
+	var getAllUnits = reactExports.useCallback(function(getDisabledHours, getDisabledMinutes, getDisabledSeconds, getDisabledMilliseconds) {
+		var hours = generateUnits(0, 23, hourStep, hideDisabledOptions, getDisabledHours());
+		// Hours
+		var rowHourUnits = use12Hours ? hours.map(function(unit) {
+			return _objectSpread$a(_objectSpread$a({}, unit), {}, { label: leftPad(unit.value % 12 || 12, 2) });
+		}) : hours;
+		// Minutes
+		var getMinuteUnits = function(nextHour) {
+			return generateUnits(0, 59, minuteStep, hideDisabledOptions, getDisabledMinutes(nextHour));
+		};
+		// Seconds
+		var getSecondUnits = function(nextHour, nextMinute) {
+			return generateUnits(0, 59, secondStep, hideDisabledOptions, getDisabledSeconds(nextHour, nextMinute));
+		};
+		// Milliseconds
+		var getMillisecondUnits = function(nextHour, nextMinute, nextSecond) {
+			return generateUnits(0, 999, millisecondStep, hideDisabledOptions, getDisabledMilliseconds(nextHour, nextMinute, nextSecond), 3);
+		};
+		return [
+			rowHourUnits,
+			getMinuteUnits,
+			getSecondUnits,
+			getMillisecondUnits
+		];
+	}, [
+		hideDisabledOptions,
+		hourStep,
+		use12Hours,
+		millisecondStep,
+		minuteStep,
+		secondStep
+	]);
+	var _React$useMemo3 = reactExports.useMemo(function() {
+		return getAllUnits(mergedDisabledHours, mergedDisabledMinutes, mergedDisabledSeconds, mergedDisabledMilliseconds);
+	}, [
+		getAllUnits,
+		mergedDisabledHours,
+		mergedDisabledMinutes,
+		mergedDisabledSeconds,
+		mergedDisabledMilliseconds
+	]), _React$useMemo4 = _slicedToArray$j(_React$useMemo3), rowHourUnits = _React$useMemo4[0], getMinuteUnits = _React$useMemo4[1], getSecondUnits = _React$useMemo4[2], getMillisecondUnits = _React$useMemo4[3];
+	// ======================== Validate ========================
+	/**
+	* Get validate time with `disabledTime`, `certainDate` to specific the date need to check
+	*/
+	var getValidTime = function(nextTime, certainDate) {
+		var getCheckHourUnits = function() {
+			return rowHourUnits;
+		};
+		var getCheckMinuteUnits = getMinuteUnits;
+		var getCheckSecondUnits = getSecondUnits;
+		var getCheckMillisecondUnits = getMillisecondUnits;
+		if (certainDate) {
+			var _getDisabledTimes = getDisabledTimes(certainDate), _getDisabledTimes2 = _slicedToArray$j(_getDisabledTimes), targetDisabledHours = _getDisabledTimes2[0], targetDisabledMinutes = _getDisabledTimes2[1], targetDisabledSeconds = _getDisabledTimes2[2], targetDisabledMilliseconds = _getDisabledTimes2[3];
+			var _getAllUnits = getAllUnits(targetDisabledHours, targetDisabledMinutes, targetDisabledSeconds, targetDisabledMilliseconds), _getAllUnits2 = _slicedToArray$j(_getAllUnits), targetRowHourUnits = _getAllUnits2[0], targetGetMinuteUnits = _getAllUnits2[1], targetGetSecondUnits = _getAllUnits2[2], targetGetMillisecondUnits = _getAllUnits2[3];
+			getCheckHourUnits = function() {
+				return targetRowHourUnits;
+			};
+			getCheckMinuteUnits = targetGetMinuteUnits;
+			getCheckSecondUnits = targetGetSecondUnits;
+			getCheckMillisecondUnits = targetGetMillisecondUnits;
+		}
+		var validateDate = findValidateTime(nextTime, getCheckHourUnits, getCheckMinuteUnits, getCheckSecondUnits, getCheckMillisecondUnits, generateConfig);
+		return validateDate;
+	};
+	return [
+		getValidTime,
+		rowHourUnits,
+		getMinuteUnits,
+		getSecondUnits,
+		getMillisecondUnits
+	];
+}
+function _slicedToArray$i(arr) {
+	return _arrayWithHoles$i(arr) || _iterableToArrayLimit$i(arr) || _unsupportedIterableToArray$j(arr) || _nonIterableRest$i();
+}
+function _nonIterableRest$i() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$j(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$j(o, 1);
+}
+function _arrayLikeToArray$j(arr, len) {
+	if (1 == null || 1 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$i(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 1); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$i(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function Footer(props) {
+	var mode = props.mode, internalMode = props.internalMode, renderExtraFooter = props.renderExtraFooter, showNow = props.showNow, showTime = props.showTime, onSubmit = props.onSubmit, onNow = props.onNow, invalid = props.invalid, needConfirm = props.needConfirm, generateConfig = props.generateConfig, disabledDate = props.disabledDate;
+	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls, locale = _React$useContext.locale, _React$useContext$but = _React$useContext.button, Button = _React$useContext$but === void 0 ? "button" : _React$useContext$but, classNames = _React$useContext.classNames, styles = _React$useContext.styles;
+	// >>> Now
+	var now = generateConfig.getNow();
+	var _useTimeInfo = useTimeInfo(generateConfig, showTime, now), _useTimeInfo2 = _slicedToArray$i(_useTimeInfo), getValidTime = _useTimeInfo2[0];
+	// ======================== Extra =========================
+	var extraNode = renderExtraFooter === null || renderExtraFooter === void 0 ? void 0 : renderExtraFooter(mode);
+	// ======================== Ranges ========================
+	var nowDisabled = disabledDate(now, { type: mode });
+	var onInternalNow = function() {
+		if (!nowDisabled) {
+			var validateNow = getValidTime(now);
+			onNow(validateNow);
+		}
+	};
+	var nowPrefixCls = "".concat(prefixCls, "-now");
+	var nowBtnPrefixCls = "".concat(nowPrefixCls, "-btn");
+	var presetNode = showNow && reactExports.createElement("li", { className: nowPrefixCls }, reactExports.createElement("a", {
+		className: clsx(nowBtnPrefixCls, nowDisabled && "".concat(nowBtnPrefixCls, "-disabled")),
+		"aria-disabled": nowDisabled,
+		onClick: onInternalNow
+	}, internalMode === "date" ? locale.today : locale.now));
+	// >>> OK
+	var okNode = needConfirm && reactExports.createElement("li", { className: "".concat(prefixCls, "-ok") }, reactExports.createElement(Button, {
+		disabled: invalid,
+		onClick: onSubmit
+	}, locale.ok));
+	var rangeNode = (presetNode || okNode) && reactExports.createElement("ul", { className: "".concat(prefixCls, "-ranges") }, presetNode, okNode);
+	// ======================== Render ========================
+	if (!extraNode && !rangeNode) {
+		return null;
+	}
+	return reactExports.createElement("div", {
+		className: clsx("".concat(prefixCls, "-footer"), classNames.popup.footer),
+		style: styles.popup.footer
+	}, extraNode && reactExports.createElement("div", { className: "".concat(prefixCls, "-footer-extra") }, extraNode), rangeNode);
+}
+function _toConsumableArray$4(arr) {
+	return _arrayWithoutHoles$4(arr) || _iterableToArray$4(arr) || _unsupportedIterableToArray$i(arr) || _nonIterableSpread$4();
+}
+function _nonIterableSpread$4() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$i(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$i(o);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$i(o);
+}
+function _iterableToArray$4(iter) {
+	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+}
+function _arrayWithoutHoles$4(arr) {
+	if (Array.isArray(arr)) return _arrayLikeToArray$i(arr);
+}
+function _arrayLikeToArray$i(arr, len) {
+	{
+		len = arr.length;
+	}
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+/**
+* Toggles the presence of a value in an array.
+* If the value exists in the array, removed it.
+* Else add it.
+*/
+function useToggleDates(generateConfig, locale, panelMode) {
+	function toggleDates(list, target) {
+		var index = list.findIndex(function(date) {
+			return isSame(generateConfig, locale, date, target, panelMode);
+		});
+		if (index === -1) {
+			return [].concat(_toConsumableArray$4(list), [target]);
+		}
+		var sliceList = _toConsumableArray$4(list);
+		sliceList.splice(index, 1);
+		return sliceList;
+	}
+	return toggleDates;
+}
+var SharedPanelContext = reactExports.createContext(null);
+/** Used for each single Panel. e.g. DatePanel */
+var PanelContext = reactExports.createContext(null);
+function usePanelContext() {
+	return reactExports.useContext(PanelContext);
+}
+/**
+* Get shared props for the SharedPanelProps interface.
+*/
+function useInfo(props, panelType) {
+	// TODO: this is not good to get from each props.
+	// Should move to `SharedPanelContext` instead.
+	var prefixCls = props.prefixCls, generateConfig = props.generateConfig, locale = props.locale, disabledDate = props.disabledDate, minDate = props.minDate, maxDate = props.maxDate, cellRender = props.cellRender, hoverValue = props.hoverValue, hoverRangeValue = props.hoverRangeValue, onHover = props.onHover, values = props.values, pickerValue = props.pickerValue, onSelect = props.onSelect, prevIcon = props.prevIcon, nextIcon = props.nextIcon, superPrevIcon = props.superPrevIcon, superNextIcon = props.superNextIcon;
+	// ======================= Context ========================
+	var _React$useContext = reactExports.useContext(SharedPanelContext), classNames = _React$useContext.classNames, styles = _React$useContext.styles;
+	// ========================= MISC =========================
+	var now = generateConfig.getNow();
+	// ========================= Info =========================
+	var info = {
+		now,
+		values,
+		pickerValue,
+		prefixCls,
+		classNames,
+		styles,
+		disabledDate,
+		minDate,
+		maxDate,
+		cellRender,
+		hoverValue,
+		hoverRangeValue,
+		onHover,
+		locale,
+		generateConfig,
+		onSelect,
+		panelType,
+		prevIcon,
+		nextIcon,
+		superPrevIcon,
+		superNextIcon
+	};
+	return [info, now];
+}
+// ============================== Internal ==============================
+/**
+* Internal usage for RangePicker to not to show the operation arrow
+*/
+var PickerHackContext = reactExports.createContext({});
+function _typeof$i(o) {
+	"@babel/helpers - typeof";
+	return _typeof$i = function(o) {
+		return typeof o;
+	}, _typeof$i(o);
+}
+function ownKeys$9(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$9(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$9(Object(t), true).forEach(function(r) {
+			_defineProperty$i(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$9(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$i(obj, key, value) {
+	key = _toPropertyKey$i(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$i(t) {
+	var i = _toPrimitive$i(t);
+	return "symbol" == _typeof$i(i) ? i : String(i);
+}
+function _toPrimitive$i(t) {
+	if ("object" != _typeof$i(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$i(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$h(arr) {
+	return _arrayWithHoles$h(arr) || _iterableToArrayLimit$h(arr) || _unsupportedIterableToArray$h(arr) || _nonIterableRest$h();
+}
+function _nonIterableRest$h() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$h(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$h(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$h(o, 2);
+}
+function _arrayLikeToArray$h(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$h(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$h(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function PanelBody(props) {
+	var rowNum = props.rowNum, colNum = props.colNum, baseDate = props.baseDate, getCellDate = props.getCellDate, prefixColumn = props.prefixColumn, rowClassName = props.rowClassName, titleFormat = props.titleFormat, getCellText = props.getCellText, getCellClassName = props.getCellClassName, headerCells = props.headerCells, _props$cellSelection = props.cellSelection, cellSelection = _props$cellSelection === void 0 ? true : _props$cellSelection, disabledDate = props.disabledDate;
+	var _usePanelContext = usePanelContext(), prefixCls = _usePanelContext.prefixCls, classNames = _usePanelContext.classNames, styles = _usePanelContext.styles, type = _usePanelContext.panelType, now = _usePanelContext.now, contextDisabledDate = _usePanelContext.disabledDate, cellRender = _usePanelContext.cellRender, onHover = _usePanelContext.onHover, hoverValue = _usePanelContext.hoverValue, hoverRangeValue = _usePanelContext.hoverRangeValue, generateConfig = _usePanelContext.generateConfig, values = _usePanelContext.values, locale = _usePanelContext.locale, onSelect = _usePanelContext.onSelect;
+	var mergedDisabledDate = disabledDate || contextDisabledDate;
+	var cellPrefixCls = "".concat(prefixCls, "-cell");
+	// ============================= Context ==============================
+	var _React$useContext = reactExports.useContext(PickerHackContext), onCellDblClick = _React$useContext.onCellDblClick;
+	// ============================== Value ===============================
+	var matchValues = function(date) {
+		return values.some(function(singleValue) {
+			return singleValue && isSame(generateConfig, locale, date, singleValue, type);
+		});
+	};
+	// =============================== Body ===============================
+	var rows = [];
+	for (var row = 0; row < rowNum; row += 1) {
+		var rowNode = [];
+		var rowStartDate = void 0;
+		var _loop = function() {
+			var offset = row * colNum + col;
+			var currentDate = getCellDate(baseDate, offset);
+			var disabled = mergedDisabledDate === null || mergedDisabledDate === void 0 ? void 0 : mergedDisabledDate(currentDate, { type });
+			// Row Start Cell
+			if (col === 0) {
+				rowStartDate = currentDate;
+				if (prefixColumn) {
+					rowNode.push(prefixColumn(rowStartDate));
+				}
+			}
+			// Range
+			var inRange = false;
+			var rangeStart = false;
+			var rangeEnd = false;
+			if (cellSelection && hoverRangeValue) {
+				var _hoverRangeValue = _slicedToArray$h(hoverRangeValue), hoverStart = _hoverRangeValue[0], hoverEnd = _hoverRangeValue[1];
+				inRange = isInRange(generateConfig, hoverStart, hoverEnd, currentDate);
+				rangeStart = isSame(generateConfig, locale, currentDate, hoverStart, type);
+				rangeEnd = isSame(generateConfig, locale, currentDate, hoverEnd, type);
+			}
+			// Title
+			var title = titleFormat ? formatValue(currentDate, {
+				b: locale,
+				c: titleFormat,
+				a: generateConfig
+			}) : void 0;
+			// Render
+			var inner = reactExports.createElement("div", { className: "".concat(cellPrefixCls, "-inner") }, getCellText(currentDate));
+			rowNode.push(reactExports.createElement("td", {
+				key: col,
+				title,
+				className: clsx(cellPrefixCls, classNames.item, _objectSpread$9(_defineProperty$i(_defineProperty$i(_defineProperty$i(_defineProperty$i(_defineProperty$i(_defineProperty$i({}, "".concat(cellPrefixCls, "-disabled"), disabled), "".concat(cellPrefixCls, "-hover"), (hoverValue || []).some(function(date) {
+					return isSame(generateConfig, locale, currentDate, date, type);
+				})), "".concat(cellPrefixCls, "-in-range"), inRange && !rangeStart && !rangeEnd), "".concat(cellPrefixCls, "-range-start"), rangeStart), "".concat(cellPrefixCls, "-range-end"), rangeEnd), "".concat(prefixCls, "-cell-selected"), !hoverRangeValue && type !== "week" && matchValues(currentDate)), getCellClassName(currentDate))),
+				style: styles.item,
+				onClick: function() {
+					if (!disabled) {
+						onSelect(currentDate);
+					}
+				},
+				onDoubleClick: function() {
+					if (!disabled && onCellDblClick) {
+						onCellDblClick();
+					}
+				},
+				onMouseEnter: function() {
+					if (!disabled) {
+						onHover === null || onHover === void 0 || onHover(currentDate);
+					}
+				},
+				onMouseLeave: function() {
+					if (!disabled) {
+						onHover === null || onHover === void 0 || onHover(null);
+					}
+				}
+			}, cellRender ? cellRender(currentDate, {
+				prefixCls,
+				originNode: inner,
+				today: now,
+				type,
+				locale
+			}) : inner));
+		};
+		for (var col = 0; col < colNum; col += 1) {
+			_loop();
+		}
+		rows.push(reactExports.createElement("tr", {
+			key: row,
+			className: rowClassName === null || rowClassName === void 0 ? void 0 : rowClassName(rowStartDate)
+		}, rowNode));
+	}
+	// ============================== Render ==============================
+	return reactExports.createElement("div", {
+		className: clsx("".concat(prefixCls, "-body"), classNames.body),
+		style: styles.body
+	}, reactExports.createElement("table", {
+		className: clsx("".concat(prefixCls, "-content"), classNames.content),
+		style: styles.content
+	}, headerCells && reactExports.createElement("thead", null, reactExports.createElement("tr", null, headerCells)), reactExports.createElement("tbody", null, rows)));
+}
+var HIDDEN_STYLE = { visibility: "hidden" };
+function PanelHeader(props) {
+	var offset = props.offset, superOffset = props.superOffset, onChange = props.onChange, getStart = props.getStart, getEnd = props.getEnd, children = props.children;
+	var _usePanelContext = usePanelContext(), prefixCls = _usePanelContext.prefixCls, classNames = _usePanelContext.classNames, styles = _usePanelContext.styles, _usePanelContext$prev = _usePanelContext.prevIcon, prevIcon = _usePanelContext$prev === void 0 ? "‹" : _usePanelContext$prev, _usePanelContext$next = _usePanelContext.nextIcon, nextIcon = _usePanelContext$next === void 0 ? "›" : _usePanelContext$next, _usePanelContext$supe = _usePanelContext.superPrevIcon, superPrevIcon = _usePanelContext$supe === void 0 ? "«" : _usePanelContext$supe, _usePanelContext$supe2 = _usePanelContext.superNextIcon, superNextIcon = _usePanelContext$supe2 === void 0 ? "»" : _usePanelContext$supe2, minDate = _usePanelContext.minDate, maxDate = _usePanelContext.maxDate, generateConfig = _usePanelContext.generateConfig, locale = _usePanelContext.locale, pickerValue = _usePanelContext.pickerValue, type = _usePanelContext.panelType;
+	var headerPrefixCls = "".concat(prefixCls, "-header");
+	var _React$useContext = reactExports.useContext(PickerHackContext), hidePrev = _React$useContext.hidePrev, hideNext = _React$useContext.hideNext, hideHeader = _React$useContext.hideHeader;
+	// ======================= Limitation =======================
+	var disabledOffsetPrev = reactExports.useMemo(function() {
+		if (!minDate || !offset || !getEnd) {
+			return false;
+		}
+		var prevPanelLimitDate = getEnd(offset(-1, pickerValue));
+		return !isSameOrAfter(generateConfig, locale, prevPanelLimitDate, minDate, type);
+	}, [
+		minDate,
+		offset,
+		pickerValue,
+		getEnd,
+		generateConfig,
+		locale,
+		type
+	]);
+	var disabledSuperOffsetPrev = reactExports.useMemo(function() {
+		if (!minDate || !superOffset || !getEnd) {
+			return false;
+		}
+		var prevPanelLimitDate = getEnd(superOffset(-1, pickerValue));
+		return !isSameOrAfter(generateConfig, locale, prevPanelLimitDate, minDate, type);
+	}, [
+		minDate,
+		superOffset,
+		pickerValue,
+		getEnd,
+		generateConfig,
+		locale,
+		type
+	]);
+	var disabledOffsetNext = reactExports.useMemo(function() {
+		if (!maxDate || !offset || !getStart) {
+			return false;
+		}
+		var nextPanelLimitDate = getStart(offset(1, pickerValue));
+		return !isSameOrAfter(generateConfig, locale, maxDate, nextPanelLimitDate, type);
+	}, [
+		maxDate,
+		offset,
+		pickerValue,
+		getStart,
+		generateConfig,
+		locale,
+		type
+	]);
+	var disabledSuperOffsetNext = reactExports.useMemo(function() {
+		if (!maxDate || !superOffset || !getStart) {
+			return false;
+		}
+		var nextPanelLimitDate = getStart(superOffset(1, pickerValue));
+		return !isSameOrAfter(generateConfig, locale, maxDate, nextPanelLimitDate, type);
+	}, [
+		maxDate,
+		superOffset,
+		pickerValue,
+		getStart,
+		generateConfig,
+		locale,
+		type
+	]);
+	// ========================= Offset =========================
+	var onOffset = function(distance) {
+		if (offset) {
+			onChange(offset(distance, pickerValue));
+		}
+	};
+	var onSuperOffset = function(distance) {
+		if (superOffset) {
+			onChange(superOffset(distance, pickerValue));
+		}
+	};
+	// ========================= Render =========================
+	if (hideHeader) {
+		return null;
+	}
+	var prevBtnCls = "".concat(headerPrefixCls, "-prev-btn");
+	var nextBtnCls = "".concat(headerPrefixCls, "-next-btn");
+	var superPrevBtnCls = "".concat(headerPrefixCls, "-super-prev-btn");
+	var superNextBtnCls = "".concat(headerPrefixCls, "-super-next-btn");
+	return reactExports.createElement("div", {
+		className: clsx(headerPrefixCls, classNames.header),
+		style: styles.header
+	}, superOffset && reactExports.createElement("button", {
+		type: "button",
+		"aria-label": locale.previousYear,
+		onClick: function() {
+			return onSuperOffset(-1), void 0;
+		},
+		tabIndex: -1,
+		className: clsx(superPrevBtnCls, disabledSuperOffsetPrev && "".concat(superPrevBtnCls, "-disabled")),
+		disabled: disabledSuperOffsetPrev,
+		style: hidePrev ? HIDDEN_STYLE : {}
+	}, superPrevIcon), offset && reactExports.createElement("button", {
+		type: "button",
+		"aria-label": locale.previousMonth,
+		onClick: function() {
+			return onOffset(-1), void 0;
+		},
+		tabIndex: -1,
+		className: clsx(prevBtnCls, disabledOffsetPrev && "".concat(prevBtnCls, "-disabled")),
+		disabled: disabledOffsetPrev,
+		style: hidePrev ? HIDDEN_STYLE : {}
+	}, prevIcon), reactExports.createElement("div", { className: "".concat(headerPrefixCls, "-view") }, children), offset && reactExports.createElement("button", {
+		type: "button",
+		"aria-label": locale.nextMonth,
+		onClick: function() {
+			return onOffset(1), void 0;
+		},
+		tabIndex: -1,
+		className: clsx(nextBtnCls, disabledOffsetNext && "".concat(nextBtnCls, "-disabled")),
+		disabled: disabledOffsetNext,
+		style: hideNext ? HIDDEN_STYLE : {}
+	}, nextIcon), superOffset && reactExports.createElement("button", {
+		type: "button",
+		"aria-label": locale.nextYear,
+		onClick: function() {
+			return onSuperOffset(1), void 0;
+		},
+		tabIndex: -1,
+		className: clsx(superNextBtnCls, disabledSuperOffsetNext && "".concat(superNextBtnCls, "-disabled")),
+		disabled: disabledSuperOffsetNext,
+		style: hideNext ? HIDDEN_STYLE : {}
+	}, superNextIcon));
+}
+function _typeof$h(o) {
+	"@babel/helpers - typeof";
+	return _typeof$h = function(o) {
+		return typeof o;
+	}, _typeof$h(o);
+}
+function _extends$j() {
+	_extends$j = Object.assign.bind();
+	return _extends$j.apply(this, arguments);
+}
+function _defineProperty$h(obj, key, value) {
+	key = _toPropertyKey$h(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$h(t) {
+	var i = _toPrimitive$h(t);
+	return "symbol" == _typeof$h(i) ? i : String(i);
+}
+function _toPrimitive$h(t) {
+	if ("object" != _typeof$h(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$h(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$g(arr) {
+	return _arrayWithHoles$g(arr) || _iterableToArrayLimit$g(arr) || _unsupportedIterableToArray$g(arr) || _nonIterableRest$g();
+}
+function _nonIterableRest$g() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$g(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$g(o, 2);
+}
+function _arrayLikeToArray$g(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$g(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$g(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function DatePanel(props) {
+	var prefixCls = props.prefixCls, _props$panelName = props.panelName, panelName = _props$panelName === void 0 ? "date" : _props$panelName, locale = props.locale, generateConfig = props.generateConfig, pickerValue = props.pickerValue, onPickerValueChange = props.onPickerValueChange, onModeChange = props.onModeChange, _props$mode = props.mode, mode = _props$mode === void 0 ? "date" : _props$mode, disabledDate = props.disabledDate, onSelect = props.onSelect, onHover = props.onHover, showWeek = props.showWeek;
+	var panelPrefixCls = "".concat(prefixCls, "-").concat(panelName, "-panel");
+	var cellPrefixCls = "".concat(prefixCls, "-cell");
+	var isWeek = mode === "week";
+	// ========================== Base ==========================
+	var _useInfo = useInfo(props, mode), _useInfo2 = _slicedToArray$g(_useInfo), info = _useInfo2[0], now = _useInfo2[1];
+	var weekFirstDay = generateConfig.locale.getWeekFirstDay(locale.locale);
+	var monthStartDate = generateConfig.setDate(pickerValue, 1);
+	var baseDate = getWeekStartDate(locale.locale, generateConfig, monthStartDate);
+	var month = generateConfig.getMonth(pickerValue);
+	// =========================== PrefixColumn ===========================
+	var showPrefixColumn = showWeek === void 0 ? isWeek : showWeek;
+	var prefixColumn = showPrefixColumn ? function(date) {
+		// >>> Additional check for disabled
+		var disabled = disabledDate === null || disabledDate === void 0 ? void 0 : disabledDate(date, { type: "week" });
+		return reactExports.createElement("td", {
+			key: "week",
+			className: clsx(cellPrefixCls, "".concat(cellPrefixCls, "-week"), _defineProperty$h({}, "".concat(cellPrefixCls, "-disabled"), disabled)),
+			onClick: function() {
+				if (!disabled) {
+					onSelect(date);
+				}
+			},
+			onMouseEnter: function() {
+				if (!disabled) {
+					onHover === null || onHover === void 0 || onHover(date);
+				}
+			},
+			onMouseLeave: function() {
+				if (!disabled) {
+					onHover === null || onHover === void 0 || onHover(null);
+				}
+			}
+		}, reactExports.createElement("div", { className: "".concat(cellPrefixCls, "-inner") }, generateConfig.locale.getWeek(locale.locale, date)));
+	} : null;
+	// ========================= Cells ==========================
+	// >>> Header Cells
+	var headerCells = [];
+	var weekDaysLocale = locale.shortWeekDays || (generateConfig.locale.getShortWeekDays ? generateConfig.locale.getShortWeekDays(locale.locale) : []);
+	if (prefixColumn) {
+		headerCells.push(reactExports.createElement("th", { key: "empty" }, reactExports.createElement("span", { style: {
+			width: 0,
+			height: 0,
+			position: "absolute",
+			overflow: "hidden",
+			opacity: 0
+		} }, locale.week)));
+	}
+	for (var i = 0; i < 7; i += 1) {
+		headerCells.push(reactExports.createElement("th", { key: i }, weekDaysLocale[(i + weekFirstDay) % 7]));
+	}
+	// >>> Body Cells
+	var getCellDate = function(date, offset) {
+		return generateConfig.addDate(date, offset);
+	};
+	var getCellText = function(date) {
+		return formatValue(date, {
+			b: locale,
+			c: locale.cellDateFormat,
+			a: generateConfig
+		});
+	};
+	var getCellClassName = function(date) {
+		var classObj = _defineProperty$h(_defineProperty$h({}, "".concat(prefixCls, "-cell-in-view"), isSameMonth(generateConfig, date, pickerValue)), "".concat(prefixCls, "-cell-today"), isSameDate(generateConfig, date, now));
+		return classObj;
+	};
+	// ========================= Header =========================
+	var monthsLocale = locale.shortMonths || (generateConfig.locale.getShortMonths ? generateConfig.locale.getShortMonths(locale.locale) : []);
+	var yearNode = reactExports.createElement("button", {
+		type: "button",
+		"aria-label": locale.yearSelect,
+		key: "year",
+		onClick: function() {
+			onModeChange("year", pickerValue);
+		},
+		tabIndex: -1,
+		className: "".concat(prefixCls, "-year-btn")
+	}, formatValue(pickerValue, {
+		b: locale,
+		c: locale.yearFormat,
+		a: generateConfig
+	}));
+	var monthNode = reactExports.createElement("button", {
+		type: "button",
+		"aria-label": locale.monthSelect,
+		key: "month",
+		onClick: function() {
+			onModeChange("month", pickerValue);
+		},
+		tabIndex: -1,
+		className: "".concat(prefixCls, "-month-btn")
+	}, locale.monthFormat ? formatValue(pickerValue, {
+		b: locale,
+		c: locale.monthFormat,
+		a: generateConfig
+	}) : monthsLocale[month]);
+	var monthYearNodes = locale.monthBeforeYear ? [monthNode, yearNode] : [yearNode, monthNode];
+	// ========================= Render =========================
+	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: clsx(panelPrefixCls, showWeek && "".concat(panelPrefixCls, "-show-week")) }, reactExports.createElement(PanelHeader, {
+		offset: function(distance) {
+			return generateConfig.addMonth(pickerValue, distance);
+		},
+		superOffset: function(distance) {
+			return generateConfig.addYear(pickerValue, distance);
+		},
+		onChange: onPickerValueChange,
+		getStart: function(date) {
+			return generateConfig.setDate(date, 1);
+		},
+		getEnd: function(date) {
+			var clone = generateConfig.setDate(date, 1);
+			clone = generateConfig.addMonth(clone, 1);
+			return generateConfig.addDate(clone, -1);
+		}
+	}, monthYearNodes), reactExports.createElement(PanelBody, _extends$j({ titleFormat: locale.fieldDateFormat }, props, {
+		colNum: 7,
+		rowNum: 6,
+		baseDate,
+		headerCells,
+		getCellDate,
+		getCellText,
+		getCellClassName,
+		prefixColumn,
+		cellSelection: !isWeek
+	}))));
+}
+var SPEED_PTG = 1 / 3;
+function useScrollTo(ulRef, value) {
+	// ========================= Scroll =========================
+	var scrollingRef = reactExports.useRef(false);
+	var scrollRafRef = reactExports.useRef(null);
+	var scrollDistRef = reactExports.useRef(null);
+	var isScrolling = function() {
+		return scrollingRef.current;
+	};
+	var stopScroll = function() {
+		wrapperRaf.a(scrollRafRef.current);
+		scrollingRef.current = false;
+	};
+	var scrollRafTimesRef = reactExports.useRef();
+	var startScroll = function() {
+		var ul = ulRef.current;
+		scrollDistRef.current = null;
+		scrollRafTimesRef.current = 0;
+		if (ul) {
+			var targetLi = ul.querySelector("[data-value=\"".concat(value, "\"]"));
+			var firstLi = ul.querySelector("li");
+			var doScroll = function doScroll() {
+				stopScroll();
+				scrollingRef.current = true;
+				scrollRafTimesRef.current += 1;
+				var currentTop = ul.scrollTop;
+				var firstLiTop = firstLi.offsetTop;
+				var targetLiTop = targetLi.offsetTop;
+				var targetTop = targetLiTop - firstLiTop;
+				// Wait for element exist. 5 frames is enough
+				if (targetLiTop === 0 && targetLi !== firstLi || !isVisible(ul)) {
+					if (scrollRafTimesRef.current <= 5) {
+						scrollRafRef.current = wrapperRaf(doScroll);
+					}
+					return;
+				}
+				var nextTop = currentTop + (targetTop - currentTop) * SPEED_PTG;
+				var dist = Math.abs(targetTop - nextTop);
+				// Break if dist get larger, which means user is scrolling
+				if (scrollDistRef.current !== null && scrollDistRef.current < dist) {
+					stopScroll();
+					return;
+				}
+				scrollDistRef.current = dist;
+				// Stop when dist is less than 1
+				if (dist <= 1) {
+					ul.scrollTop = targetTop;
+					stopScroll();
+					return;
+				}
+				// IE not support `scrollTo`
+				ul.scrollTop = nextTop;
+				scrollRafRef.current = wrapperRaf(doScroll);
+			};
+			if (targetLi && firstLi) {
+				doScroll();
+			}
+		}
+	};
+	// ======================== Trigger =========================
+	var syncScroll = useEvent(startScroll);
+	return [
+		syncScroll,
+		stopScroll,
+		isScrolling
+	];
+}
+function _typeof$g(o) {
+	"@babel/helpers - typeof";
+	return _typeof$g = function(o) {
+		return typeof o;
+	}, _typeof$g(o);
+}
+function _defineProperty$g(obj, key, value) {
+	key = _toPropertyKey$g(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$g(t) {
+	var i = _toPrimitive$g(t);
+	return "symbol" == _typeof$g(i) ? i : String(i);
+}
+function _toPrimitive$g(t) {
+	if ("object" != _typeof$g(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$g(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _toConsumableArray$3(arr) {
+	return _arrayWithoutHoles$3(arr) || _iterableToArray$3(arr) || _unsupportedIterableToArray$f(arr) || _nonIterableSpread$3();
+}
+function _nonIterableSpread$3() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _iterableToArray$3(iter) {
+	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+}
+function _arrayWithoutHoles$3(arr) {
+	if (Array.isArray(arr)) return _arrayLikeToArray$f(arr);
+}
+function _slicedToArray$f(arr) {
+	return _arrayWithHoles$f(arr) || _iterableToArrayLimit$f(arr) || _unsupportedIterableToArray$f(arr, 3) || _nonIterableRest$f();
+}
+function _nonIterableRest$f() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$f(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$f(o, void 0);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$f(o, minLen);
+}
+function _arrayLikeToArray$f(arr, len) {
+	if (len == null || 3 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$f(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 3); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$f(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+// Not use JSON.stringify to avoid dead loop
+function flattenUnits(units) {
+	return units.map(function(_ref) {
+		var value = _ref.value, label = _ref.label, disabled = _ref.disabled;
+		return [
+			value,
+			label,
+			disabled
+		].join(",");
+	}).join(";");
+}
+function TimeColumn(props) {
+	var units = props.units, value = props.value, optionalValue = props.optionalValue, type = props.type, onChange = props.onChange, onHover = props.onHover, onDblClick = props.onDblClick, changeOnScroll = props.changeOnScroll;
+	var _usePanelContext = usePanelContext(), prefixCls = _usePanelContext.prefixCls, cellRender = _usePanelContext.cellRender, now = _usePanelContext.now, locale = _usePanelContext.locale, classNames = _usePanelContext.classNames, styles = _usePanelContext.styles;
+	var panelPrefixCls = "".concat(prefixCls, "-time-panel");
+	var cellPrefixCls = "".concat(prefixCls, "-time-panel-cell");
+	// ========================== Refs ==========================
+	var ulRef = reactExports.useRef(null);
+	// ========================= Scroll =========================
+	var checkDelayRef = reactExports.useRef();
+	var clearDelayCheck = function() {
+		clearTimeout(checkDelayRef.current);
+	};
+	// ========================== Sync ==========================
+	var _useScrollTo = useScrollTo(ulRef, value !== null && value !== void 0 ? value : optionalValue), _useScrollTo2 = _slicedToArray$f(_useScrollTo), syncScroll = _useScrollTo2[0], stopScroll = _useScrollTo2[1], isScrolling = _useScrollTo2[2];
+	// Effect sync value scroll
+	useLayoutEffect(function() {
+		syncScroll();
+		clearDelayCheck();
+		return function() {
+			stopScroll();
+			clearDelayCheck();
+		};
+	}, [
+		value,
+		optionalValue,
+		flattenUnits(units)
+	]);
+	// ========================= Change =========================
+	// Scroll event if sync onScroll
+	var onInternalScroll = function(event) {
+		clearDelayCheck();
+		var target = event.target;
+		if (!isScrolling() && changeOnScroll) {
+			checkDelayRef.current = setTimeout(function() {
+				var ul = ulRef.current;
+				var firstLiTop = ul.querySelector("li").offsetTop;
+				var liList = Array.from(ul.querySelectorAll("li"));
+				var liTopList = liList.map(function(li) {
+					return li.offsetTop - firstLiTop;
+				});
+				var liDistList = liTopList.map(function(top, index) {
+					if (units[index].disabled) {
+						return Number.MAX_SAFE_INTEGER;
+					}
+					return Math.abs(top - target.scrollTop);
+				});
+				// Find min distance index
+				var minDist = Math.min.apply(Math, _toConsumableArray$3(liDistList));
+				var minDistIndex = liDistList.findIndex(function(dist) {
+					return dist === minDist;
+				});
+				var targetUnit = units[minDistIndex];
+				if (targetUnit && !targetUnit.disabled) {
+					onChange(targetUnit.value);
+				}
+			}, 300);
+		}
+	};
+	// ========================= Render =========================
+	var columnPrefixCls = "".concat(panelPrefixCls, "-column");
+	return reactExports.createElement("ul", {
+		className: columnPrefixCls,
+		ref: ulRef,
+		"data-type": type,
+		onScroll: onInternalScroll
+	}, units.map(function(_ref2) {
+		var label = _ref2.label, unitValue = _ref2.value, disabled = _ref2.disabled;
+		var inner = reactExports.createElement("div", { className: "".concat(cellPrefixCls, "-inner") }, label);
+		return reactExports.createElement("li", {
+			key: unitValue,
+			style: styles.item,
+			className: clsx(cellPrefixCls, classNames.item, _defineProperty$g(_defineProperty$g({}, "".concat(cellPrefixCls, "-selected"), value === unitValue), "".concat(cellPrefixCls, "-disabled"), disabled)),
+			onClick: function() {
+				if (!disabled) {
+					onChange(unitValue);
+				}
+			},
+			onDoubleClick: function() {
+				if (!disabled && onDblClick) {
+					onDblClick();
+				}
+			},
+			onMouseEnter: function() {
+				onHover(unitValue);
+			},
+			onMouseLeave: function() {
+				onHover(null);
+			},
+			"data-value": unitValue
+		}, cellRender ? cellRender(unitValue, {
+			prefixCls,
+			originNode: inner,
+			today: now,
+			type: "time",
+			subType: type,
+			locale
+		}) : inner);
+	}));
+}
+function _extends$i() {
+	_extends$i = Object.assign.bind();
+	return _extends$i.apply(this, arguments);
+}
+function _slicedToArray$e(arr, i) {
+	return _arrayWithHoles$e(arr) || _iterableToArrayLimit$e(arr, i) || _unsupportedIterableToArray$e(arr, i) || _nonIterableRest$e();
+}
+function _nonIterableRest$e() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$e(o, minLen) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$e(o, minLen);
+}
+function _arrayLikeToArray$e(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$e(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$e(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function isAM(hour) {
+	return hour < 12;
+}
+function TimePanelBody(props) {
+	var showHour = props.showHour, showMinute = props.showMinute, showSecond = props.showSecond, showMillisecond = props.showMillisecond, showMeridiem = props.use12Hours, changeOnScroll = props.changeOnScroll;
+	var _usePanelContext = usePanelContext(), prefixCls = _usePanelContext.prefixCls, classNames = _usePanelContext.classNames, styles = _usePanelContext.styles, values = _usePanelContext.values, generateConfig = _usePanelContext.generateConfig, locale = _usePanelContext.locale, onSelect = _usePanelContext.onSelect, _usePanelContext$onHo = _usePanelContext.onHover, onHover = _usePanelContext$onHo === void 0 ? function() {} : _usePanelContext$onHo, pickerValue = _usePanelContext.pickerValue;
+	var value = (values === null || values === void 0 ? void 0 : values[0]) || null;
+	var _React$useContext = reactExports.useContext(PickerHackContext), onCellDblClick = _React$useContext.onCellDblClick;
+	// ========================== Info ==========================
+	var _useTimeInfo = useTimeInfo(generateConfig, props, value), _useTimeInfo2 = _slicedToArray$e(_useTimeInfo, 5), getValidTime = _useTimeInfo2[0], rowHourUnits = _useTimeInfo2[1], getMinuteUnits = _useTimeInfo2[2], getSecondUnits = _useTimeInfo2[3], getMillisecondUnits = _useTimeInfo2[4];
+	// ========================= Value ==========================
+	// PickerValue will tell which one to align on the top
+	var getUnitValue = function(func) {
+		var valueUnitVal = value && generateConfig[func](value);
+		var pickerUnitValue = pickerValue && generateConfig[func](pickerValue);
+		return [valueUnitVal, pickerUnitValue];
+	};
+	var _getUnitValue = getUnitValue("getHour"), _getUnitValue2 = _slicedToArray$e(_getUnitValue, 2), hour = _getUnitValue2[0], pickerHour = _getUnitValue2[1];
+	var _getUnitValue3 = getUnitValue("getMinute"), _getUnitValue4 = _slicedToArray$e(_getUnitValue3, 2), minute = _getUnitValue4[0], pickerMinute = _getUnitValue4[1];
+	var _getUnitValue5 = getUnitValue("getSecond"), _getUnitValue6 = _slicedToArray$e(_getUnitValue5, 2), second = _getUnitValue6[0], pickerSecond = _getUnitValue6[1];
+	var _getUnitValue7 = getUnitValue("getMillisecond"), _getUnitValue8 = _slicedToArray$e(_getUnitValue7, 2), millisecond = _getUnitValue8[0], pickerMillisecond = _getUnitValue8[1];
+	var meridiem = hour === null ? null : isAM(hour) ? "am" : "pm";
+	// ========================= Column =========================
+	// Hours
+	var hourUnits = reactExports.useMemo(function() {
+		if (!showMeridiem) {
+			return rowHourUnits;
+		}
+		return isAM(hour) ? rowHourUnits.filter(function(h) {
+			return isAM(h.value);
+		}) : rowHourUnits.filter(function(h) {
+			return !isAM(h.value);
+		});
+	}, [
+		hour,
+		rowHourUnits,
+		showMeridiem
+	]);
+	// >>> Pick Fallback
+	var getEnabled = function(units, val) {
+		var _enabledUnits$;
+		var enabledUnits = units.filter(function(unit) {
+			return !unit.disabled;
+		});
+		return val !== null && val !== void 0 ? val : enabledUnits === null || enabledUnits === void 0 || (_enabledUnits$ = enabledUnits[0]) === null || _enabledUnits$ === void 0 ? void 0 : _enabledUnits$.value;
+	};
+	// >>> Minutes
+	var validHour = getEnabled(rowHourUnits, hour);
+	var minuteUnits = reactExports.useMemo(function() {
+		return getMinuteUnits(validHour);
+	}, [getMinuteUnits, validHour]);
+	// >>> Seconds
+	var validMinute = getEnabled(minuteUnits, minute);
+	var secondUnits = reactExports.useMemo(function() {
+		return getSecondUnits(validHour, validMinute);
+	}, [
+		getSecondUnits,
+		validHour,
+		validMinute
+	]);
+	// >>> Milliseconds
+	var validSecond = getEnabled(secondUnits, second);
+	var millisecondUnits = reactExports.useMemo(function() {
+		return getMillisecondUnits(validHour, validMinute, validSecond);
+	}, [
+		getMillisecondUnits,
+		validHour,
+		validMinute,
+		validSecond
+	]);
+	var validMillisecond = getEnabled(millisecondUnits, millisecond);
+	// Meridiem
+	var meridiemUnits = reactExports.useMemo(function() {
+		if (!showMeridiem) {
+			return [];
+		}
+		var base = generateConfig.getNow();
+		var amDate = generateConfig.setHour(base, 6);
+		var pmDate = generateConfig.setHour(base, 18);
+		var formatMeridiem = function(date, defaultLabel) {
+			var cellMeridiemFormat = locale.cellMeridiemFormat;
+			return cellMeridiemFormat ? formatValue(date, {
+				a: generateConfig,
+				b: locale,
+				c: cellMeridiemFormat
+			}) : defaultLabel;
+		};
+		return [{
+			label: formatMeridiem(amDate, "AM"),
+			value: "am",
+			disabled: rowHourUnits.every(function(h) {
+				return h.disabled || !isAM(h.value);
+			})
+		}, {
+			label: formatMeridiem(pmDate, "PM"),
+			value: "pm",
+			disabled: rowHourUnits.every(function(h) {
+				return h.disabled || isAM(h.value);
+			})
+		}];
+	}, [
+		rowHourUnits,
+		showMeridiem,
+		generateConfig,
+		locale
+	]);
+	// ========================= Change =========================
+	/**
+	* Check if time is validate or will match to validate one
+	*/
+	var triggerChange = function(nextDate) {
+		var validateDate = getValidTime(nextDate);
+		onSelect(validateDate);
+	};
+	// ========================= Column =========================
+	// Create a template date for the trigger change event
+	var triggerDateTmpl = reactExports.useMemo(function() {
+		var tmpl = value || pickerValue || generateConfig.getNow();
+		var isNotNull = function(num) {
+			return num !== null && num !== void 0;
+		};
+		if (isNotNull(hour)) {
+			tmpl = generateConfig.setHour(tmpl, hour);
+			tmpl = generateConfig.setMinute(tmpl, minute);
+			tmpl = generateConfig.setSecond(tmpl, second);
+			tmpl = generateConfig.setMillisecond(tmpl, millisecond);
+		} else if (isNotNull(pickerHour)) {
+			tmpl = generateConfig.setHour(tmpl, pickerHour);
+			tmpl = generateConfig.setMinute(tmpl, pickerMinute);
+			tmpl = generateConfig.setSecond(tmpl, pickerSecond);
+			tmpl = generateConfig.setMillisecond(tmpl, pickerMillisecond);
+		} else if (isNotNull(validHour)) {
+			tmpl = generateConfig.setHour(tmpl, validHour);
+			tmpl = generateConfig.setMinute(tmpl, validMinute);
+			tmpl = generateConfig.setSecond(tmpl, validSecond);
+			tmpl = generateConfig.setMillisecond(tmpl, validMillisecond);
+		}
+		return tmpl;
+	}, [
+		value,
+		pickerValue,
+		hour,
+		minute,
+		second,
+		millisecond,
+		validHour,
+		validMinute,
+		validSecond,
+		validMillisecond,
+		pickerHour,
+		pickerMinute,
+		pickerSecond,
+		pickerMillisecond,
+		generateConfig
+	]);
+	// ===================== Columns Change =====================
+	var fillColumnValue = function(val, func) {
+		if (val === null) {
+			return null;
+		}
+		return generateConfig[func](triggerDateTmpl, val);
+	};
+	var getNextHourTime = function(val) {
+		return fillColumnValue(val, "setHour");
+	};
+	var getNextMinuteTime = function(val) {
+		return fillColumnValue(val, "setMinute");
+	};
+	var getNextSecondTime = function(val) {
+		return fillColumnValue(val, "setSecond");
+	};
+	var getNextMillisecondTime = function(val) {
+		return fillColumnValue(val, "setMillisecond");
+	};
+	var getMeridiemTime = function(val) {
+		if (val === null) {
+			return null;
+		}
+		if (val === "am" && !isAM(hour)) {
+			return generateConfig.setHour(triggerDateTmpl, hour - 12);
+		} else if (val === "pm" && isAM(hour)) {
+			return generateConfig.setHour(triggerDateTmpl, hour + 12);
+		}
+		return triggerDateTmpl;
+	};
+	var onHourChange = function(val) {
+		triggerChange(getNextHourTime(val));
+	};
+	var onMinuteChange = function(val) {
+		triggerChange(getNextMinuteTime(val));
+	};
+	var onSecondChange = function(val) {
+		triggerChange(getNextSecondTime(val));
+	};
+	var onMillisecondChange = function(val) {
+		triggerChange(getNextMillisecondTime(val));
+	};
+	var onMeridiemChange = function(val) {
+		triggerChange(getMeridiemTime(val));
+	};
+	// ====================== Column Hover ======================
+	var onHourHover = function(val) {
+		onHover(getNextHourTime(val));
+	};
+	var onMinuteHover = function(val) {
+		onHover(getNextMinuteTime(val));
+	};
+	var onSecondHover = function(val) {
+		onHover(getNextSecondTime(val));
+	};
+	var onMillisecondHover = function(val) {
+		onHover(getNextMillisecondTime(val));
+	};
+	var onMeridiemHover = function(val) {
+		onHover(getMeridiemTime(val));
+	};
+	// ========================= Render =========================
+	var sharedColumnProps = {
+		onDblClick: onCellDblClick,
+		changeOnScroll
+	};
+	return reactExports.createElement("div", {
+		className: clsx("".concat(prefixCls, "-content"), classNames.content),
+		style: styles.content
+	}, showHour && reactExports.createElement(TimeColumn, _extends$i({
+		units: hourUnits,
+		value: hour,
+		optionalValue: pickerHour,
+		type: "hour",
+		onChange: onHourChange,
+		onHover: onHourHover
+	}, sharedColumnProps)), showMinute && reactExports.createElement(TimeColumn, _extends$i({
+		units: minuteUnits,
+		value: minute,
+		optionalValue: pickerMinute,
+		type: "minute",
+		onChange: onMinuteChange,
+		onHover: onMinuteHover
+	}, sharedColumnProps)), showSecond && reactExports.createElement(TimeColumn, _extends$i({
+		units: secondUnits,
+		value: second,
+		optionalValue: pickerSecond,
+		type: "second",
+		onChange: onSecondChange,
+		onHover: onSecondHover
+	}, sharedColumnProps)), showMillisecond && reactExports.createElement(TimeColumn, _extends$i({
+		units: millisecondUnits,
+		value: millisecond,
+		optionalValue: pickerMillisecond,
+		type: "millisecond",
+		onChange: onMillisecondChange,
+		onHover: onMillisecondHover
+	}, sharedColumnProps)), showMeridiem && reactExports.createElement(TimeColumn, _extends$i({
+		units: meridiemUnits,
+		value: meridiem,
+		type: "meridiem",
+		onChange: onMeridiemChange,
+		onHover: onMeridiemHover
+	}, sharedColumnProps)));
+}
+function _slicedToArray$d(arr) {
+	return _arrayWithHoles$d(arr) || _iterableToArrayLimit$d(arr) || _unsupportedIterableToArray$d(arr) || _nonIterableRest$d();
+}
+function _nonIterableRest$d() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$d(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$d(o, 1);
+}
+function _arrayLikeToArray$d(arr, len) {
+	if (1 == null || 1 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$d(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 1); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$d(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function TimePanel(props) {
+	var prefixCls = props.prefixCls, value = props.value, locale = props.locale, generateConfig = props.generateConfig, showTime = props.showTime;
+	var _ref = showTime || {}, format = _ref.format;
+	var panelPrefixCls = "".concat(prefixCls, "-time-panel");
+	// ========================== Base ==========================
+	var _useInfo = useInfo(props, "time"), _useInfo2 = _slicedToArray$d(_useInfo), info = _useInfo2[0];
+	// ========================= Render =========================
+	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: clsx(panelPrefixCls) }, reactExports.createElement(PanelHeader, null, value ? formatValue(value, {
+		b: locale,
+		c: format,
+		a: generateConfig
+	}) : "\xA0"), reactExports.createElement(TimePanelBody, showTime)));
+}
+function _extends$h() {
+	_extends$h = Object.assign.bind();
+	return _extends$h.apply(this, arguments);
+}
+function _slicedToArray$c(arr) {
+	return _arrayWithHoles$c(arr) || _iterableToArrayLimit$c(arr) || _unsupportedIterableToArray$c(arr) || _nonIterableRest$c();
+}
+function _nonIterableRest$c() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$c(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$c(o, 1);
+}
+function _arrayLikeToArray$c(arr, len) {
+	if (1 == null || 1 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$c(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 1); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$c(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function DateTimePanel(props) {
+	var prefixCls = props.prefixCls, generateConfig = props.generateConfig, showTime = props.showTime, onSelect = props.onSelect, value = props.value, pickerValue = props.pickerValue, onHover = props.onHover;
+	var panelPrefixCls = "".concat(prefixCls, "-datetime-panel");
+	// =============================== Time ===============================
+	var _useTimeInfo = useTimeInfo(generateConfig, showTime), _useTimeInfo2 = _slicedToArray$c(_useTimeInfo), getValidTime = _useTimeInfo2[0];
+	// Merge the time info from `value` or `pickerValue`
+	var mergeTime = function(date) {
+		if (value) {
+			return fillTime(generateConfig, date, value);
+		}
+		return fillTime(generateConfig, date, pickerValue);
+	};
+	// ============================== Hover ===============================
+	var onDateHover = function(date) {
+		onHover === null || onHover === void 0 || onHover(date ? mergeTime(date) : date);
+	};
+	// ============================== Select ==============================
+	var onDateSelect = function(date) {
+		// Merge with current time
+		var cloneDate = mergeTime(date);
+		onSelect(getValidTime(cloneDate, cloneDate));
+	};
+	// ============================== Render ==============================
+	return reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(DatePanel, _extends$h({}, props, {
+		onSelect: onDateSelect,
+		onHover: onDateHover
+	})), reactExports.createElement(TimePanel, props));
+}
+function _typeof$f(o) {
+	"@babel/helpers - typeof";
+	return _typeof$f = function(o) {
+		return typeof o;
+	}, _typeof$f(o);
+}
+function _extends$g() {
+	_extends$g = Object.assign.bind();
+	return _extends$g.apply(this, arguments);
+}
+function _defineProperty$f(obj, key, value) {
+	key = _toPropertyKey$f(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$f(t) {
+	var i = _toPrimitive$f(t);
+	return "symbol" == _typeof$f(i) ? i : String(i);
+}
+function _toPrimitive$f(t) {
+	if ("object" != _typeof$f(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$f(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$b(arr) {
+	return _arrayWithHoles$b(arr) || _iterableToArrayLimit$b(arr) || _unsupportedIterableToArray$b(arr) || _nonIterableRest$b();
+}
+function _nonIterableRest$b() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$b(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$b(o, 1);
+}
+function _arrayLikeToArray$b(arr, len) {
+	if (1 == null || 1 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$b(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 1); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$b(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function DecadePanel(props) {
+	var prefixCls = props.prefixCls, locale = props.locale, generateConfig = props.generateConfig, pickerValue = props.pickerValue, disabledDate = props.disabledDate, onPickerValueChange = props.onPickerValueChange;
+	var panelPrefixCls = "".concat(prefixCls, "-decade-panel");
+	// ========================== Base ==========================
+	var _useInfo = useInfo(props, "decade"), _useInfo2 = _slicedToArray$b(_useInfo), info = _useInfo2[0];
+	var getStartYear = function(date) {
+		var startYear = Math.floor(generateConfig.getYear(date) / 100) * 100;
+		return generateConfig.setYear(date, startYear);
+	};
+	var getEndYear = function(date) {
+		var startYear = getStartYear(date);
+		return generateConfig.addYear(startYear, 99);
+	};
+	var startYearDate = getStartYear(pickerValue);
+	var endYearDate = getEndYear(pickerValue);
+	var baseDate = generateConfig.addYear(startYearDate, -10);
+	// ========================= Cells ==========================
+	var getCellDate = function(date, offset) {
+		return generateConfig.addYear(date, offset * 10);
+	};
+	var getCellText = function(date) {
+		var cellYearFormat = locale.cellYearFormat;
+		var startYearStr = formatValue(date, {
+			b: locale,
+			c: cellYearFormat,
+			a: generateConfig
+		});
+		var endYearStr = formatValue(generateConfig.addYear(date, 9), {
+			b: locale,
+			c: cellYearFormat,
+			a: generateConfig
+		});
+		return "".concat(startYearStr, "-").concat(endYearStr);
+	};
+	var getCellClassName = function(date) {
+		return _defineProperty$f({}, "".concat(prefixCls, "-cell-in-view"), isSameDecade(generateConfig, date, startYearDate) || isSameDecade(generateConfig, date, endYearDate) || isInRange(generateConfig, startYearDate, endYearDate, date));
+	};
+	// ======================== Disabled ========================
+	var mergedDisabledDate = disabledDate ? function(currentDate, disabledInfo) {
+		// Start
+		var baseStartDate = generateConfig.setDate(currentDate, 1);
+		var baseStartMonth = generateConfig.setMonth(baseStartDate, 0);
+		var baseStartYear = generateConfig.setYear(baseStartMonth, Math.floor(generateConfig.getYear(baseStartMonth) / 10) * 10);
+		// End
+		var baseEndYear = generateConfig.addYear(baseStartYear, 10);
+		var baseEndDate = generateConfig.addDate(baseEndYear, -1);
+		return disabledDate(baseStartYear, disabledInfo) && disabledDate(baseEndDate, disabledInfo);
+	} : null;
+	// ========================= Header =========================
+	var yearNode = "".concat(formatValue(startYearDate, {
+		b: locale,
+		c: locale.yearFormat,
+		a: generateConfig
+	}), "-").concat(formatValue(endYearDate, {
+		b: locale,
+		c: locale.yearFormat,
+		a: generateConfig
+	}));
+	// ========================= Render =========================
+	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(PanelHeader, {
+		superOffset: function(distance) {
+			return generateConfig.addYear(pickerValue, distance * 100);
+		},
+		onChange: onPickerValueChange,
+		getStart: getStartYear,
+		getEnd: getEndYear
+	}, yearNode), reactExports.createElement(PanelBody, _extends$g({}, props, {
+		disabledDate: mergedDisabledDate,
+		colNum: 3,
+		rowNum: 4,
+		baseDate,
+		getCellDate,
+		getCellText,
+		getCellClassName
+	}))));
+}
+function _typeof$e(o) {
+	"@babel/helpers - typeof";
+	return _typeof$e = function(o) {
+		return typeof o;
+	}, _typeof$e(o);
+}
+function _extends$f() {
+	_extends$f = Object.assign.bind();
+	return _extends$f.apply(this, arguments);
+}
+function _defineProperty$e(obj, key) {
+	key = _toPropertyKey$e(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value: true,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = true;
+	}
+	return obj;
+}
+function _toPropertyKey$e(t) {
+	var i = _toPrimitive$e(t);
+	return "symbol" == _typeof$e(i) ? i : String(i);
+}
+function _toPrimitive$e(t) {
+	if ("object" != _typeof$e(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$e(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$a(arr) {
+	return _arrayWithHoles$a(arr) || _iterableToArrayLimit$a(arr) || _unsupportedIterableToArray$a(arr) || _nonIterableRest$a();
+}
+function _nonIterableRest$a() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$a(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$a(o, 1);
+}
+function _arrayLikeToArray$a(arr, len) {
+	if (1 == null || 1 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$a(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 1); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$a(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function MonthPanel(props) {
+	var prefixCls = props.prefixCls, locale = props.locale, generateConfig = props.generateConfig, pickerValue = props.pickerValue, disabledDate = props.disabledDate, onPickerValueChange = props.onPickerValueChange, onModeChange = props.onModeChange;
+	var panelPrefixCls = "".concat(prefixCls, "-month-panel");
+	// ========================== Base ==========================
+	var _useInfo = useInfo(props, "month"), _useInfo2 = _slicedToArray$a(_useInfo), info = _useInfo2[0];
+	var baseDate = generateConfig.setMonth(pickerValue, 0);
+	// ========================= Month ==========================
+	var monthsLocale = locale.shortMonths || (generateConfig.locale.getShortMonths ? generateConfig.locale.getShortMonths(locale.locale) : []);
+	// ========================= Cells ==========================
+	var getCellDate = function(date, offset) {
+		return generateConfig.addMonth(date, offset);
+	};
+	var getCellText = function(date) {
+		var month = generateConfig.getMonth(date);
+		return locale.monthFormat ? formatValue(date, {
+			b: locale,
+			c: locale.monthFormat,
+			a: generateConfig
+		}) : monthsLocale[month];
+	};
+	var getCellClassName = function() {
+		return _defineProperty$e({}, "".concat(prefixCls, "-cell-in-view"));
+	};
+	// ======================== Disabled ========================
+	var mergedDisabledDate = disabledDate ? function(currentDate, disabledInfo) {
+		var startDate = generateConfig.setDate(currentDate, 1);
+		var nextMonthStartDate = generateConfig.setMonth(startDate, generateConfig.getMonth(startDate) + 1);
+		var endDate = generateConfig.addDate(nextMonthStartDate, -1);
+		return disabledDate(startDate, disabledInfo) && disabledDate(endDate, disabledInfo);
+	} : null;
+	// ========================= Header =========================
+	var yearNode = reactExports.createElement("button", {
+		type: "button",
+		key: "year",
+		"aria-label": locale.yearSelect,
+		onClick: function() {
+			onModeChange("year");
+		},
+		tabIndex: -1,
+		className: "".concat(prefixCls, "-year-btn")
+	}, formatValue(pickerValue, {
+		b: locale,
+		c: locale.yearFormat,
+		a: generateConfig
+	}));
+	// ========================= Render =========================
+	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(PanelHeader, {
+		superOffset: function(distance) {
+			return generateConfig.addYear(pickerValue, distance);
+		},
+		onChange: onPickerValueChange,
+		getStart: function(date) {
+			return generateConfig.setMonth(date, 0);
+		},
+		getEnd: function(date) {
+			return generateConfig.setMonth(date, 11);
+		}
+	}, yearNode), reactExports.createElement(PanelBody, _extends$f({}, props, {
+		disabledDate: mergedDisabledDate,
+		titleFormat: locale.fieldMonthFormat,
+		colNum: 3,
+		rowNum: 4,
+		baseDate,
+		getCellDate,
+		getCellText,
+		getCellClassName
+	}))));
+}
+function _typeof$d(o) {
+	"@babel/helpers - typeof";
+	return _typeof$d = function(o) {
+		return typeof o;
+	}, _typeof$d(o);
+}
+function _extends$e() {
+	_extends$e = Object.assign.bind();
+	return _extends$e.apply(this, arguments);
+}
+function _defineProperty$d(obj, key) {
+	key = _toPropertyKey$d(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value: true,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = true;
+	}
+	return obj;
+}
+function _toPropertyKey$d(t) {
+	var i = _toPrimitive$d(t);
+	return "symbol" == _typeof$d(i) ? i : String(i);
+}
+function _toPrimitive$d(t) {
+	if ("object" != _typeof$d(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$d(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$9(arr) {
+	return _arrayWithHoles$9(arr) || _iterableToArrayLimit$9(arr) || _unsupportedIterableToArray$9(arr) || _nonIterableRest$9();
+}
+function _nonIterableRest$9() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$9(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$9(o, 1);
+}
+function _arrayLikeToArray$9(arr, len) {
+	if (1 == null || 1 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$9(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 1); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$9(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function QuarterPanel(props) {
+	var prefixCls = props.prefixCls, locale = props.locale, generateConfig = props.generateConfig, pickerValue = props.pickerValue, onPickerValueChange = props.onPickerValueChange, onModeChange = props.onModeChange;
+	var panelPrefixCls = "".concat(prefixCls, "-quarter-panel");
+	// ========================== Base ==========================
+	var _useInfo = useInfo(props, "quarter"), _useInfo2 = _slicedToArray$9(_useInfo), info = _useInfo2[0];
+	var baseDate = generateConfig.setMonth(pickerValue, 0);
+	// ========================= Cells ==========================
+	var getCellDate = function(date, offset) {
+		return generateConfig.addMonth(date, offset * 3);
+	};
+	var getCellText = function(date) {
+		return formatValue(date, {
+			b: locale,
+			c: locale.cellQuarterFormat,
+			a: generateConfig
+		});
+	};
+	var getCellClassName = function() {
+		return _defineProperty$d({}, "".concat(prefixCls, "-cell-in-view"));
+	};
+	// ========================= Header =========================
+	var yearNode = reactExports.createElement("button", {
+		type: "button",
+		key: "year",
+		"aria-label": locale.yearSelect,
+		onClick: function() {
+			onModeChange("year");
+		},
+		tabIndex: -1,
+		className: "".concat(prefixCls, "-year-btn")
+	}, formatValue(pickerValue, {
+		b: locale,
+		c: locale.yearFormat,
+		a: generateConfig
+	}));
+	// ========================= Render =========================
+	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(PanelHeader, {
+		superOffset: function(distance) {
+			return generateConfig.addYear(pickerValue, distance);
+		},
+		onChange: onPickerValueChange,
+		getStart: function(date) {
+			return generateConfig.setMonth(date, 0);
+		},
+		getEnd: function(date) {
+			return generateConfig.setMonth(date, 11);
+		}
+	}, yearNode), reactExports.createElement(PanelBody, _extends$e({}, props, {
+		titleFormat: locale.fieldQuarterFormat,
+		colNum: 4,
+		rowNum: 1,
+		baseDate,
+		getCellDate,
+		getCellText,
+		getCellClassName
+	}))));
+}
+function _typeof$c(o) {
+	"@babel/helpers - typeof";
+	return _typeof$c = function(o) {
+		return typeof o;
+	}, _typeof$c(o);
+}
+function _extends$d() {
+	_extends$d = Object.assign.bind();
+	return _extends$d.apply(this, arguments);
+}
+function _defineProperty$c(obj, key, value) {
+	key = _toPropertyKey$c(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$c(t) {
+	var i = _toPrimitive$c(t);
+	return "symbol" == _typeof$c(i) ? i : String(i);
+}
+function _toPrimitive$c(t) {
+	if ("object" != _typeof$c(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$c(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$8(arr) {
+	return _arrayWithHoles$8(arr) || _iterableToArrayLimit$8(arr) || _unsupportedIterableToArray$8(arr) || _nonIterableRest$8();
+}
+function _nonIterableRest$8() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$8(o) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$8(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$8(o, 2);
+}
+function _arrayLikeToArray$8(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$8(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$8(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function WeekPanel(props) {
+	var prefixCls = props.prefixCls, generateConfig = props.generateConfig, locale = props.locale, value = props.value, hoverValue = props.hoverValue, hoverRangeValue = props.hoverRangeValue;
+	// =============================== Row ================================
+	var localeName = locale.locale;
+	var rowPrefixCls = "".concat(prefixCls, "-week-panel-row");
+	var rowClassName = function(currentDate) {
+		var rangeCls = {};
+		if (hoverRangeValue) {
+			var _hoverRangeValue = _slicedToArray$8(hoverRangeValue), rangeStart = _hoverRangeValue[0], rangeEnd = _hoverRangeValue[1];
+			var isRangeStart = isSameWeek(generateConfig, localeName, rangeStart, currentDate);
+			var isRangeEnd = isSameWeek(generateConfig, localeName, rangeEnd, currentDate);
+			rangeCls["".concat(rowPrefixCls, "-range-start")] = isRangeStart;
+			rangeCls["".concat(rowPrefixCls, "-range-end")] = isRangeEnd;
+			rangeCls["".concat(rowPrefixCls, "-range-hover")] = !isRangeStart && !isRangeEnd && isInRange(generateConfig, rangeStart, rangeEnd, currentDate);
+		}
+		if (hoverValue) {
+			rangeCls["".concat(rowPrefixCls, "-hover")] = hoverValue.some(function(date) {
+				return isSameWeek(generateConfig, localeName, currentDate, date);
+			});
+		}
+		return clsx(
+			rowPrefixCls,
+			_defineProperty$c({}, "".concat(rowPrefixCls, "-selected"), !hoverRangeValue && isSameWeek(generateConfig, localeName, value, currentDate)),
+			// Patch for hover range
+			rangeCls
+		);
+	};
+	// ============================== Render ==============================
+	return reactExports.createElement(DatePanel, _extends$d({}, props, {
+		mode: "week",
+		panelName: "week",
+		rowClassName
+	}));
+}
+function _typeof$b(o) {
+	"@babel/helpers - typeof";
+	return _typeof$b = function(o) {
+		return typeof o;
+	}, _typeof$b(o);
+}
+function _extends$c() {
+	_extends$c = Object.assign.bind();
+	return _extends$c.apply(this, arguments);
+}
+function _defineProperty$b(obj, key, value) {
+	key = _toPropertyKey$b(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$b(t) {
+	var i = _toPrimitive$b(t);
+	return "symbol" == _typeof$b(i) ? i : String(i);
+}
+function _toPrimitive$b(t) {
+	if ("object" != _typeof$b(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$b(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$7(arr) {
+	return _arrayWithHoles$7(arr) || _iterableToArrayLimit$7(arr) || _unsupportedIterableToArray$7(arr) || _nonIterableRest$7();
+}
+function _nonIterableRest$7() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$7(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$7(o, 1);
+}
+function _arrayLikeToArray$7(arr, len) {
+	if (1 == null || 1 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$7(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 1); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$7(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function YearPanel(props) {
+	var prefixCls = props.prefixCls, locale = props.locale, generateConfig = props.generateConfig, pickerValue = props.pickerValue, disabledDate = props.disabledDate, onPickerValueChange = props.onPickerValueChange, onModeChange = props.onModeChange;
+	var panelPrefixCls = "".concat(prefixCls, "-year-panel");
+	// ========================== Base ==========================
+	var _useInfo = useInfo(props, "year"), _useInfo2 = _slicedToArray$7(_useInfo), info = _useInfo2[0];
+	var getStartYear = function(date) {
+		var startYear = Math.floor(generateConfig.getYear(date) / 10) * 10;
+		return generateConfig.setYear(date, startYear);
+	};
+	var getEndYear = function(date) {
+		var startYear = getStartYear(date);
+		return generateConfig.addYear(startYear, 9);
+	};
+	var startYearDate = getStartYear(pickerValue);
+	var endYearDate = getEndYear(pickerValue);
+	var baseDate = generateConfig.addYear(startYearDate, -1);
+	// ========================= Cells ==========================
+	var getCellDate = function(date, offset) {
+		return generateConfig.addYear(date, offset);
+	};
+	var getCellText = function(date) {
+		return formatValue(date, {
+			b: locale,
+			c: locale.cellYearFormat,
+			a: generateConfig
+		});
+	};
+	var getCellClassName = function(date) {
+		return _defineProperty$b({}, "".concat(prefixCls, "-cell-in-view"), isSameYear(generateConfig, date, startYearDate) || isSameYear(generateConfig, date, endYearDate) || isInRange(generateConfig, startYearDate, endYearDate, date));
+	};
+	// ======================== Disabled ========================
+	var mergedDisabledDate = disabledDate ? function(currentDate, disabledInfo) {
+		// Start
+		var startMonth = generateConfig.setMonth(currentDate, 0);
+		var startDate = generateConfig.setDate(startMonth, 1);
+		// End
+		var endMonth = generateConfig.addYear(startDate, 1);
+		var endDate = generateConfig.addDate(endMonth, -1);
+		return disabledDate(startDate, disabledInfo) && disabledDate(endDate, disabledInfo);
+	} : null;
+	// ========================= Header =========================
+	var yearNode = reactExports.createElement("button", {
+		type: "button",
+		key: "decade",
+		"aria-label": locale.decadeSelect,
+		onClick: function() {
+			onModeChange("decade");
+		},
+		tabIndex: -1,
+		className: "".concat(prefixCls, "-decade-btn")
+	}, formatValue(startYearDate, {
+		b: locale,
+		c: locale.yearFormat,
+		a: generateConfig
+	}), "-", formatValue(endYearDate, {
+		b: locale,
+		c: locale.yearFormat,
+		a: generateConfig
+	}));
+	// ========================= Render =========================
+	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(PanelHeader, {
+		superOffset: function(distance) {
+			return generateConfig.addYear(pickerValue, distance * 10);
+		},
+		onChange: onPickerValueChange,
+		getStart: getStartYear,
+		getEnd: getEndYear
+	}, yearNode), reactExports.createElement(PanelBody, _extends$c({}, props, {
+		disabledDate: mergedDisabledDate,
+		titleFormat: locale.fieldYearFormat,
+		colNum: 3,
+		rowNum: 4,
+		baseDate,
+		getCellDate,
+		getCellText,
+		getCellClassName
+	}))));
+}
+function _typeof$a(o) {
+	"@babel/helpers - typeof";
+	return _typeof$a = function(o) {
+		return typeof o;
+	}, _typeof$a(o);
+}
+function _extends$b() {
+	_extends$b = Object.assign.bind();
+	return _extends$b.apply(this, arguments);
+}
+function ownKeys$8(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$8(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$8(Object(t), true).forEach(function(r) {
+			_defineProperty$a(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$8(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$a(obj, key, value) {
+	key = _toPropertyKey$a(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$a(t) {
+	var i = _toPrimitive$a(t);
+	return "symbol" == _typeof$a(i) ? i : String(i);
+}
+function _toPrimitive$a(t) {
+	if ("object" != _typeof$a(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$a(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _toConsumableArray$2(arr) {
+	return _arrayWithoutHoles$2(arr) || _iterableToArray$2(arr) || _unsupportedIterableToArray$6(arr) || _nonIterableSpread$2();
+}
+function _nonIterableSpread$2() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _iterableToArray$2(iter) {
+	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+}
+function _arrayWithoutHoles$2(arr) {
+	if (Array.isArray(arr)) return _arrayLikeToArray$6(arr);
+}
+function _slicedToArray$6(arr, i) {
+	return _arrayWithHoles$6(arr) || _iterableToArrayLimit$6(arr, i) || _unsupportedIterableToArray$6(arr, i) || _nonIterableRest$6();
+}
+function _nonIterableRest$6() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$6(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$6(o, minLen);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$6(o, minLen);
+}
+function _arrayLikeToArray$6(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$6(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$6(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+var DefaultComponents = {
+	date: DatePanel,
+	datetime: DateTimePanel,
+	week: WeekPanel,
+	month: MonthPanel,
+	quarter: QuarterPanel,
+	year: YearPanel,
+	decade: DecadePanel,
+	time: TimePanel
+};
+function PickerPanel(props, ref) {
+	var panelClassNames = props.classNames, panelStyles = props.styles, locale = props.locale, generateConfig = props.generateConfig, direction = props.direction, prefixCls = props.prefixCls, _props$tabIndex = props.tabIndex, tabIndex = _props$tabIndex === void 0 ? 0 : _props$tabIndex, multiple = props.multiple, defaultValue = props.defaultValue, value = props.value, onChange = props.onChange, onSelect = props.onSelect, defaultPickerValue = props.defaultPickerValue, pickerValue = props.pickerValue, onPickerValueChange = props.onPickerValueChange, mode = props.mode, onPanelChange = props.onPanelChange, _props$picker = props.picker, picker = _props$picker === void 0 ? "date" : _props$picker, showTime = props.showTime, hoverValue = props.hoverValue, hoverRangeValue = props.hoverRangeValue, cellRender = props.cellRender, dateRender = props.dateRender, monthCellRender = props.monthCellRender, _props$components = props.components, components = _props$components === void 0 ? {} : _props$components, hideHeader = props.hideHeader;
+	// ======================== Context ========================
+	var _ref = reactExports.useContext(PickerContext$1) || {}, contextPrefixCls = _ref.prefixCls, pickerClassNames = _ref.classNames, pickerStyles = _ref.styles;
+	// ======================== prefixCls ========================
+	var mergedPrefixCls = contextPrefixCls || prefixCls || "rc-picker";
+	// ========================== Refs ==========================
+	var rootRef = reactExports.useRef();
+	reactExports.useImperativeHandle(ref, function() {
+		return { nativeElement: rootRef.current };
+	});
+	// ========================== Time ==========================
+	// Auto `format` need to check `showTime.showXXX` first.
+	// And then merge the `locale` into `mergedShowTime`.
+	var _getTimeProps = getTimeProps(props), _getTimeProps2 = _slicedToArray$6(_getTimeProps, 4), timeProps = _getTimeProps2[0], localeTimeProps = _getTimeProps2[1], showTimeFormat = _getTimeProps2[2], propFormat = _getTimeProps2[3];
+	// ========================= Locale =========================
+	var filledLocale = useLocale(locale, localeTimeProps);
+	// ========================= Picker =========================
+	var internalPicker = picker === "date" && showTime ? "datetime" : picker;
+	// ======================== ShowTime ========================
+	var mergedShowTime = reactExports.useMemo(function() {
+		return fillShowTimeConfig(internalPicker, showTimeFormat, propFormat, timeProps, filledLocale);
+	}, [
+		internalPicker,
+		showTimeFormat,
+		propFormat,
+		timeProps,
+		filledLocale
+	]);
+	// ========================== Now ===========================
+	var now = generateConfig.getNow();
+	// ========================== Mode ==========================
+	var _useControlledState = useControlledState(picker || "date", mode), _useControlledState2 = _slicedToArray$6(_useControlledState, 2), mergedMode = _useControlledState2[0], setMergedMode = _useControlledState2[1];
+	var internalMode = mergedMode === "date" && mergedShowTime ? "datetime" : mergedMode;
+	// ========================= Toggle =========================
+	var toggleDates = useToggleDates(generateConfig, locale, internalPicker);
+	// ========================= Value ==========================
+	// >>> Real value
+	// Interactive with `onChange` event which only trigger when the `mode` is `picker`
+	var _useControlledState3 = useControlledState(defaultValue, value), _useControlledState4 = _slicedToArray$6(_useControlledState3, 2), innerValue = _useControlledState4[0], setMergedValue = _useControlledState4[1];
+	var mergedValue = reactExports.useMemo(function() {
+		// Clean up `[null]`
+		var values = toArray(innerValue).filter(function(val) {
+			return val;
+		});
+		return multiple ? values : values.slice(0, 1);
+	}, [innerValue, multiple]);
+	// Sync value and only trigger onChange event when changed
+	var triggerChange = useEvent(function(nextValue) {
+		setMergedValue(nextValue);
+		if (onChange && (nextValue === null || mergedValue.length !== nextValue.length || mergedValue.some(function(ori, index) {
+			return !isSame(generateConfig, locale, ori, nextValue[index], internalPicker);
+		}))) {
+			onChange === null || onChange === void 0 || onChange(multiple ? nextValue : nextValue[0]);
+		}
+	});
+	// >>> CalendarValue
+	// CalendarValue is a temp value for user operation
+	// which will only trigger `onCalendarChange` but not `onChange`
+	var onInternalSelect = useEvent(function(newDate) {
+		onSelect === null || onSelect === void 0 || onSelect(newDate);
+		if (mergedMode === picker) {
+			var nextValues = multiple ? toggleDates(mergedValue, newDate) : [newDate];
+			triggerChange(nextValues);
+		}
+	});
+	// >>> PickerValue
+	// PickerValue is used to control the current displaying panel
+	var _useControlledState5 = useControlledState(defaultPickerValue || mergedValue[0] || now, pickerValue), _useControlledState6 = _slicedToArray$6(_useControlledState5, 2), mergedPickerValue = _useControlledState6[0], setInternalPickerValue = _useControlledState6[1];
+	reactExports.useEffect(function() {
+		if (mergedValue[0] && !pickerValue) {
+			setInternalPickerValue(mergedValue[0]);
+		}
+	}, [mergedValue[0]]);
+	// Both trigger when manually pickerValue or mode change
+	var triggerPanelChange = function(viewDate, nextMode) {
+		onPanelChange === null || onPanelChange === void 0 || onPanelChange(viewDate || pickerValue, nextMode || mergedMode);
+	};
+	var setPickerValue = function(nextPickerValue) {
+		var triggerPanelEvent = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
+		setInternalPickerValue(nextPickerValue);
+		onPickerValueChange === null || onPickerValueChange === void 0 || onPickerValueChange(nextPickerValue);
+		if (triggerPanelEvent) {
+			triggerPanelChange(nextPickerValue);
+		}
+	};
+	var triggerModeChange = function(nextMode, viewDate) {
+		setMergedMode(nextMode);
+		if (viewDate) {
+			setPickerValue(viewDate);
+		}
+		triggerPanelChange(viewDate, nextMode);
+	};
+	var onPanelValueSelect = function(nextValue) {
+		onInternalSelect(nextValue);
+		setPickerValue(nextValue);
+		// Update mode if needed
+		if (mergedMode !== picker) {
+			var decadeYearQueue = ["decade", "year"];
+			var decadeYearMonthQueue = [].concat(decadeYearQueue, ["month"]);
+			var pickerQueue = {
+				quarter: [].concat(decadeYearQueue, ["quarter"]),
+				week: [].concat(_toConsumableArray$2(decadeYearMonthQueue), ["week"]),
+				date: [].concat(_toConsumableArray$2(decadeYearMonthQueue), ["date"])
+			};
+			var queue = pickerQueue[picker] || decadeYearMonthQueue;
+			var index = queue.indexOf(mergedMode);
+			var nextMode = queue[index + 1];
+			if (nextMode) {
+				triggerModeChange(nextMode, nextValue);
+			}
+		}
+	};
+	// ======================= Hover Date =======================
+	var hoverRangeDate = reactExports.useMemo(function() {
+		var start;
+		var end;
+		if (Array.isArray(hoverRangeValue)) {
+			var _hoverRangeValue = _slicedToArray$6(hoverRangeValue, 2);
+			start = _hoverRangeValue[0];
+			end = _hoverRangeValue[1];
+		} else {
+			start = hoverRangeValue;
+		}
+		// Return for not exist
+		if (!start && !end) {
+			return null;
+		}
+		// Fill if has empty
+		start = start || end;
+		end = end || start;
+		return generateConfig.isAfter(start, end) ? [end, start] : [start, end];
+	}, [hoverRangeValue, generateConfig]);
+	// ======================= Components =======================
+	// >>> cellRender
+	var onInternalCellRender = useCellRender(cellRender, dateRender, monthCellRender);
+	// ======================= Components =======================
+	var PanelComponent = components[internalMode] || DefaultComponents[internalMode] || DatePanel;
+	// ======================== Context =========================
+	var sharedPanelContext = reactExports.useMemo(function() {
+		var _ref2, _pickerClassNames$pop, _ref3, _pickerStyles$popup;
+		return {
+			classNames: (_ref2 = (_pickerClassNames$pop = pickerClassNames === null || pickerClassNames === void 0 ? void 0 : pickerClassNames.popup) !== null && _pickerClassNames$pop !== void 0 ? _pickerClassNames$pop : panelClassNames) !== null && _ref2 !== void 0 ? _ref2 : {},
+			styles: (_ref3 = (_pickerStyles$popup = pickerStyles === null || pickerStyles === void 0 ? void 0 : pickerStyles.popup) !== null && _pickerStyles$popup !== void 0 ? _pickerStyles$popup : panelStyles) !== null && _ref3 !== void 0 ? _ref3 : {}
+		};
+	}, [
+		pickerClassNames,
+		panelClassNames,
+		pickerStyles,
+		panelStyles
+	]);
+	var parentHackContext = reactExports.useContext(PickerHackContext);
+	var pickerPanelContext = reactExports.useMemo(function() {
+		return _objectSpread$8(_objectSpread$8({}, parentHackContext), {}, { hideHeader });
+	}, [parentHackContext, hideHeader]);
+	// ========================= Render =========================
+	var panelCls = "".concat(mergedPrefixCls, "-panel");
+	var panelProps = pickProps(props, [
+		"showWeek",
+		"prevIcon",
+		"nextIcon",
+		"superPrevIcon",
+		"superNextIcon",
+		"disabledDate",
+		"minDate",
+		"maxDate",
+		"onHover"
+	]);
+	return reactExports.createElement(SharedPanelContext.Provider, { value: sharedPanelContext }, reactExports.createElement(PickerHackContext.Provider, { value: pickerPanelContext }, reactExports.createElement("div", {
+		ref: rootRef,
+		tabIndex,
+		className: clsx(panelCls, _defineProperty$a({}, "".concat(panelCls, "-rtl"), direction === "rtl"))
+	}, reactExports.createElement(PanelComponent, _extends$b({}, panelProps, {
+		showTime: mergedShowTime,
+		prefixCls: mergedPrefixCls,
+		locale: filledLocale,
+		generateConfig,
+		onModeChange: triggerModeChange,
+		pickerValue: mergedPickerValue,
+		onPickerValueChange: function(nextPickerValue) {
+			setPickerValue(nextPickerValue, true);
+		},
+		value: mergedValue[0],
+		onSelect: onPanelValueSelect,
+		values: mergedValue,
+		cellRender: onInternalCellRender,
+		hoverRangeValue: hoverRangeDate,
+		hoverValue
+	})))));
+}
+var RefPanelPicker = reactExports.memo(reactExports.forwardRef(PickerPanel));
+// Make support generic
+var RCPickerPanel = RefPanelPicker;
+function _typeof$9(o) {
+	"@babel/helpers - typeof";
+	return _typeof$9 = function(o) {
+		return typeof o;
+	}, _typeof$9(o);
+}
+function _extends$a() {
+	_extends$a = Object.assign.bind();
+	return _extends$a.apply(this, arguments);
+}
+function ownKeys$7(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$7(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$7(Object(t), true).forEach(function(r) {
+			_defineProperty$9(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$7(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$9(obj, key, value) {
+	key = _toPropertyKey$9(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$9(t) {
+	var i = _toPrimitive$9(t);
+	return "symbol" == _typeof$9(i) ? i : String(i);
+}
+function _toPrimitive$9(t) {
+	if ("object" != _typeof$9(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$9(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function PopupPanel(props) {
+	var picker = props.picker, multiplePanel = props.multiplePanel, pickerValue = props.pickerValue, onPickerValueChange = props.onPickerValueChange, needConfirm = props.needConfirm, onSubmit = props.onSubmit, range = props.range, hoverValue = props.hoverValue;
+	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls, generateConfig = _React$useContext.generateConfig;
+	// ======================== Offset ========================
+	var internalOffsetDate = reactExports.useCallback(function(date, offset) {
+		return offsetPanelDate(generateConfig, picker, date, offset);
+	}, [generateConfig, picker]);
+	var nextPickerValue = reactExports.useMemo(function() {
+		return internalOffsetDate(pickerValue, 1);
+	}, [pickerValue, internalOffsetDate]);
+	// Outside
+	var onSecondPickerValueChange = function(nextDate) {
+		onPickerValueChange(internalOffsetDate(nextDate, -1));
+	};
+	// ======================= Context ========================
+	var sharedContext = { onCellDblClick: function() {
+		if (needConfirm) {
+			onSubmit();
+		}
+	} };
+	var hideHeader = picker === "time";
+	// ======================== Props =========================
+	var pickerProps = _objectSpread$7(_objectSpread$7({}, props), {}, {
+		hoverValue: null,
+		hoverRangeValue: null,
+		hideHeader
+	});
+	if (range) {
+		pickerProps.hoverRangeValue = hoverValue;
+	} else {
+		pickerProps.hoverValue = hoverValue;
+	}
+	// ======================== Render ========================
+	// Multiple
+	if (multiplePanel) {
+		return reactExports.createElement("div", { className: "".concat(prefixCls, "-panels") }, reactExports.createElement(PickerHackContext.Provider, { value: _objectSpread$7(_objectSpread$7({}, sharedContext), {}, { hideNext: true }) }, reactExports.createElement(RCPickerPanel, pickerProps)), reactExports.createElement(PickerHackContext.Provider, { value: _objectSpread$7(_objectSpread$7({}, sharedContext), {}, { hidePrev: true }) }, reactExports.createElement(RCPickerPanel, _extends$a({}, pickerProps, {
+			pickerValue: nextPickerValue,
+			onPickerValueChange: onSecondPickerValueChange
+		}))));
+	}
+	// Single
+	return reactExports.createElement(PickerHackContext.Provider, { value: _objectSpread$7({}, sharedContext) }, reactExports.createElement(RCPickerPanel, pickerProps));
+}
+function executeValue(value) {
+	return typeof value === "function" ? value() : value;
+}
+function PresetPanel(props) {
+	var prefixCls = props.prefixCls, presets = props.presets, _onClick = props.onClick, onHover = props.onHover;
+	if (!presets.length) {
+		return null;
+	}
+	return reactExports.createElement("div", { className: "".concat(prefixCls, "-presets") }, reactExports.createElement("ul", null, presets.map(function(_ref, index) {
+		var label = _ref.label, value = _ref.value;
+		return reactExports.createElement("li", {
+			key: index,
+			onClick: function() {
+				_onClick(executeValue(value));
+			},
+			onMouseEnter: function() {
+				onHover(executeValue(value));
+			},
+			onMouseLeave: function() {
+				onHover(null);
+			}
+		}, label);
+	})));
+}
+function _typeof$8(o) {
+	"@babel/helpers - typeof";
+	return _typeof$8 = function(o) {
+		return typeof o;
+	}, _typeof$8(o);
+}
+function ownKeys$6(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$6(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$6(Object(t), true).forEach(function(r) {
+			_defineProperty$8(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$6(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$8(obj, key, value) {
+	key = _toPropertyKey$8(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$8(t) {
+	var i = _toPrimitive$8(t);
+	return "symbol" == _typeof$8(i) ? i : String(i);
+}
+function _toPrimitive$8(t) {
+	if ("object" != _typeof$8(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$8(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _extends$9() {
+	_extends$9 = Object.assign.bind();
+	return _extends$9.apply(this, arguments);
+}
+function _slicedToArray$5(arr, i) {
+	return _arrayWithHoles$5(arr) || _iterableToArrayLimit$5(arr, i) || _unsupportedIterableToArray$5(arr, i) || _nonIterableRest$5();
+}
+function _nonIterableRest$5() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$5(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$5(o, minLen);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$5(o, minLen);
+}
+function _arrayLikeToArray$5(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$5(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$5(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function Popup(props) {
+	var _classNames$popup, _styles$popup;
+	var panelRender = props.panelRender, internalMode = props.internalMode, picker = props.picker, showNow = props.showNow, range = props.range, multiple = props.multiple, _props$activeInfo = props.activeInfo, activeInfo = _props$activeInfo === void 0 ? [
+		0,
+		0,
+		0
+	] : _props$activeInfo, presets = props.presets, onPresetHover = props.onPresetHover, onPresetSubmit = props.onPresetSubmit, onFocus = props.onFocus, onBlur = props.onBlur, onPanelMouseDown = props.onPanelMouseDown, direction = props.direction, value = props.value, onSelect = props.onSelect, isInvalid = props.isInvalid, defaultOpenValue = props.defaultOpenValue, onOk = props.onOk, onSubmit = props.onSubmit, classNames = props.classNames, styles = props.styles;
+	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls;
+	var panelPrefixCls = "".concat(prefixCls, "-panel");
+	var rtl = direction === "rtl";
+	// ========================= Refs =========================
+	var arrowRef = reactExports.useRef(null);
+	var wrapperRef = reactExports.useRef(null);
+	// ======================== Offset ========================
+	var _React$useState = reactExports.useState(0), _React$useState2 = _slicedToArray$5(_React$useState, 2), containerWidth = _React$useState2[0], setContainerWidth = _React$useState2[1];
+	var _React$useState3 = reactExports.useState(0), _React$useState4 = _slicedToArray$5(_React$useState3, 2), containerOffset = _React$useState4[0], setContainerOffset = _React$useState4[1];
+	var _React$useState5 = reactExports.useState(0), _React$useState6 = _slicedToArray$5(_React$useState5, 2), arrowOffset = _React$useState6[0], setArrowOffset = _React$useState6[1];
+	var onResize = function(info) {
+		if (info.width) {
+			setContainerWidth(info.width);
+		}
+	};
+	var _activeInfo = _slicedToArray$5(activeInfo, 3), activeInputLeft = _activeInfo[0], activeInputRight = _activeInfo[1], selectorWidth = _activeInfo[2];
+	var _React$useState7 = reactExports.useState(0), _React$useState8 = _slicedToArray$5(_React$useState7, 2), retryTimes = _React$useState8[0], setRetryTimes = _React$useState8[1];
+	reactExports.useEffect(function() {
+		setRetryTimes(10);
+	}, [activeInputLeft]);
+	reactExports.useEffect(function() {
+		// `activeOffset` is always align with the active input element
+		// So we need only check container contains the `activeOffset`
+		if (range && wrapperRef.current) {
+			var _arrowRef$current;
+			// Offset in case container has border radius
+			var arrowWidth = ((_arrowRef$current = arrowRef.current) === null || _arrowRef$current === void 0 ? void 0 : _arrowRef$current.offsetWidth) || 0;
+			// Arrow Offset
+			var wrapperRect = wrapperRef.current.getBoundingClientRect();
+			if (!wrapperRect.height || wrapperRect.right < 0) {
+				setRetryTimes(function(times) {
+					return Math.max(0, times - 1);
+				});
+				return;
+			}
+			var nextArrowOffset = (rtl ? activeInputRight - arrowWidth : activeInputLeft) - wrapperRect.left;
+			setArrowOffset(nextArrowOffset);
+			// Container Offset
+			if (containerWidth && containerWidth < selectorWidth) {
+				var offset = rtl ? wrapperRect.right - (activeInputRight - arrowWidth + containerWidth) : activeInputLeft + arrowWidth - wrapperRect.left - containerWidth;
+				var safeOffset = Math.max(0, offset);
+				setContainerOffset(safeOffset);
+			} else {
+				setContainerOffset(0);
+			}
+		}
+	}, [
+		retryTimes,
+		rtl,
+		containerWidth,
+		activeInputLeft,
+		activeInputRight,
+		selectorWidth,
+		range
+	]);
+	// ======================== Custom ========================
+	function filterEmpty(list) {
+		return list.filter(function(item) {
+			return item;
+		});
+	}
+	var valueList = reactExports.useMemo(function() {
+		return filterEmpty(toArray(value));
+	}, [value]);
+	var isTimePickerEmptyValue = picker === "time" && !valueList.length;
+	var footerSubmitValue = reactExports.useMemo(function() {
+		if (isTimePickerEmptyValue) {
+			return filterEmpty([defaultOpenValue]);
+		}
+		return valueList;
+	}, [
+		isTimePickerEmptyValue,
+		valueList,
+		defaultOpenValue
+	]);
+	var popupPanelValue = isTimePickerEmptyValue ? defaultOpenValue : valueList;
+	var disableSubmit = reactExports.useMemo(function() {
+		// Empty is invalid
+		if (!footerSubmitValue.length) {
+			return true;
+		}
+		return footerSubmitValue.some(function(val) {
+			return isInvalid(val);
+		});
+	}, [footerSubmitValue, isInvalid]);
+	var onFooterSubmit = function() {
+		// For TimePicker, we will additional trigger the value update
+		if (isTimePickerEmptyValue) {
+			onSelect(defaultOpenValue);
+		}
+		onOk();
+		onSubmit();
+	};
+	var mergedNodes = reactExports.createElement("div", { className: "".concat(prefixCls, "-panel-layout") }, reactExports.createElement(PresetPanel, {
+		prefixCls,
+		presets,
+		onClick: onPresetSubmit,
+		onHover: onPresetHover
+	}), reactExports.createElement("div", null, reactExports.createElement(PopupPanel, _extends$9({}, props, { value: popupPanelValue })), reactExports.createElement(Footer, _extends$9({}, props, {
+		showNow: multiple ? false : showNow,
+		invalid: disableSubmit,
+		onSubmit: onFooterSubmit
+	}))));
+	if (panelRender) {
+		mergedNodes = panelRender(mergedNodes);
+	}
+	// ======================== Render ========================
+	var containerPrefixCls = "".concat(panelPrefixCls, "-container");
+	// Container
+	var renderNode = reactExports.createElement("div", {
+		onMouseDown: onPanelMouseDown,
+		tabIndex: -1,
+		className: clsx(containerPrefixCls, "".concat(prefixCls, "-").concat(internalMode, "-panel-container"), classNames === null || classNames === void 0 || (_classNames$popup = classNames.popup) === null || _classNames$popup === void 0 ? void 0 : _classNames$popup.container),
+		style: _objectSpread$6(_defineProperty$8(_defineProperty$8({}, rtl ? "marginRight" : "marginLeft", containerOffset), rtl ? "marginLeft" : "marginRight", "auto"), styles === null || styles === void 0 || (_styles$popup = styles.popup) === null || _styles$popup === void 0 ? void 0 : _styles$popup.container),
+		onFocus,
+		onBlur
+	}, mergedNodes);
+	if (range) {
+		renderNode = reactExports.createElement("div", {
+			onMouseDown: onPanelMouseDown,
+			ref: wrapperRef,
+			className: clsx("".concat(prefixCls, "-range-wrapper"), "".concat(prefixCls, "-").concat(picker, "-range-wrapper"))
+		}, reactExports.createElement("div", {
+			ref: arrowRef,
+			className: "".concat(prefixCls, "-range-arrow"),
+			style: { left: arrowOffset }
+		}), reactExports.createElement(RefResizeObserver, { onResize }, renderNode));
+	}
+	return renderNode;
+}
+function _typeof$7(o) {
+	"@babel/helpers - typeof";
+	return _typeof$7 = function(o) {
+		return typeof o;
+	}, _typeof$7(o);
+}
+function ownKeys$5(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$5(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$5(Object(t), true).forEach(function(r) {
+			_defineProperty$7(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$5(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$7(obj, key, value) {
+	key = _toPropertyKey$7(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$7(t) {
+	var i = _toPrimitive$7(t);
+	return "symbol" == _typeof$7(i) ? i : String(i);
+}
+function _toPrimitive$7(t) {
+	if ("object" != _typeof$7(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$7(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function useInputProps(props, postProps) {
+	var format = props.format, maskFormat = props.maskFormat, generateConfig = props.generateConfig, locale = props.locale, preserveInvalidOnBlur = props.preserveInvalidOnBlur, inputReadOnly = props.inputReadOnly, required = props.required, ariaRequired = props["aria-required"], onSubmit = props.onSubmit, _onFocus = props.onFocus, _onBlur = props.onBlur, onInputChange = props.onInputChange, onInvalid = props.onInvalid, open = props.open, onOpenChange = props.onOpenChange, _onKeyDown = props.onKeyDown, _onChange = props.onChange, activeHelp = props.activeHelp, name = props.name, autoComplete = props.autoComplete, id = props.id, value = props.value, invalid = props.invalid, placeholder = props.placeholder, disabled = props.disabled, activeIndex = props.activeIndex, allHelp = props.allHelp, picker = props.picker;
+	// ======================== Parser ========================
+	var parseDate = function(str, formatStr) {
+		var parsed = generateConfig.locale.parse(locale.locale, str, [formatStr]);
+		return parsed && generateConfig.isValidate(parsed) ? parsed : null;
+	};
+	// ========================= Text =========================
+	var firstFormat = format[0];
+	var getText = reactExports.useCallback(function(date) {
+		return formatValue(date, {
+			b: locale,
+			c: firstFormat,
+			a: generateConfig
+		});
+	}, [
+		locale,
+		generateConfig,
+		firstFormat
+	]);
+	var valueTexts = reactExports.useMemo(function() {
+		return value.map(getText);
+	}, [value, getText]);
+	// ========================= Size =========================
+	var size = reactExports.useMemo(function() {
+		var defaultSize = picker === "time" ? 8 : 10;
+		var length = typeof firstFormat === "function" ? firstFormat(generateConfig.getNow()).length : firstFormat.length;
+		return Math.max(defaultSize, length) + 2;
+	}, [
+		firstFormat,
+		picker,
+		generateConfig
+	]);
+	// ======================= Validate =======================
+	var _validateFormat = function(text) {
+		for (var i = 0; i < format.length; i += 1) {
+			var singleFormat = format[i];
+			// Only support string type
+			if (typeof singleFormat === "string") {
+				var parsed = parseDate(text, singleFormat);
+				if (parsed) {
+					return parsed;
+				}
+			}
+		}
+		return false;
+	};
+	// ======================== Input =========================
+	var getInputProps = function(index) {
+		function getProp(propValue) {
+			return index !== void 0 ? propValue[index] : propValue;
+		}
+		var pickedAttrs = pickAttrs(props, {
+			aria: true,
+			data: true
+		});
+		var inputProps = _objectSpread$5(_objectSpread$5({}, pickedAttrs), {}, {
+			format: maskFormat,
+			validateFormat: function(text) {
+				return !!_validateFormat(text);
+			},
+			preserveInvalidOnBlur,
+			readOnly: inputReadOnly,
+			required,
+			"aria-required": ariaRequired,
+			name,
+			autoComplete,
+			size,
+			id: getProp(id),
+			value: getProp(valueTexts) || "",
+			invalid: getProp(invalid),
+			placeholder: getProp(placeholder),
+			active: activeIndex === index,
+			helped: allHelp || activeHelp && activeIndex === index,
+			disabled: getProp(disabled),
+			onFocus: function(event) {
+				_onFocus(event, index);
+			},
+			onBlur: function(event) {
+				// Blur do not trigger close
+				// Since it may focus to the popup panel
+				_onBlur(event, index);
+			},
+			onSubmit,
+			onChange: function(text) {
+				onInputChange();
+				var parsed = _validateFormat(text);
+				if (parsed) {
+					onInvalid(false, index);
+					_onChange(parsed, index);
+					return;
+				}
+				// Tell outer that the value typed is invalid.
+				// If text is empty, it means valid.
+				onInvalid(!!text, index);
+			},
+			onHelp: function() {
+				onOpenChange(true, { index });
+			},
+			onKeyDown: function(event) {
+				var prevented = false;
+				_onKeyDown === null || _onKeyDown === void 0 || _onKeyDown(event, function() {
+					prevented = true;
+				});
+				if (!event.defaultPrevented && !prevented) {
+					switch (event.key) {
+						case "Escape":
+							onOpenChange(false, { index });
+							break;
+						case "Enter":
+							if (!open) {
+								onOpenChange(true);
+							}
+							break;
+					}
+				}
+			}
+		}, postProps === void 0 ? void 0 : postProps({ valueTexts }));
+		// ============== Clean Up ==============
+		Object.keys(inputProps).forEach(function(key) {
+			if (inputProps[key] === void 0) {
+				delete inputProps[key];
+			}
+		});
+		return inputProps;
+	};
+	return [getInputProps, getText];
+}
+var propNames = ["onMouseEnter", "onMouseLeave"];
+function useRootProps(props) {
+	return reactExports.useMemo(function() {
+		return pickProps(props, propNames);
+	}, [props]);
+}
+var _excluded$3 = ["icon", "type"], _excluded2$1 = ["onClear"];
+function _extends$8() {
+	_extends$8 = Object.assign.bind();
+	return _extends$8.apply(this, arguments);
+}
+function _objectWithoutProperties$3(source, excluded) {
+	if (source == null) return {};
+	var target = _objectWithoutPropertiesLoose$3(source, excluded);
+	var key, i;
+	if (Object.getOwnPropertySymbols) {
+		var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
+		for (i = 0; i < sourceSymbolKeys.length; i++) {
+			key = sourceSymbolKeys[i];
+			if (excluded.indexOf(key) >= 0) continue;
+			if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+			target[key] = source[key];
+		}
+	}
+	return target;
+}
+function _objectWithoutPropertiesLoose$3(source, excluded) {
+	if (source == null) return {};
+	var target = {};
+	var sourceKeys = Object.keys(source);
+	var key, i;
+	for (i = 0; i < sourceKeys.length; i++) {
+		key = sourceKeys[i];
+		if (excluded.indexOf(key) >= 0) continue;
+		target[key] = source[key];
+	}
+	return target;
+}
+function Icon(props) {
+	var icon = props.icon, type = props.type, restProps = _objectWithoutProperties$3(props, _excluded$3);
+	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls, classNames = _React$useContext.classNames, styles = _React$useContext.styles;
+	return icon ? reactExports.createElement("span", _extends$8({
+		className: clsx("".concat(prefixCls, "-").concat(type), classNames.suffix),
+		style: styles.suffix
+	}, restProps), icon) : null;
+}
+function ClearIcon(_ref) {
+	var onClear = _ref.onClear, restProps = _objectWithoutProperties$3(_ref, _excluded2$1);
+	return reactExports.createElement(Icon, _extends$8({}, restProps, {
+		type: "clear",
+		role: "button",
+		onMouseDown: function(e) {
+			e.preventDefault();
+		},
+		onClick: function(e) {
+			e.stopPropagation();
+			onClear();
+		}
+	}));
+}
+function _typeof$6(o) {
+	"@babel/helpers - typeof";
+	return _typeof$6 = function(o) {
+		return typeof o;
+	}, _typeof$6(o);
+}
+function _classCallCheck(instance, Constructor) {
+	if (!(instance instanceof Constructor)) {
+		throw new TypeError("Cannot call a class as a function");
+	}
+}
+function _defineProperties(target, props) {
+	for (var i = 0; i < 4; i++) {
+		var descriptor = props[i];
+		descriptor.enumerable = descriptor.enumerable || false;
+		descriptor.configurable = true;
+		if ("value" in descriptor) descriptor.writable = true;
+		Object.defineProperty(target, _toPropertyKey$6(descriptor.key), descriptor);
+	}
+}
+function _createClass(Constructor, protoProps) {
+	{
+		_defineProperties(Constructor.prototype, protoProps);
+	}
+	Object.defineProperty(Constructor, "prototype", { writable: false });
+	return;
+}
+function _defineProperty$6(obj, key) {
+	key = _toPropertyKey$6(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value: void 0,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = void 0;
+	}
+	return;
+}
+function _toPropertyKey$6(t) {
+	var i = _toPrimitive$6(t);
+	return "symbol" == _typeof$6(i) ? i : String(i);
+}
+function _toPrimitive$6(t) {
+	if ("object" != _typeof$6(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$6(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+var FORMAT_KEYS = [
+	"YYYY",
+	"MM",
+	"DD",
+	"HH",
+	"mm",
+	"ss",
+	"SSS"
+];
+var MaskFormat = function() {
+	function MaskFormat(format) {
+		_classCallCheck(this, MaskFormat);
+		_defineProperty$6(this, "format");
+		_defineProperty$6(this, "maskFormat");
+		_defineProperty$6(this, "cells");
+		_defineProperty$6(this, "maskCells");
+		this.format = format;
+		// Generate mask format
+		var replaceKeys = FORMAT_KEYS.map(function(key) {
+			return "(".concat(key, ")");
+		}).join("|");
+		var replaceReg = new RegExp(replaceKeys, "g");
+		this.maskFormat = format.replace(
+			replaceReg,
+			// Use Chinese character to avoid user use it in format
+			function(key) {
+				return "顧".repeat(key.length);
+			}
+		);
+		// Generate cells
+		var cellReg = new RegExp("(".concat(FORMAT_KEYS.join("|"), ")"));
+		var strCells = (format.split(cellReg) || []).filter(function(str) {
+			return str;
+		});
+		var offset = 0;
+		this.cells = strCells.map(function(text) {
+			var mask = FORMAT_KEYS.includes(text);
+			var start = offset;
+			var end = offset + text.length;
+			offset = end;
+			return {
+				text,
+				mask,
+				start,
+				end
+			};
+		});
+		// Mask cells
+		this.maskCells = this.cells.filter(function(cell) {
+			return cell.mask;
+		});
+	}
+	_createClass(MaskFormat, [
+		{
+			key: "getSelection",
+			value: function(maskCellIndex) {
+				var _ref = this.maskCells[maskCellIndex] || {}, start = _ref.start, end = _ref.end;
+				return [start || 0, end || 0];
+			}
+		},
+		{
+			key: "match",
+			value: function(text) {
+				for (var i = 0; i < this.maskFormat.length; i += 1) {
+					var maskChar = this.maskFormat[i];
+					var textChar = text[i];
+					if (!textChar || maskChar !== "顧" && maskChar !== textChar) {
+						return false;
+					}
+				}
+				return true;
+			}
+		},
+		{
+			key: "size",
+			value: function() {
+				return this.maskCells.length;
+			}
+		},
+		{
+			key: "getMaskCellIndex",
+			value: function(anchorIndex) {
+				var closetDist = Number.MAX_SAFE_INTEGER;
+				var closetIndex = 0;
+				for (var i = 0; i < this.maskCells.length; i += 1) {
+					var _this$maskCells$i = this.maskCells[i], start = _this$maskCells$i.start, end = _this$maskCells$i.end;
+					if (anchorIndex >= start && anchorIndex <= end) {
+						return i;
+					}
+					var dist = Math.min(Math.abs(anchorIndex - start), Math.abs(anchorIndex - end));
+					if (dist < closetDist) {
+						closetDist = dist;
+						closetIndex = i;
+					}
+				}
+				return closetIndex;
+			}
+		}
+	]);
+	return MaskFormat;
+}();
+function getMaskRange(key) {
+	var PresetRange = {
+		YYYY: [
+			0,
+			9999,
+			new Date().getFullYear()
+		],
+		MM: [1, 12],
+		DD: [1, 31],
+		HH: [0, 23],
+		mm: [0, 59],
+		ss: [0, 59],
+		SSS: [0, 999]
+	};
+	return PresetRange[key];
+}
+function _typeof$5(o) {
+	"@babel/helpers - typeof";
+	return _typeof$5 = function(o) {
+		return typeof o;
+	}, _typeof$5(o);
+}
+var _excluded$2 = [
+	"className",
+	"active",
+	"showActiveCls",
+	"suffixIcon",
+	"format",
+	"validateFormat",
+	"onChange",
+	"onInput",
+	"helped",
+	"onHelp",
+	"onSubmit",
+	"onKeyDown",
+	"preserveInvalidOnBlur",
+	"invalid",
+	"clearIcon"
+];
+function _extends$7() {
+	_extends$7 = Object.assign.bind();
+	return _extends$7.apply(this, arguments);
+}
+function _defineProperty$5(obj, key, value) {
+	key = _toPropertyKey$5(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$5(t) {
+	var i = _toPrimitive$5(t);
+	return "symbol" == _typeof$5(i) ? i : String(i);
+}
+function _toPrimitive$5(t) {
+	if ("object" != _typeof$5(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$5(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$4(arr, i) {
+	return _arrayWithHoles$4(arr) || _iterableToArrayLimit$4(arr, i) || _unsupportedIterableToArray$4(arr, i) || _nonIterableRest$4();
+}
+function _nonIterableRest$4() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$4(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$4(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$4(o, minLen);
+}
+function _arrayLikeToArray$4(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$4(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$4(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function _objectWithoutProperties$2(source, excluded) {
+	if (source == null) return {};
+	var target = _objectWithoutPropertiesLoose$2(source, excluded);
+	var key, i;
+	if (Object.getOwnPropertySymbols) {
+		var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
+		for (i = 0; i < sourceSymbolKeys.length; i++) {
+			key = sourceSymbolKeys[i];
+			if (excluded.indexOf(key) >= 0) continue;
+			if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+			target[key] = source[key];
+		}
+	}
+	return target;
+}
+function _objectWithoutPropertiesLoose$2(source, excluded) {
+	if (source == null) return {};
+	var target = {};
+	var sourceKeys = Object.keys(source);
+	var key, i;
+	for (i = 0; i < sourceKeys.length; i++) {
+		key = sourceKeys[i];
+		if (excluded.indexOf(key) >= 0) continue;
+		target[key] = source[key];
+	}
+	return target;
+}
+// Format logic
+//
+// First time on focus:
+//  1. check if the text is valid, if not fill with format
+//  2. set highlight cell to the first cell
+// Cells
+//  1. Selection the index cell, set inner `cacheValue` to ''
+//  2. Key input filter non-number char, patch after the `cacheValue`
+//    1. Replace the `cacheValue` with input align the cell length
+//    2. Re-selection the mask cell
+//  3. If `cacheValue` match the limit length or cell format (like 1 ~ 12 month), go to next cell
+var Input = reactExports.forwardRef(function(props, ref) {
+	var className = props.className, active = props.active, _props$showActiveCls = props.showActiveCls, showActiveCls = _props$showActiveCls === void 0 ? true : _props$showActiveCls, suffixIcon = props.suffixIcon, format = props.format, validateFormat = props.validateFormat, onChange = props.onChange;
+	var helped = props.helped, onHelp = props.onHelp, onSubmit = props.onSubmit, onKeyDown = props.onKeyDown, _props$preserveInvali = props.preserveInvalidOnBlur, preserveInvalidOnBlur = _props$preserveInvali === void 0 ? false : _props$preserveInvali, invalid = props.invalid, clearIcon = props.clearIcon, restProps = _objectWithoutProperties$2(props, _excluded$2);
+	var value = props.value, onFocus = props.onFocus, onBlur = props.onBlur, onMouseUp = props.onMouseUp;
+	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls, _React$useContext$inp = _React$useContext.input, Component = _React$useContext$inp === void 0 ? "input" : _React$useContext$inp, classNames = _React$useContext.classNames, styles = _React$useContext.styles;
+	var inputPrefixCls = "".concat(prefixCls, "-input");
+	// ======================== Value =========================
+	var _React$useState = reactExports.useState(false), _React$useState2 = _slicedToArray$4(_React$useState, 2), focused = _React$useState2[0], setFocused = _React$useState2[1];
+	var _React$useState3 = reactExports.useState(value), _React$useState4 = _slicedToArray$4(_React$useState3, 2), internalInputValue = _React$useState4[0], setInputValue = _React$useState4[1];
+	var _React$useState5 = reactExports.useState(""), _React$useState6 = _slicedToArray$4(_React$useState5, 2), focusCellText = _React$useState6[0], setFocusCellText = _React$useState6[1];
+	var _React$useState7 = reactExports.useState(null), _React$useState8 = _slicedToArray$4(_React$useState7, 2), focusCellIndex = _React$useState8[0], setFocusCellIndex = _React$useState8[1];
+	var _React$useState9 = reactExports.useState(null), _React$useState10 = _slicedToArray$4(_React$useState9, 2), forceSelectionSyncMark = _React$useState10[0], forceSelectionSync = _React$useState10[1];
+	var inputValue = internalInputValue || "";
+	// Sync value if needed
+	reactExports.useEffect(function() {
+		setInputValue(value);
+	}, [value]);
+	// ========================= Refs =========================
+	var holderRef = reactExports.useRef(null);
+	var inputRef = reactExports.useRef(null);
+	reactExports.useImperativeHandle(ref, function() {
+		return {
+			nativeElement: holderRef.current,
+			inputElement: inputRef.current,
+			focus: function(options) {
+				inputRef.current.focus(options);
+			},
+			blur: function() {
+				inputRef.current.blur();
+			}
+		};
+	});
+	// ======================== Format ========================
+	var maskFormat = reactExports.useMemo(function() {
+		return new MaskFormat(format || "");
+	}, [format]);
+	var _React$useMemo = reactExports.useMemo(function() {
+		if (helped) {
+			return [0, 0];
+		}
+		return maskFormat.getSelection(focusCellIndex);
+	}, [
+		maskFormat,
+		focusCellIndex,
+		helped
+	]), _React$useMemo2 = _slicedToArray$4(_React$useMemo, 2), selectionStart = _React$useMemo2[0], selectionEnd = _React$useMemo2[1];
+	// ======================== Modify ========================
+	// When input modify content, trigger `onHelp` if is not the format
+	var onModify = function(text) {
+		if (text && text !== format && text !== value) {
+			onHelp();
+		}
+	};
+	// ======================== Change ========================
+	/**
+	* Triggered by paste, keyDown and focus to show format
+	*/
+	var triggerInputChange = useEvent(function(text) {
+		if (validateFormat(text)) {
+			onChange(text);
+		}
+		setInputValue(text);
+		onModify(text);
+	});
+	// Directly trigger `onChange` if `format` is empty
+	var onInternalChange = function(event) {
+		// Hack `onChange` with format to do nothing
+		if (!format) {
+			var text = event.target.value;
+			onModify(text);
+			setInputValue(text);
+			onChange(text);
+		}
+	};
+	var onFormatPaste = function(event) {
+		// Get paste text
+		var pasteText = event.clipboardData.getData("text");
+		if (validateFormat(pasteText)) {
+			triggerInputChange(pasteText);
+		}
+	};
+	// ======================== Mouse =========================
+	// When `mouseDown` get focus, it's better to not to change the selection
+	// Since the up position maybe not is the first cell
+	var mouseDownRef = reactExports.useRef(false);
+	var onFormatMouseDown = function() {
+		mouseDownRef.current = true;
+	};
+	var onFormatMouseUp = function(event) {
+		var _ref = event.target, start = _ref.selectionStart;
+		var closeMaskIndex = maskFormat.getMaskCellIndex(start);
+		setFocusCellIndex(closeMaskIndex);
+		// Force update the selection
+		forceSelectionSync({});
+		onMouseUp === null || onMouseUp === void 0 || onMouseUp(event);
+		mouseDownRef.current = false;
+	};
+	// ====================== Focus Blur ======================
+	var onFormatFocus = function(event) {
+		setFocused(true);
+		setFocusCellIndex(0);
+		setFocusCellText("");
+		onFocus(event);
+	};
+	var onSharedBlur = function(event) {
+		onBlur(event);
+	};
+	var onFormatBlur = function(event) {
+		setFocused(false);
+		onSharedBlur(event);
+	};
+	// ======================== Active ========================
+	// Check if blur need reset input value
+	useLockEffect(active, function() {
+		if (!active && !preserveInvalidOnBlur) {
+			setInputValue(value);
+		}
+	});
+	// ======================= Keyboard =======================
+	var onSharedKeyDown = function(event) {
+		if (event.key === "Enter" && validateFormat(inputValue)) {
+			onSubmit();
+		}
+		onKeyDown === null || onKeyDown === void 0 || onKeyDown(event);
+	};
+	var onFormatKeyDown = function(event) {
+		onSharedKeyDown(event);
+		var key = event.key;
+		// Save the cache with cell text
+		var nextCellText = null;
+		// Fill in the input
+		var nextFillText = null;
+		var maskCellLen = selectionEnd - selectionStart;
+		var cellFormat = format.slice(selectionStart, selectionEnd);
+		// Cell Index
+		var offsetCellIndex = function(offset) {
+			setFocusCellIndex(function(idx) {
+				var nextIndex = idx + offset;
+				nextIndex = Math.max(nextIndex, 0);
+				nextIndex = Math.min(nextIndex, maskFormat.size() - 1);
+				return nextIndex;
+			});
+		};
+		// Range
+		var offsetCellValue = function(offset) {
+			var _getMaskRange = getMaskRange(cellFormat), _getMaskRange2 = _slicedToArray$4(_getMaskRange, 3), rangeStart = _getMaskRange2[0], rangeEnd = _getMaskRange2[1], rangeDefault = _getMaskRange2[2];
+			var currentText = inputValue.slice(selectionStart, selectionEnd);
+			var currentTextNum = Number(currentText);
+			if (isNaN(currentTextNum)) {
+				return String(rangeDefault ? rangeDefault : offset > 0 ? rangeStart : rangeEnd);
+			}
+			var num = currentTextNum + offset;
+			var range = rangeEnd - rangeStart + 1;
+			return String(rangeStart + (range + num - rangeStart) % range);
+		};
+		switch (key) {
+			case "Backspace":
+			case "Delete":
+				nextCellText = "";
+				nextFillText = cellFormat;
+				break;
+			case "ArrowLeft":
+				nextCellText = "";
+				offsetCellIndex(-1);
+				break;
+			case "ArrowRight":
+				nextCellText = "";
+				offsetCellIndex(1);
+				break;
+			case "ArrowUp":
+				nextCellText = "";
+				nextFillText = offsetCellValue(1);
+				break;
+			case "ArrowDown":
+				nextCellText = "";
+				nextFillText = offsetCellValue(-1);
+				break;
+			default:
+				if (!isNaN(Number(key))) {
+					nextCellText = focusCellText + key;
+					nextFillText = nextCellText;
+				}
+				break;
+		}
+		// Update cell text
+		if (nextCellText !== null) {
+			setFocusCellText(nextCellText);
+			if (nextCellText.length >= maskCellLen) {
+				// Go to next cell
+				offsetCellIndex(1);
+				setFocusCellText("");
+			}
+		}
+		// Update the input text
+		if (nextFillText !== null) {
+			// Replace selection range with `nextCellText`
+			var nextFocusValue = inputValue.slice(0, selectionStart) + leftPad(nextFillText, maskCellLen) + inputValue.slice(selectionEnd);
+			triggerInputChange(nextFocusValue.slice(0, format.length));
+		}
+		// Always trigger selection sync after key down
+		forceSelectionSync({});
+	};
+	// ======================== Format ========================
+	var rafRef = reactExports.useRef();
+	useLayoutEffect(function() {
+		if (!focused || !format || mouseDownRef.current) {
+			return;
+		}
+		// Reset with format if not match
+		if (!maskFormat.match(inputValue)) {
+			triggerInputChange(format);
+			return;
+		}
+		// Match the selection range
+		inputRef.current.setSelectionRange(selectionStart, selectionEnd);
+		// Chrome has the bug anchor position looks not correct but actually correct
+		rafRef.current = wrapperRaf(function() {
+			inputRef.current.setSelectionRange(selectionStart, selectionEnd);
+		});
+		return function() {
+			wrapperRaf.a(rafRef.current);
+		};
+	}, [
+		maskFormat,
+		format,
+		focused,
+		inputValue,
+		focusCellIndex,
+		selectionStart,
+		selectionEnd,
+		forceSelectionSyncMark,
+		triggerInputChange
+	]);
+	// ======================== Render ========================
+	// Input props for format
+	var inputProps = format ? {
+		onFocus: onFormatFocus,
+		onBlur: onFormatBlur,
+		onKeyDown: onFormatKeyDown,
+		onMouseDown: onFormatMouseDown,
+		onMouseUp: onFormatMouseUp,
+		onPaste: onFormatPaste
+	} : {};
+	return reactExports.createElement("div", {
+		ref: holderRef,
+		className: clsx(inputPrefixCls, _defineProperty$5(_defineProperty$5({}, "".concat(inputPrefixCls, "-active"), active && showActiveCls), "".concat(inputPrefixCls, "-placeholder"), helped), className)
+	}, reactExports.createElement(Component, _extends$7({
+		ref: inputRef,
+		"aria-invalid": invalid,
+		autoComplete: "off"
+	}, restProps, {
+		onKeyDown: onSharedKeyDown,
+		onBlur: onSharedBlur
+	}, inputProps, {
+		value: inputValue,
+		onChange: onInternalChange,
+		className: classNames.input,
+		style: styles.input
+	})), reactExports.createElement(Icon, {
+		type: "suffix",
+		icon: suffixIcon
+	}), clearIcon);
+});
+var Input$1 = Input;
+var _excluded$1 = [
+	"id",
+	"prefix",
+	"clearIcon",
+	"suffixIcon",
+	"separator",
+	"activeIndex",
+	"activeHelp",
+	"allHelp",
+	"focused",
+	"onFocus",
+	"onBlur",
+	"onKeyDown",
+	"locale",
+	"generateConfig",
+	"placeholder",
+	"className",
+	"style",
+	"onClick",
+	"onClear",
+	"value",
+	"onChange",
+	"onSubmit",
+	"onInputChange",
+	"format",
+	"maskFormat",
+	"preserveInvalidOnBlur",
+	"onInvalid",
+	"disabled",
+	"invalid",
+	"inputReadOnly",
+	"direction",
+	"onOpenChange",
+	"onActiveInfo",
+	"placement",
+	"onMouseDown",
+	"required",
+	"aria-required",
+	"autoFocus",
+	"tabIndex"
+], _excluded2 = ["index"];
+function _extends$6() {
+	_extends$6 = Object.assign.bind();
+	return _extends$6.apply(this, arguments);
+}
+function ownKeys$4(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$4(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$4(Object(t), true).forEach(function(r) {
+			_defineProperty$4(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$4(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$4(obj, key, value) {
+	key = _toPropertyKey$4(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$4(t) {
+	var i = _toPrimitive$4(t);
+	return "symbol" == _typeof$4(i) ? i : String(i);
+}
+function _toPrimitive$4(t) {
+	if ("object" != _typeof$4(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$4(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$3(arr, i) {
+	return _arrayWithHoles$3(arr) || _iterableToArrayLimit$3(arr, i) || _unsupportedIterableToArray$3(arr, i) || _nonIterableRest$3();
+}
+function _nonIterableRest$3() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$3(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$3(o, 2);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$3(o, minLen);
+}
+function _arrayLikeToArray$3(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$3(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$3(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function _typeof$4(o) {
+	"@babel/helpers - typeof";
+	return _typeof$4 = function(o) {
+		return typeof o;
+	}, _typeof$4(o);
+}
+function _objectWithoutProperties$1(source, excluded) {
+	if (source == null) return {};
+	var target = _objectWithoutPropertiesLoose$1(source, excluded);
+	var key, i;
+	if (Object.getOwnPropertySymbols) {
+		var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
+		for (i = 0; i < sourceSymbolKeys.length; i++) {
+			key = sourceSymbolKeys[i];
+			if (excluded.indexOf(key) >= 0) continue;
+			if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+			target[key] = source[key];
+		}
+	}
+	return target;
+}
+function _objectWithoutPropertiesLoose$1(source, excluded) {
+	if (source == null) return {};
+	var target = {};
+	var sourceKeys = Object.keys(source);
+	var key, i;
+	for (i = 0; i < sourceKeys.length; i++) {
+		key = sourceKeys[i];
+		if (excluded.indexOf(key) >= 0) continue;
+		target[key] = source[key];
+	}
+	return target;
+}
+function RangeSelector(props, ref) {
+	var id = props.id, prefix = props.prefix, clearIcon = props.clearIcon, suffixIcon = props.suffixIcon, _props$separator = props.separator, separator = _props$separator === void 0 ? "~" : _props$separator, activeIndex = props.activeIndex;
+	var focused = props.focused;
+	var placeholder = props.placeholder, className = props.className, style = props.style, onClick = props.onClick, onClear = props.onClear, value = props.value;
+	var disabled = props.disabled, invalid = props.invalid;
+	var direction = props.direction;
+	var onActiveInfo = props.onActiveInfo;
+	var _onMouseDown = props.onMouseDown;
+	var autoFocus = props.autoFocus, tabIndex = props.tabIndex, restProps = _objectWithoutProperties$1(props, _excluded$1);
+	var rtl = direction === "rtl";
+	// ======================== Prefix ========================
+	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls, classNames = _React$useContext.classNames, styles = _React$useContext.styles;
+	// ========================== Id ==========================
+	var ids = reactExports.useMemo(function() {
+		if (typeof id === "string") {
+			return [id];
+		}
+		var mergedId = id || {};
+		return [mergedId.start, mergedId.end];
+	}, [id]);
+	// ========================= Refs =========================
+	var rootRef = reactExports.useRef();
+	var inputStartRef = reactExports.useRef();
+	var inputEndRef = reactExports.useRef();
+	var getInput = function(index) {
+		var _index;
+		return (_index = [inputStartRef, inputEndRef][index]) === null || _index === void 0 ? void 0 : _index.current;
+	};
+	reactExports.useImperativeHandle(ref, function() {
+		return {
+			nativeElement: rootRef.current,
+			focus: function(options) {
+				if (_typeof$4(options) === "object") {
+					var _getInput;
+					var _ref = options || {}, _ref$index = _ref.index, _index2 = _ref$index === void 0 ? 0 : _ref$index, rest = _objectWithoutProperties$1(_ref, _excluded2);
+					(_getInput = getInput(_index2)) === null || _getInput === void 0 || _getInput.focus(rest);
+				} else {
+					var _getInput2;
+					(_getInput2 = getInput(options !== null && options !== void 0 ? options : 0)) === null || _getInput2 === void 0 || _getInput2.focus();
+				}
+			},
+			blur: function() {
+				var _getInput3, _getInput4;
+				(_getInput3 = getInput(0)) === null || _getInput3 === void 0 || _getInput3.blur();
+				(_getInput4 = getInput(1)) === null || _getInput4 === void 0 || _getInput4.blur();
+			}
+		};
+	});
+	// ======================== Props =========================
+	var rootProps = useRootProps(restProps);
+	// ===================== Placeholder ======================
+	var mergedPlaceholder = reactExports.useMemo(function() {
+		return Array.isArray(placeholder) ? placeholder : [placeholder, placeholder];
+	}, [placeholder]);
+	// ======================== Inputs ========================
+	var _useInputProps = useInputProps(_objectSpread$4(_objectSpread$4({}, props), {}, {
+		id: ids,
+		placeholder: mergedPlaceholder
+	})), _useInputProps2 = _slicedToArray$3(_useInputProps, 1), getInputProps = _useInputProps2[0];
+	// ====================== ActiveBar =======================
+	var _React$useState = reactExports.useState({
+		position: "absolute",
+		width: 0
+	}), _React$useState2 = _slicedToArray$3(_React$useState, 2), activeBarStyle = _React$useState2[0], setActiveBarStyle = _React$useState2[1];
+	var syncActiveOffset = useEvent(function() {
+		var input = getInput(activeIndex);
+		if (input) {
+			var inputRect = input.nativeElement.getBoundingClientRect();
+			var parentRect = rootRef.current.getBoundingClientRect();
+			var rectOffset = inputRect.left - parentRect.left;
+			setActiveBarStyle(function(ori) {
+				return _objectSpread$4(_objectSpread$4({}, ori), {}, {
+					width: inputRect.width,
+					left: rectOffset
+				});
+			});
+			onActiveInfo([
+				inputRect.left,
+				inputRect.right,
+				parentRect.width
+			]);
+		}
+	});
+	reactExports.useEffect(function() {
+		syncActiveOffset();
+	}, [activeIndex]);
+	// ======================== Clear =========================
+	var showClear = clearIcon && (value[0] && !disabled[0] || value[1] && !disabled[1]);
+	// ======================= Disabled =======================
+	var startAutoFocus = autoFocus && !disabled[0];
+	var endAutoFocus = autoFocus && !startAutoFocus && !disabled[1];
+	// ======================== Render ========================
+	return reactExports.createElement(RefResizeObserver, { onResize: syncActiveOffset }, reactExports.createElement("div", _extends$6({}, rootProps, {
+		className: clsx(prefixCls, "".concat(prefixCls, "-range"), _defineProperty$4(_defineProperty$4(_defineProperty$4(_defineProperty$4({}, "".concat(prefixCls, "-focused"), focused), "".concat(prefixCls, "-disabled"), disabled.every(function(i) {
+			return i;
+		})), "".concat(prefixCls, "-invalid"), invalid.some(function(i) {
+			return i;
+		})), "".concat(prefixCls, "-rtl"), rtl), className),
+		style,
+		ref: rootRef,
+		onClick,
+		onMouseDown: function(e) {
+			var target = e.target;
+			if (target !== inputStartRef.current.inputElement && target !== inputEndRef.current.inputElement) {
+				e.preventDefault();
+			}
+			_onMouseDown === null || _onMouseDown === void 0 || _onMouseDown(e);
+		}
+	}), prefix && reactExports.createElement("div", {
+		className: clsx("".concat(prefixCls, "-prefix"), classNames.prefix),
+		style: styles.prefix
+	}, prefix), reactExports.createElement(Input$1, _extends$6({ ref: inputStartRef }, getInputProps(0), {
+		className: "".concat(prefixCls, "-input-start"),
+		autoFocus: startAutoFocus,
+		tabIndex,
+		"date-range": "start"
+	})), reactExports.createElement("div", { className: "".concat(prefixCls, "-range-separator") }, separator), reactExports.createElement(Input$1, _extends$6({ ref: inputEndRef }, getInputProps(1), {
+		className: "".concat(prefixCls, "-input-end"),
+		autoFocus: endAutoFocus,
+		tabIndex,
+		"date-range": "end"
+	})), reactExports.createElement("div", {
+		className: "".concat(prefixCls, "-active-bar"),
+		style: activeBarStyle
+	}), reactExports.createElement(Icon, {
+		type: "suffix",
+		icon: suffixIcon
+	}), showClear && reactExports.createElement(ClearIcon, {
+		icon: clearIcon,
+		onClear
+	})));
+}
+var RefRangeSelector = reactExports.forwardRef(RangeSelector);
+var RangeSelector$1 = RefRangeSelector;
+function _typeof$3(o) {
+	"@babel/helpers - typeof";
+	return _typeof$3 = function(o) {
+		return typeof o;
+	}, _typeof$3(o);
+}
+function ownKeys$3(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$3(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$3(Object(t), true).forEach(function(r) {
+			_defineProperty$3(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$3(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$3(obj, key, value) {
+	key = _toPropertyKey$3(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$3(t) {
+	var i = _toPrimitive$3(t);
+	return "symbol" == _typeof$3(i) ? i : String(i);
+}
+function _toPrimitive$3(t) {
+	if ("object" != _typeof$3(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$3(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+/**
+* Convert `classNames` & `styles` to a fully filled object
+*/
+function useSemantic(classNames, styles) {
+	return reactExports.useMemo(function() {
+		var mergedClassNames = _objectSpread$3(_objectSpread$3({}, classNames), {}, { popup: (classNames === null || classNames === void 0 ? void 0 : classNames.popup) || {} });
+		var mergedStyles = _objectSpread$3(_objectSpread$3({}, styles), {}, { popup: (styles === null || styles === void 0 ? void 0 : styles.popup) || {} });
+		return [mergedClassNames, mergedStyles];
+	}, [classNames, styles]);
+}
+function _typeof$2(o) {
+	"@babel/helpers - typeof";
+	return _typeof$2 = function(o) {
+		return typeof o;
+	}, _typeof$2(o);
+}
+function _extends$5() {
+	_extends$5 = Object.assign.bind();
+	return _extends$5.apply(this, arguments);
+}
+function _toConsumableArray$1(arr) {
+	return _arrayWithoutHoles$1(arr) || _iterableToArray$1(arr) || _unsupportedIterableToArray$2(arr) || _nonIterableSpread$1();
+}
+function _nonIterableSpread$1() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _iterableToArray$1(iter) {
+	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+}
+function _arrayWithoutHoles$1(arr) {
+	if (Array.isArray(arr)) return _arrayLikeToArray$2(arr);
+}
+function ownKeys$2(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$2(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$2(Object(t), true).forEach(function(r) {
+			_defineProperty$2(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$2(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$2(obj, key, value) {
+	key = _toPropertyKey$2(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey$2(t) {
+	var i = _toPrimitive$2(t);
+	return "symbol" == _typeof$2(i) ? i : String(i);
+}
+function _toPrimitive$2(t) {
+	if ("object" != _typeof$2(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$2(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$2(arr, i) {
+	return _arrayWithHoles$2(arr) || _iterableToArrayLimit$2(arr, i) || _unsupportedIterableToArray$2(arr, i) || _nonIterableRest$2();
+}
+function _nonIterableRest$2() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$2(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray$2(o, minLen);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$2(o, minLen);
+}
+function _arrayLikeToArray$2(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$2(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$2(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function separateConfig(config) {
+	var singleConfig = config !== null && config !== void 0 ? config : false;
+	if (Array.isArray(singleConfig)) {
+		return singleConfig;
+	}
+	return [singleConfig, singleConfig];
+}
+/** Used for change event, it should always be not undefined */
+function getActiveRange(activeIndex) {
+	return activeIndex === 1 ? "end" : "start";
+}
+function RangePicker(props, ref) {
+	// ========================= Prop =========================
+	var _useFilledProps = useFilledProps(props, function() {
+		var disabled = props.disabled, allowEmpty = props.allowEmpty;
+		var mergedDisabled = separateConfig(disabled);
+		var mergedAllowEmpty = separateConfig(allowEmpty);
+		return {
+			disabled: mergedDisabled,
+			allowEmpty: mergedAllowEmpty
+		};
+	}), _useFilledProps2 = _slicedToArray$2(_useFilledProps, 6), filledProps = _useFilledProps2[0], internalPicker = _useFilledProps2[1], complexPicker = _useFilledProps2[2], formatList = _useFilledProps2[3], maskFormat = _useFilledProps2[4], isInvalidateDate = _useFilledProps2[5];
+	var prefixCls = filledProps.prefixCls, rootClassName = filledProps.rootClassName, propStyles = filledProps.styles, propClassNames = filledProps.classNames, previewValue = filledProps.previewValue, defaultValue = filledProps.defaultValue, value = filledProps.value, needConfirm = filledProps.needConfirm, onKeyDown = filledProps.onKeyDown, disabled = filledProps.disabled, allowEmpty = filledProps.allowEmpty, disabledDate = filledProps.disabledDate, minDate = filledProps.minDate, maxDate = filledProps.maxDate, defaultOpen = filledProps.defaultOpen, open = filledProps.open, onOpenChange = filledProps.onOpenChange, locale = filledProps.locale, generateConfig = filledProps.generateConfig, picker = filledProps.picker, showNow = filledProps.showNow, showToday = filledProps.showToday, showTime = filledProps.showTime, mode = filledProps.mode, onPanelChange = filledProps.onPanelChange, onCalendarChange = filledProps.onCalendarChange, onOk = filledProps.onOk, defaultPickerValue = filledProps.defaultPickerValue, pickerValue = filledProps.pickerValue, onPickerValueChange = filledProps.onPickerValueChange, inputReadOnly = filledProps.inputReadOnly, suffixIcon = filledProps.suffixIcon, onFocus = filledProps.onFocus, onBlur = filledProps.onBlur, presets = filledProps.presets, ranges = filledProps.ranges, components = filledProps.components, cellRender = filledProps.cellRender, dateRender = filledProps.dateRender, monthCellRender = filledProps.monthCellRender, onClick = filledProps.onClick;
+	// ========================= Refs =========================
+	var selectorRef = usePickerRef(ref);
+	// ======================= Semantic =======================
+	var _useSemantic = useSemantic(propClassNames, propStyles), _useSemantic2 = _slicedToArray$2(_useSemantic, 2), mergedClassNames = _useSemantic2[0], mergedStyles = _useSemantic2[1];
+	// ========================= Open =========================
+	var _useOpen = useOpen(open, defaultOpen, disabled, onOpenChange), _useOpen2 = _slicedToArray$2(_useOpen, 2), mergedOpen = _useOpen2[0], setMergeOpen = _useOpen2[1];
+	var triggerOpen = function(nextOpen, config) {
+		// No need to open if all disabled
+		if (disabled.some(function(fieldDisabled) {
+			return !fieldDisabled;
+		}) || !nextOpen) {
+			setMergeOpen(nextOpen, config);
+		}
+	};
+	// ======================== Values ========================
+	var _useInnerValue = useInnerValue(generateConfig, locale, formatList, true, 0, defaultValue, value, onCalendarChange, onOk), _useInnerValue2 = _slicedToArray$2(_useInnerValue, 5), mergedValue = _useInnerValue2[0], setInnerValue = _useInnerValue2[1], getCalendarValue = _useInnerValue2[2], triggerCalendarChange = _useInnerValue2[3], triggerOk = _useInnerValue2[4];
+	var calendarValue = getCalendarValue();
+	// ======================== Active ========================
+	var _useRangeActive = useRangeActive(disabled, allowEmpty, mergedOpen), _useRangeActive2 = _slicedToArray$2(_useRangeActive, 9), focused = _useRangeActive2[0], triggerFocus = _useRangeActive2[1], lastOperation = _useRangeActive2[2], activeIndex = _useRangeActive2[3], setActiveIndex = _useRangeActive2[4], nextActiveIndex = _useRangeActive2[5], activeIndexList = _useRangeActive2[6], updateSubmitIndex = _useRangeActive2[7], hasActiveSubmitValue = _useRangeActive2[8];
+	var onSharedFocus = function(event, index) {
+		triggerFocus(true);
+		onFocus === null || onFocus === void 0 || onFocus(event, { range: getActiveRange(index !== null && index !== void 0 ? index : activeIndex) });
+	};
+	var onSharedBlur = function(event, index) {
+		triggerFocus(false);
+		onBlur === null || onBlur === void 0 || onBlur(event, { range: getActiveRange(index !== null && index !== void 0 ? index : activeIndex) });
+	};
+	// ======================= ShowTime =======================
+	/** Used for Popup panel */
+	var mergedShowTime = reactExports.useMemo(function() {
+		if (!showTime) {
+			return null;
+		}
+		var disabledTime = showTime.disabledTime;
+		var proxyDisabledTime = disabledTime ? function(date) {
+			var range = getActiveRange(activeIndex);
+			var fromDate = getFromDate(calendarValue, activeIndexList, activeIndex);
+			return disabledTime(date, range, { from: fromDate });
+		} : void 0;
+		return _objectSpread$2(_objectSpread$2({}, showTime), {}, { disabledTime: proxyDisabledTime });
+	}, [
+		showTime,
+		activeIndex,
+		calendarValue,
+		activeIndexList
+	]);
+	// ========================= Mode =========================
+	var _useControlledState = useControlledState([picker, picker], mode), _useControlledState2 = _slicedToArray$2(_useControlledState, 2), modes = _useControlledState2[0], setModes = _useControlledState2[1];
+	var mergedMode = modes[activeIndex] || picker;
+	/** Extends from `mergedMode` to patch `datetime` mode */
+	var internalMode = mergedMode === "date" && mergedShowTime ? "datetime" : mergedMode;
+	// ====================== PanelCount ======================
+	var multiplePanel = internalMode === picker && internalMode !== "time";
+	// ======================= Show Now =======================
+	var mergedShowNow = useShowNow(0, mergedMode, showNow, showToday, true);
+	// ======================== Value =========================
+	var _useRangeValue = useRangeValue(filledProps, mergedValue, setInnerValue, getCalendarValue, triggerCalendarChange, disabled, formatList, focused, mergedOpen, isInvalidateDate), _useRangeValue2 = _slicedToArray$2(_useRangeValue, 2), flushSubmit = _useRangeValue2[0], triggerSubmitChange = _useRangeValue2[1];
+	// ===================== DisabledDate =====================
+	var mergedDisabledDate = useRangeDisabledDate(calendarValue, disabled, activeIndexList, generateConfig, locale, disabledDate);
+	// ======================= Validate =======================
+	var _useFieldsInvalidate = useFieldsInvalidate(calendarValue, isInvalidateDate, allowEmpty), _useFieldsInvalidate2 = _slicedToArray$2(_useFieldsInvalidate, 2), submitInvalidates = _useFieldsInvalidate2[0], onSelectorInvalid = _useFieldsInvalidate2[1];
+	// ===================== Picker Value =====================
+	var _useRangePickerValue = useRangePickerValue(generateConfig, locale, calendarValue, modes, mergedOpen, activeIndex, internalPicker, multiplePanel, defaultPickerValue, pickerValue, mergedShowTime === null || mergedShowTime === void 0 ? void 0 : mergedShowTime.defaultOpenValue, onPickerValueChange, minDate, maxDate), _useRangePickerValue2 = _slicedToArray$2(_useRangePickerValue, 2), currentPickerValue = _useRangePickerValue2[0], setCurrentPickerValue = _useRangePickerValue2[1];
+	// >>> Mode need wait for `pickerValue`
+	var triggerModeChange = useEvent(function(nextPickerValue, nextMode, triggerEvent) {
+		var clone = fillIndex(modes, activeIndex, nextMode);
+		if (clone[0] !== modes[0] || clone[1] !== modes[1]) {
+			setModes(clone);
+		}
+		// Compatible with `onPanelChange`
+		if (onPanelChange && triggerEvent !== false) {
+			var clonePickerValue = _toConsumableArray$1(calendarValue);
+			if (nextPickerValue) {
+				clonePickerValue[activeIndex] = nextPickerValue;
+			}
+			onPanelChange(clonePickerValue, clone);
+		}
+	});
+	// ======================== Change ========================
+	var fillCalendarValue = function(date, index) {
+		return fillIndex(calendarValue, index, date);
+	};
+	// ======================== Submit ========================
+	/**
+	* Trigger by confirm operation.
+	* This function has already handle the `needConfirm` check logic.
+	* - Selector: enter key
+	* - Panel: OK button
+	*/
+	var triggerPartConfirm = function(date, skipFocus) {
+		var nextValue = calendarValue;
+		if (date) {
+			nextValue = fillCalendarValue(date, activeIndex);
+		}
+		updateSubmitIndex(activeIndex);
+		// Get next focus index
+		var nextIndex = nextActiveIndex(nextValue);
+		// Change calendar value and tell flush it
+		triggerCalendarChange(nextValue);
+		flushSubmit(activeIndex, nextIndex === null);
+		if (nextIndex === null) {
+			triggerOpen(false, { force: true });
+		} else if (!skipFocus) {
+			selectorRef.current.focus({ index: nextIndex });
+		}
+	};
+	// ======================== Click =========================
+	var onSelectorClick = function(event) {
+		var _activeElement;
+		var rootNode = event.target.getRootNode();
+		if (!selectorRef.current.nativeElement.contains((_activeElement = rootNode.activeElement) !== null && _activeElement !== void 0 ? _activeElement : document.activeElement)) {
+			// Click to focus the enabled input
+			var enabledIndex = disabled.findIndex(function(d) {
+				return !d;
+			});
+			if (enabledIndex >= 0) {
+				selectorRef.current.focus({ index: enabledIndex });
+			}
+		}
+		triggerOpen(true);
+		onClick === null || onClick === void 0 || onClick(event);
+	};
+	var onSelectorClear = function() {
+		triggerSubmitChange(null);
+		triggerOpen(false, { force: true });
+	};
+	// ======================== Hover =========================
+	var _React$useState = reactExports.useState(null), _React$useState2 = _slicedToArray$2(_React$useState, 2), hoverSource = _React$useState2[0], setHoverSource = _React$useState2[1];
+	var _React$useState3 = reactExports.useState(null), _React$useState4 = _slicedToArray$2(_React$useState3, 2), internalHoverValues = _React$useState4[0], setInternalHoverValues = _React$useState4[1];
+	var hoverValues = reactExports.useMemo(function() {
+		return internalHoverValues || calendarValue;
+	}, [calendarValue, internalHoverValues]);
+	// Clean up `internalHoverValues` when closed
+	reactExports.useEffect(function() {
+		if (!mergedOpen) {
+			setInternalHoverValues(null);
+		}
+	}, [mergedOpen]);
+	// ========================================================
+	// ==                       Panels                       ==
+	// ========================================================
+	// Save the offset with active bar position
+	// const [activeOffset, setActiveOffset] = React.useState(0);
+	var _React$useState5 = reactExports.useState([
+		0,
+		0,
+		0
+	]), _React$useState6 = _slicedToArray$2(_React$useState5, 2), activeInfo = _React$useState6[0], setActiveInfo = _React$useState6[1];
+	var onSetHover = function(date, source) {
+		if (previewValue !== "hover") {
+			return;
+		}
+		setInternalHoverValues(date);
+		setHoverSource(source);
+	};
+	// ======================= Presets ========================
+	var presetList = usePresets(presets, ranges);
+	var onPresetHover = function(nextValues) {
+		onSetHover(nextValues, "preset");
+	};
+	var onPresetSubmit = function(nextValues) {
+		var passed = triggerSubmitChange(nextValues);
+		if (passed) {
+			triggerOpen(false, { force: true });
+		}
+	};
+	var onNow = function(now) {
+		triggerPartConfirm(now);
+	};
+	// ======================== Panel =========================
+	var onPanelHover = function(date) {
+		onSetHover(date ? fillCalendarValue(date, activeIndex) : null, "cell");
+	};
+	// >>> Focus
+	var onPanelFocus = function(event) {
+		triggerOpen(true);
+		onSharedFocus(event);
+	};
+	// >>> MouseDown
+	var onPanelMouseDown = function() {
+		lastOperation("panel");
+	};
+	// >>> Calendar
+	var onPanelSelect = function(date) {
+		var clone = fillIndex(calendarValue, activeIndex, date);
+		// Only trigger calendar event but not update internal `calendarValue` state
+		triggerCalendarChange(clone);
+		// >>> Trigger next active if !needConfirm
+		// Fully logic check `useRangeValue` hook
+		if (!needConfirm && !complexPicker && internalPicker === internalMode) {
+			triggerPartConfirm(date);
+		}
+	};
+	// >>> Close
+	var onPopupClose = function() {
+		// Close popup
+		triggerOpen(false);
+	};
+	// >>> cellRender
+	var onInternalCellRender = useCellRender(cellRender, dateRender, monthCellRender, getActiveRange(activeIndex));
+	// >>> Value
+	var panelValue = calendarValue[activeIndex] || null;
+	// >>> invalid
+	var isPopupInvalidateDate = useEvent(function(date) {
+		return isInvalidateDate(date, { activeIndex });
+	});
+	var panelProps = reactExports.useMemo(function() {
+		var domProps = pickAttrs(filledProps, false);
+		var restProps = omit(filledProps, [].concat(_toConsumableArray$1(Object.keys(domProps)), [
+			"onChange",
+			"onCalendarChange",
+			"style",
+			"className",
+			"onPanelChange",
+			"disabledTime",
+			"classNames",
+			"styles"
+		]));
+		return restProps;
+	}, [filledProps]);
+	// >>> Render
+	var panel = reactExports.createElement(Popup, _extends$5({}, panelProps, {
+		showNow: mergedShowNow,
+		showTime: mergedShowTime,
+		range: true,
+		multiplePanel,
+		activeInfo,
+		disabledDate: mergedDisabledDate,
+		onFocus: onPanelFocus,
+		onBlur: onSharedBlur,
+		onPanelMouseDown,
+		picker,
+		mode: mergedMode,
+		internalMode,
+		onPanelChange: triggerModeChange,
+		format: maskFormat,
+		value: panelValue,
+		isInvalid: isPopupInvalidateDate,
+		onChange: null,
+		onSelect: onPanelSelect,
+		pickerValue: currentPickerValue,
+		defaultOpenValue: toArray(showTime === null || showTime === void 0 ? void 0 : showTime.defaultOpenValue)[activeIndex],
+		onPickerValueChange: setCurrentPickerValue,
+		hoverValue: hoverValues,
+		onHover: onPanelHover,
+		needConfirm,
+		onSubmit: triggerPartConfirm,
+		onOk: triggerOk,
+		presets: presetList,
+		onPresetHover,
+		onPresetSubmit,
+		onNow,
+		cellRender: onInternalCellRender,
+		classNames: mergedClassNames,
+		styles: mergedStyles
+	}));
+	// ========================================================
+	// ==                      Selector                      ==
+	// ========================================================
+	// ======================== Change ========================
+	var onSelectorChange = function(date, index) {
+		var clone = fillCalendarValue(date, index);
+		triggerCalendarChange(clone);
+	};
+	var onSelectorInputChange = function() {
+		lastOperation("input");
+	};
+	// ======================= Selector =======================
+	var onSelectorFocus = function(event, index) {
+		// Check if `needConfirm` but user not submit yet
+		var activeListLen = activeIndexList.length;
+		var lastActiveIndex = activeIndexList[activeListLen - 1];
+		if (activeListLen && lastActiveIndex !== index && needConfirm && !allowEmpty[lastActiveIndex] && !hasActiveSubmitValue(lastActiveIndex) && calendarValue[lastActiveIndex]) {
+			selectorRef.current.focus({ index: lastActiveIndex });
+			return;
+		}
+		lastOperation("input");
+		triggerOpen(true, { inherit: true });
+		// When click input to switch the field, it will not trigger close.
+		// Which means it will lose the part confirm and we need fill back.
+		// ref: https://github.com/ant-design/ant-design/issues/49512
+		if (activeIndex !== index && mergedOpen && !needConfirm && complexPicker) {
+			triggerPartConfirm(null, true);
+		}
+		setActiveIndex(index);
+		onSharedFocus(event, index);
+	};
+	var onSelectorBlur = function(event, index) {
+		triggerOpen(false);
+		if (!needConfirm && lastOperation() === "input") {
+			var nextIndex = nextActiveIndex(calendarValue);
+			flushSubmit(activeIndex, nextIndex === null);
+		}
+		onSharedBlur(event, index);
+	};
+	var onSelectorKeyDown = function(event, preventDefault) {
+		if (event.key === "Tab") {
+			triggerPartConfirm(null, true);
+		}
+		onKeyDown === null || onKeyDown === void 0 || onKeyDown(event, preventDefault);
+	};
+	// ======================= Context ========================
+	var context = reactExports.useMemo(function() {
+		return {
+			prefixCls,
+			locale,
+			generateConfig,
+			button: components.button,
+			input: components.input,
+			classNames: mergedClassNames,
+			styles: mergedStyles
+		};
+	}, [
+		prefixCls,
+		locale,
+		generateConfig,
+		components.button,
+		components.input,
+		mergedClassNames,
+		mergedStyles
+	]);
+	// ======================== Effect ========================
+	// >>> Mode
+	// Reset for every active
+	useLayoutEffect(function() {
+		if (mergedOpen && activeIndex !== void 0) {
+			// Legacy compatible. This effect update should not trigger `onPanelChange`
+			triggerModeChange(null, picker, false);
+		}
+	}, [
+		mergedOpen,
+		activeIndex,
+		picker
+	]);
+	// >>> For complex picker, we need check if need to focus next one
+	useLayoutEffect(function() {
+		var lastOp = lastOperation();
+		// Trade as confirm on field leave
+		if (!mergedOpen && lastOp === "input") {
+			triggerOpen(false);
+			triggerPartConfirm(null, true);
+		}
+		// Submit with complex picker
+		if (!mergedOpen && complexPicker && !needConfirm && lastOp === "panel") {
+			triggerOpen(true);
+			triggerPartConfirm();
+		}
+	}, [mergedOpen]);
+	// ======================== Render ========================
+	return reactExports.createElement(PickerContext$1.Provider, { value: context }, reactExports.createElement(PickerTrigger, _extends$5({}, pickTriggerProps(filledProps), {
+		popupElement: panel,
+		popupStyle: mergedStyles.popup.root,
+		popupClassName: clsx(rootClassName, mergedClassNames.popup.root),
+		visible: mergedOpen,
+		onClose: onPopupClose,
+		range: true
+	}), reactExports.createElement(RangeSelector$1, _extends$5({}, filledProps, {
+		ref: selectorRef,
+		className: clsx(filledProps.className, rootClassName, mergedClassNames.root),
+		style: _objectSpread$2(_objectSpread$2({}, mergedStyles.root), filledProps.style),
+		suffixIcon,
+		activeIndex: focused || mergedOpen ? activeIndex : null,
+		activeHelp: !!internalHoverValues,
+		allHelp: !!internalHoverValues && hoverSource === "preset",
+		focused,
+		onFocus: onSelectorFocus,
+		onBlur: onSelectorBlur,
+		onKeyDown: onSelectorKeyDown,
+		onSubmit: triggerPartConfirm,
+		value: hoverValues,
+		maskFormat,
+		onChange: onSelectorChange,
+		onInputChange: onSelectorInputChange,
+		format: formatList,
+		inputReadOnly,
+		disabled,
+		open: mergedOpen,
+		onOpenChange: triggerOpen,
+		onClick: onSelectorClick,
+		onClear: onSelectorClear,
+		invalid: submitInvalidates,
+		onInvalid: onSelectorInvalid,
+		onActiveInfo: setActiveInfo
+	}))));
+}
+var RefRangePicker = reactExports.forwardRef(RangePicker);
+var RCRangePicker = RefRangePicker;
+function MultipleDates(props) {
+	var prefixCls = props.prefixCls, value = props.value, onRemove = props.onRemove, _props$removeIcon = props.removeIcon, removeIcon = _props$removeIcon === void 0 ? "×" : _props$removeIcon, formatDate = props.formatDate, disabled = props.disabled, maxTagCount = props.maxTagCount, placeholder = props.placeholder;
+	var selectorCls = "".concat(prefixCls, "-selector");
+	var selectionCls = "".concat(prefixCls, "-selection");
+	var overflowCls = "".concat(selectionCls, "-overflow");
+	// ========================= Item =========================
+	function renderSelector(content, onClose) {
+		return reactExports.createElement("span", {
+			className: clsx("".concat(selectionCls, "-item")),
+			title: typeof content === "string" ? content : null
+		}, reactExports.createElement("span", { className: "".concat(selectionCls, "-item-content") }, content), !disabled && onClose && reactExports.createElement("span", {
+			onMouseDown: function(e) {
+				e.preventDefault();
+			},
+			onClick: onClose,
+			className: "".concat(selectionCls, "-item-remove")
+		}, removeIcon));
+	}
+	function renderItem(date) {
+		var displayLabel = formatDate(date);
+		var onClose = function(event) {
+			if (event) event.stopPropagation();
+			onRemove(date);
+		};
+		return renderSelector(displayLabel, onClose);
+	}
+	// ========================= Rest =========================
+	function renderRest(omittedValues) {
+		var content = "+ ".concat(omittedValues.length, " ...");
+		return renderSelector(content);
+	}
+	// ======================== Render ========================
+	return reactExports.createElement("div", { className: selectorCls }, reactExports.createElement(ForwardOverflow, {
+		prefixCls: overflowCls,
+		data: value,
+		renderItem,
+		renderRest,
+		itemKey: function(date) {
+			return formatDate(date);
+		},
+		maxCount: maxTagCount
+	}), !value.length && reactExports.createElement("span", { className: "".concat(prefixCls, "-selection-placeholder") }, placeholder));
+}
+function _typeof$1(o) {
+	"@babel/helpers - typeof";
+	return _typeof$1 = function(o) {
+		return typeof o;
+	}, _typeof$1(o);
+}
+var _excluded = [
+	"id",
+	"open",
+	"prefix",
+	"clearIcon",
+	"suffixIcon",
+	"activeHelp",
+	"allHelp",
+	"focused",
+	"onFocus",
+	"onBlur",
+	"onKeyDown",
+	"locale",
+	"generateConfig",
+	"placeholder",
+	"className",
+	"style",
+	"onClick",
+	"onClear",
+	"internalPicker",
+	"value",
+	"onChange",
+	"onSubmit",
+	"onInputChange",
+	"multiple",
+	"maxTagCount",
+	"format",
+	"maskFormat",
+	"preserveInvalidOnBlur",
+	"onInvalid",
+	"disabled",
+	"invalid",
+	"inputReadOnly",
+	"direction",
+	"onOpenChange",
+	"onMouseDown",
+	"required",
+	"aria-required",
+	"autoFocus",
+	"tabIndex",
+	"removeIcon"
+];
+function _extends$4() {
+	_extends$4 = Object.assign.bind();
+	return _extends$4.apply(this, arguments);
+}
+function ownKeys$1(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread$1(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys$1(Object(t), true).forEach(function(r) {
+			_defineProperty$1(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$1(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty$1(obj, key, value) {
+	key = _toPropertyKey$1(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return obj;
+}
+function _toPropertyKey$1(t) {
+	var i = _toPrimitive$1(t);
+	return "symbol" == _typeof$1(i) ? i : String(i);
+}
+function _toPrimitive$1(t) {
+	if ("object" != _typeof$1(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof$1(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray$1(arr) {
+	return _arrayWithHoles$1(arr) || _iterableToArrayLimit$1(arr) || _unsupportedIterableToArray$1(arr) || _nonIterableRest$1();
+}
+function _nonIterableRest$1() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray$1(o) {
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$1(o, 2);
+}
+function _arrayLikeToArray$1(arr, len) {
+	if (2 == null || 2 > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit$1(r) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles$1(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+function _objectWithoutProperties(source, excluded) {
+	if (source == null) return {};
+	var target = _objectWithoutPropertiesLoose(source, excluded);
+	var key, i;
+	if (Object.getOwnPropertySymbols) {
+		var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
+		for (i = 0; i < sourceSymbolKeys.length; i++) {
+			key = sourceSymbolKeys[i];
+			if (excluded.indexOf(key) >= 0) continue;
+			if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+			target[key] = source[key];
+		}
+	}
+	return target;
+}
+function _objectWithoutPropertiesLoose(source, excluded) {
+	if (source == null) return {};
+	var target = {};
+	var sourceKeys = Object.keys(source);
+	var key, i;
+	for (i = 0; i < sourceKeys.length; i++) {
+		key = sourceKeys[i];
+		if (excluded.indexOf(key) >= 0) continue;
+		target[key] = source[key];
+	}
+	return target;
+}
+function SingleSelector(props, ref) {
+	var open = props.open, prefix = props.prefix, clearIcon = props.clearIcon, suffixIcon = props.suffixIcon;
+	var focused = props.focused;
+	var locale = props.locale, generateConfig = props.generateConfig, placeholder = props.placeholder, className = props.className, style = props.style, onClick = props.onClick, onClear = props.onClear, internalPicker = props.internalPicker, value = props.value, onChange = props.onChange, onSubmit = props.onSubmit;
+	var multiple = props.multiple, maxTagCount = props.maxTagCount;
+	var disabled = props.disabled, invalid = props.invalid;
+	var direction = props.direction;
+	var _onMouseDown = props.onMouseDown;
+	var autoFocus = props.autoFocus, tabIndex = props.tabIndex, removeIcon = props.removeIcon, restProps = _objectWithoutProperties(props, _excluded);
+	var rtl = direction === "rtl";
+	// ======================== Prefix ========================
+	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls, classNames = _React$useContext.classNames, styles = _React$useContext.styles;
+	// ========================= Refs =========================
+	var rootRef = reactExports.useRef();
+	var inputRef = reactExports.useRef();
+	reactExports.useImperativeHandle(ref, function() {
+		return {
+			nativeElement: rootRef.current,
+			focus: function(options) {
+				var _inputRef$current;
+				(_inputRef$current = inputRef.current) === null || _inputRef$current === void 0 || _inputRef$current.focus(options);
+			},
+			blur: function() {
+				var _inputRef$current2;
+				(_inputRef$current2 = inputRef.current) === null || _inputRef$current2 === void 0 || _inputRef$current2.blur();
+			}
+		};
+	});
+	// ======================== Props =========================
+	var rootProps = useRootProps(restProps);
+	// ======================== Change ========================
+	var onSingleChange = function(date) {
+		onChange([date]);
+	};
+	var onMultipleRemove = function(date) {
+		var nextValues = value.filter(function(oriDate) {
+			return oriDate && !isSame(generateConfig, locale, oriDate, date, internalPicker);
+		});
+		onChange(nextValues);
+		// When `open`, it means user is operating the
+		if (!open) {
+			onSubmit();
+		}
+	};
+	// ======================== Inputs ========================
+	var _useInputProps = useInputProps(_objectSpread$1(_objectSpread$1({}, props), {}, { onChange: onSingleChange }), function(_ref) {
+		var valueTexts = _ref.valueTexts;
+		return {
+			value: valueTexts[0] || "",
+			active: focused
+		};
+	}), _useInputProps2 = _slicedToArray$1(_useInputProps), getInputProps = _useInputProps2[0], getText = _useInputProps2[1];
+	// ======================== Clear =========================
+	var showClear = !!(clearIcon && value.length && !disabled);
+	// ======================= Multiple =======================
+	var selectorNode = multiple ? reactExports.createElement(reactExports.Fragment, null, reactExports.createElement(MultipleDates, {
+		prefixCls,
+		value,
+		onRemove: onMultipleRemove,
+		formatDate: getText,
+		maxTagCount,
+		disabled,
+		removeIcon,
+		placeholder
+	}), reactExports.createElement("input", {
+		className: "".concat(prefixCls, "-multiple-input"),
+		value: value.map(getText).join(","),
+		ref: inputRef,
+		readOnly: true,
+		autoFocus,
+		tabIndex
+	}), reactExports.createElement(Icon, {
+		type: "suffix",
+		icon: suffixIcon
+	}), showClear && reactExports.createElement(ClearIcon, {
+		icon: clearIcon,
+		onClear
+	})) : reactExports.createElement(Input$1, _extends$4({ ref: inputRef }, getInputProps(), {
+		autoFocus,
+		tabIndex,
+		suffixIcon,
+		clearIcon: showClear && reactExports.createElement(ClearIcon, {
+			icon: clearIcon,
+			onClear
+		}),
+		showActiveCls: false
+	}));
+	// ======================== Render ========================
+	return reactExports.createElement("div", _extends$4({}, rootProps, {
+		className: clsx(prefixCls, _defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1(_defineProperty$1({}, "".concat(prefixCls, "-multiple"), multiple), "".concat(prefixCls, "-focused"), focused), "".concat(prefixCls, "-disabled"), disabled), "".concat(prefixCls, "-invalid"), invalid), "".concat(prefixCls, "-rtl"), rtl), className),
+		style,
+		ref: rootRef,
+		onClick,
+		onMouseDown: function(e) {
+			var _inputRef$current3;
+			var target = e.target;
+			if (target !== ((_inputRef$current3 = inputRef.current) === null || _inputRef$current3 === void 0 ? void 0 : _inputRef$current3.inputElement)) {
+				e.preventDefault();
+			}
+			_onMouseDown === null || _onMouseDown === void 0 || _onMouseDown(e);
+		}
+	}), prefix && reactExports.createElement("div", {
+		className: clsx("".concat(prefixCls, "-prefix"), classNames.prefix),
+		style: styles.prefix
+	}, prefix), selectorNode);
+}
+var RefSingleSelector = reactExports.forwardRef(SingleSelector);
+var SingleSelector$1 = RefSingleSelector;
+function _typeof(o) {
+	"@babel/helpers - typeof";
+	return _typeof = function(o) {
+		return typeof o;
+	}, _typeof(o);
+}
+function _extends$3() {
+	_extends$3 = Object.assign.bind();
+	return _extends$3.apply(this, arguments);
+}
+function _toConsumableArray(arr) {
+	return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread();
+}
+function _nonIterableSpread() {
+	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _iterableToArray(iter) {
+	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
+}
+function _arrayWithoutHoles(arr) {
+	if (Array.isArray(arr)) return _arrayLikeToArray(arr);
+}
+function ownKeys(e, r) {
+	var t = Object.keys(e);
+	if (Object.getOwnPropertySymbols) {
+		var o = Object.getOwnPropertySymbols(e);
+		r && (o = o.filter(function(r) {
+			return Object.getOwnPropertyDescriptor(e, r).enumerable;
+		})), t.push.apply(t, o);
+	}
+	return t;
+}
+function _objectSpread(e) {
+	for (var r = 1; r < arguments.length; r++) {
+		var t = null != arguments[r] ? arguments[r] : {};
+		r % 2 ? ownKeys(Object(t), true).forEach(function(r) {
+			_defineProperty(e, r, t[r]);
+		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function(r) {
+			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+		});
+	}
+	return e;
+}
+function _defineProperty(obj, key, value) {
+	key = _toPropertyKey(key);
+	if (key in obj) {
+		Object.defineProperty(obj, key, {
+			value,
+			enumerable: true,
+			configurable: true,
+			writable: true
+		});
+	} else {
+		obj[key] = value;
+	}
+	return;
+}
+function _toPropertyKey(t) {
+	var i = _toPrimitive(t);
+	return "symbol" == _typeof(i) ? i : String(i);
+}
+function _toPrimitive(t) {
+	if ("object" != _typeof(t) || !t) return t;
+	var e = t[Symbol.toPrimitive];
+	if (void 0 !== e) {
+		var i = e.call(t, "string");
+		if ("object" != _typeof(i)) return i;
+		throw new TypeError("@@toPrimitive must return a primitive value.");
+	}
+	return String(t);
+}
+function _slicedToArray(arr, i) {
+	return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
+}
+function _nonIterableRest() {
+	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _unsupportedIterableToArray(o, minLen) {
+	if (!o) return;
+	if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+	var n = Object.prototype.toString.call(o).slice(8, -1);
+	if (n === "Object" && o.constructor) n = o.constructor.name;
+	if (n === "Map" || n === "Set") return Array.from(o);
+	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+}
+function _arrayLikeToArray(arr, len) {
+	if (len == null || len > arr.length) len = arr.length;
+	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+	return arr2;
+}
+function _iterableToArrayLimit(r, l) {
+	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
+	if (null != t) {
+		var e, n, i, u, a = [], f = true, o = false;
+		try {
+			{
+				i = (t = t.call(r)).next;
+				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
+			}
+		} catch (r) {
+			o = true, n = r;
+		} finally {
+			try {
+				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+			} finally {
+				if (o) throw n;
+			}
+		}
+		return a;
+	}
+}
+function _arrayWithHoles(arr) {
+	if (Array.isArray(arr)) return arr;
+}
+// TODO: isInvalidateDate with showTime.disabledTime should not provide `range` prop
+/** Internal usage. For cross function get same aligned props */
+function Picker(props, ref) {
+	// ========================= Prop =========================
+	var _useFilledProps = useFilledProps(props), _useFilledProps2 = _slicedToArray(_useFilledProps, 6), filledProps = _useFilledProps2[0], internalPicker = _useFilledProps2[1], complexPicker = _useFilledProps2[2], formatList = _useFilledProps2[3], maskFormat = _useFilledProps2[4], isInvalidateDate = _useFilledProps2[5];
+	var _ref = filledProps, prefixCls = _ref.prefixCls, rootClassName = _ref.rootClassName, propStyles = _ref.styles, propClassNames = _ref.classNames, previewValue = _ref.previewValue, order = _ref.order, defaultValue = _ref.defaultValue, value = _ref.value, needConfirm = _ref.needConfirm, onChange = _ref.onChange, onKeyDown = _ref.onKeyDown, disabled = _ref.disabled, disabledDate = _ref.disabledDate, minDate = _ref.minDate, maxDate = _ref.maxDate, defaultOpen = _ref.defaultOpen, open = _ref.open, onOpenChange = _ref.onOpenChange, locale = _ref.locale, generateConfig = _ref.generateConfig, picker = _ref.picker, showNow = _ref.showNow, showToday = _ref.showToday, showTime = _ref.showTime, mode = _ref.mode, onPanelChange = _ref.onPanelChange, onCalendarChange = _ref.onCalendarChange, onOk = _ref.onOk, multiple = _ref.multiple, defaultPickerValue = _ref.defaultPickerValue, pickerValue = _ref.pickerValue, onPickerValueChange = _ref.onPickerValueChange, inputReadOnly = _ref.inputReadOnly, suffixIcon = _ref.suffixIcon, removeIcon = _ref.removeIcon, onFocus = _ref.onFocus, onBlur = _ref.onBlur, presets = _ref.presets, components = _ref.components, cellRender = _ref.cellRender, dateRender = _ref.dateRender, monthCellRender = _ref.monthCellRender, onClick = _ref.onClick;
+	// ========================= Refs =========================
+	var selectorRef = usePickerRef(ref);
+	// ========================= Util =========================
+	function pickerParam(values) {
+		if (values === null) {
+			return null;
+		}
+		return multiple ? values : values[0];
+	}
+	var toggleDates = useToggleDates(generateConfig, locale, internalPicker);
+	// ======================= Semantic =======================
+	var _useSemantic = useSemantic(propClassNames, propStyles), _useSemantic2 = _slicedToArray(_useSemantic, 2), mergedClassNames = _useSemantic2[0], mergedStyles = _useSemantic2[1];
+	// ========================= Open =========================
+	var _useOpen = useOpen(open, defaultOpen, [disabled], onOpenChange), _useOpen2 = _slicedToArray(_useOpen, 2), mergedOpen = _useOpen2[0], triggerOpen = _useOpen2[1];
+	// ======================= Calendar =======================
+	var onInternalCalendarChange = function(dates, dateStrings, info) {
+		if (onCalendarChange) {
+			var filteredInfo = _objectSpread({}, info);
+			delete filteredInfo.range;
+			onCalendarChange(pickerParam(dates), pickerParam(dateStrings), filteredInfo);
+		}
+	};
+	var onInternalOk = function(dates) {
+		onOk === null || onOk === void 0 || onOk(pickerParam(dates));
+	};
+	// ======================== Values ========================
+	var _useInnerValue = useInnerValue(generateConfig, locale, formatList, false, order, defaultValue, value, onInternalCalendarChange, onInternalOk), _useInnerValue2 = _slicedToArray(_useInnerValue, 5), mergedValue = _useInnerValue2[0], setInnerValue = _useInnerValue2[1], getCalendarValue = _useInnerValue2[2], triggerCalendarChange = _useInnerValue2[3], triggerOk = _useInnerValue2[4];
+	var calendarValue = getCalendarValue();
+	// ======================== Active ========================
+	// In SinglePicker, we will always get `activeIndex` is 0.
+	var _useRangeActive = useRangeActive([disabled]), _useRangeActive2 = _slicedToArray(_useRangeActive, 4), focused = _useRangeActive2[0], triggerFocus = _useRangeActive2[1], lastOperation = _useRangeActive2[2], activeIndex = _useRangeActive2[3];
+	var onSharedFocus = function(event) {
+		triggerFocus(true);
+		onFocus === null || onFocus === void 0 || onFocus(event, {});
+	};
+	var onSharedBlur = function(event) {
+		triggerFocus(false);
+		onBlur === null || onBlur === void 0 || onBlur(event, {});
+	};
+	// ========================= Mode =========================
+	var _useControlledState = useControlledState(picker, mode), _useControlledState2 = _slicedToArray(_useControlledState, 2), mergedMode = _useControlledState2[0], setMode = _useControlledState2[1];
+	/** Extends from `mergedMode` to patch `datetime` mode */
+	var internalMode = mergedMode === "date" && showTime ? "datetime" : mergedMode;
+	// ======================= Show Now =======================
+	var mergedShowNow = useShowNow(picker, mergedMode, showNow, showToday);
+	// ======================== Value =========================
+	var onInternalChange = onChange && function(dates, dateStrings) {
+		onChange(pickerParam(dates), pickerParam(dateStrings));
+	};
+	var _useRangeValue = useRangeValue(
+		_objectSpread(_objectSpread({}, filledProps), {}, { onChange: onInternalChange }),
+		mergedValue,
+		setInnerValue,
+		getCalendarValue,
+		triggerCalendarChange,
+		[],
+		//disabled,
+		formatList,
+		focused,
+		mergedOpen,
+		isInvalidateDate
+	), _useRangeValue2 = _slicedToArray(_useRangeValue, 2), triggerSubmitChange = _useRangeValue2[1];
+	// ======================= Validate =======================
+	var _useFieldsInvalidate = useFieldsInvalidate(calendarValue, isInvalidateDate), _useFieldsInvalidate2 = _slicedToArray(_useFieldsInvalidate, 2), submitInvalidates = _useFieldsInvalidate2[0], onSelectorInvalid = _useFieldsInvalidate2[1];
+	var submitInvalidate = reactExports.useMemo(function() {
+		return submitInvalidates.some(function(invalidated) {
+			return invalidated;
+		});
+	}, [submitInvalidates]);
+	// ===================== Picker Value =====================
+	// Proxy to single pickerValue
+	var onInternalPickerValueChange = function(dates, info) {
+		if (onPickerValueChange) {
+			var cleanInfo = _objectSpread(_objectSpread({}, info), {}, { mode: info.mode[0] });
+			delete cleanInfo.range;
+			onPickerValueChange(dates[0], cleanInfo);
+		}
+	};
+	var _useRangePickerValue = useRangePickerValue(
+		generateConfig,
+		locale,
+		calendarValue,
+		[mergedMode],
+		mergedOpen,
+		activeIndex,
+		internalPicker,
+		false,
+		// multiplePanel,
+		defaultPickerValue,
+		pickerValue,
+		toArray(showTime === null || showTime === void 0 ? void 0 : showTime.defaultOpenValue),
+		onInternalPickerValueChange,
+		minDate,
+		maxDate
+	), _useRangePickerValue2 = _slicedToArray(_useRangePickerValue, 2), currentPickerValue = _useRangePickerValue2[0], setCurrentPickerValue = _useRangePickerValue2[1];
+	// >>> Mode need wait for `pickerValue`
+	var triggerModeChange = useEvent(function(nextPickerValue, nextMode, triggerEvent) {
+		setMode(nextMode);
+		// Compatible with `onPanelChange`
+		if (onPanelChange && triggerEvent !== false) {
+			var lastPickerValue = nextPickerValue || calendarValue[calendarValue.length - 1];
+			onPanelChange(lastPickerValue, nextMode);
+		}
+	});
+	// ======================== Submit ========================
+	/**
+	* Different with RangePicker, confirm should check `multiple` logic.
+	* This will never provide `date` instead.
+	*/
+	var triggerConfirm = function() {
+		triggerSubmitChange(getCalendarValue());
+		triggerOpen(false, { force: true });
+	};
+	// ======================== Click =========================
+	var onSelectorClick = function(event) {
+		if (!disabled && !selectorRef.current.nativeElement.contains(document.activeElement)) {
+			// Click to focus the enabled input
+			selectorRef.current.focus();
+		}
+		triggerOpen(true);
+		onClick === null || onClick === void 0 || onClick(event);
+	};
+	var onSelectorClear = function() {
+		triggerSubmitChange(null);
+		triggerOpen(false, { force: true });
+	};
+	// ======================== Hover =========================
+	var _React$useState = reactExports.useState(null), _React$useState2 = _slicedToArray(_React$useState, 2), hoverSource = _React$useState2[0], setHoverSource = _React$useState2[1];
+	var _React$useState3 = reactExports.useState(null), _React$useState4 = _slicedToArray(_React$useState3, 2), internalHoverValue = _React$useState4[0], setInternalHoverValue = _React$useState4[1];
+	var hoverValues = reactExports.useMemo(function() {
+		var values = [internalHoverValue].concat(_toConsumableArray(calendarValue)).filter(function(date) {
+			return date;
+		});
+		return multiple ? values : values.slice(0, 1);
+	}, [
+		calendarValue,
+		internalHoverValue,
+		multiple
+	]);
+	// Selector values is different with RangePicker
+	// which can not use `hoverValue` directly
+	var selectorValues = reactExports.useMemo(function() {
+		if (!multiple && internalHoverValue) {
+			return [internalHoverValue];
+		}
+		return calendarValue.filter(function(date) {
+			return date;
+		});
+	}, [
+		calendarValue,
+		internalHoverValue,
+		multiple
+	]);
+	// Clean up `internalHoverValues` when closed
+	reactExports.useEffect(function() {
+		if (!mergedOpen) {
+			setInternalHoverValue(null);
+		}
+	}, [mergedOpen]);
+	var onSetHover = function(date, source) {
+		if (previewValue !== "hover") {
+			return;
+		}
+		setInternalHoverValue(date);
+		setHoverSource(source);
+	};
+	// ========================================================
+	// ==                       Panels                       ==
+	// ========================================================
+	// ======================= Presets ========================
+	var presetList = usePresets(presets);
+	var onPresetHover = function(nextValue) {
+		onSetHover(nextValue, "preset");
+	};
+	// TODO: handle this
+	var onPresetSubmit = function(nextValue) {
+		var nextCalendarValues = multiple ? toggleDates(getCalendarValue(), nextValue) : [nextValue];
+		var passed = triggerSubmitChange(nextCalendarValues);
+		if (passed && !multiple) {
+			triggerOpen(false, { force: true });
+		}
+	};
+	var onNow = function(now) {
+		onPresetSubmit(now);
+	};
+	// ======================== Panel =========================
+	var onPanelHover = function(date) {
+		onSetHover(date, "cell");
+	};
+	// >>> Focus
+	var onPanelFocus = function(event) {
+		triggerOpen(true);
+		onSharedFocus(event);
+	};
+	// >>> Calendar
+	var onPanelSelect = function(date) {
+		lastOperation("panel");
+		// Not change values if multiple and current panel is to match with picker
+		if (multiple && internalMode !== picker) {
+			return;
+		}
+		var nextValues = multiple ? toggleDates(getCalendarValue(), date) : [date];
+		// Only trigger calendar event but not update internal `calendarValue` state
+		triggerCalendarChange(nextValues);
+		// >>> Trigger next active if !needConfirm
+		// Fully logic check `useRangeValue` hook
+		if (!needConfirm && !complexPicker && internalPicker === internalMode) {
+			triggerConfirm();
+		}
+	};
+	// >>> Close
+	var onPopupClose = function() {
+		// Close popup
+		triggerOpen(false);
+	};
+	// >>> cellRender
+	var onInternalCellRender = useCellRender(cellRender, dateRender, monthCellRender);
+	// >>> invalid
+	var panelProps = reactExports.useMemo(function() {
+		var domProps = pickAttrs(filledProps, false);
+		var restProps = omit(filledProps, [].concat(_toConsumableArray(Object.keys(domProps)), [
+			"onChange",
+			"onCalendarChange",
+			"style",
+			"className",
+			"onPanelChange",
+			"classNames",
+			"styles"
+		]));
+		return _objectSpread(_objectSpread({}, restProps), {}, { multiple: filledProps.multiple });
+	}, [filledProps]);
+	// >>> Render
+	var panel = reactExports.createElement(Popup, _extends$3({}, panelProps, {
+		showNow: mergedShowNow,
+		showTime,
+		disabledDate,
+		onFocus: onPanelFocus,
+		onBlur: onSharedBlur,
+		picker,
+		mode: mergedMode,
+		internalMode,
+		onPanelChange: triggerModeChange,
+		format: maskFormat,
+		value: calendarValue,
+		isInvalid: isInvalidateDate,
+		onChange: null,
+		onSelect: onPanelSelect,
+		pickerValue: currentPickerValue,
+		defaultOpenValue: showTime === null || showTime === void 0 ? void 0 : showTime.defaultOpenValue,
+		onPickerValueChange: setCurrentPickerValue,
+		hoverValue: hoverValues,
+		onHover: onPanelHover,
+		needConfirm,
+		onSubmit: triggerConfirm,
+		onOk: triggerOk,
+		presets: presetList,
+		onPresetHover,
+		onPresetSubmit,
+		onNow,
+		cellRender: onInternalCellRender,
+		classNames: mergedClassNames,
+		styles: mergedStyles
+	}));
+	// ========================================================
+	// ==                      Selector                      ==
+	// ========================================================
+	// ======================== Change ========================
+	var onSelectorChange = function(date) {
+		triggerCalendarChange(date);
+	};
+	var onSelectorInputChange = function() {
+		lastOperation("input");
+	};
+	// ======================= Selector =======================
+	var onSelectorFocus = function(event) {
+		lastOperation("input");
+		triggerOpen(true, { inherit: true });
+		// setActiveIndex(index);
+		onSharedFocus(event);
+	};
+	var onSelectorBlur = function(event) {
+		triggerOpen(false);
+		onSharedBlur(event);
+	};
+	var onSelectorKeyDown = function(event, preventDefault) {
+		if (event.key === "Tab") {
+			triggerConfirm();
+		}
+		onKeyDown === null || onKeyDown === void 0 || onKeyDown(event, preventDefault);
+	};
+	// ======================= Context ========================
+	var context = reactExports.useMemo(function() {
+		return {
+			prefixCls,
+			locale,
+			generateConfig,
+			button: components.button,
+			input: components.input,
+			classNames: mergedClassNames,
+			styles: mergedStyles
+		};
+	}, [
+		prefixCls,
+		locale,
+		generateConfig,
+		components.button,
+		components.input,
+		mergedClassNames,
+		mergedStyles
+	]);
+	// ======================== Effect ========================
+	// >>> Mode
+	// Reset for every active
+	useLayoutEffect(function() {
+		if (mergedOpen && activeIndex !== void 0) {
+			// Legacy compatible. This effect update should not trigger `onPanelChange`
+			triggerModeChange(null, picker, false);
+		}
+	}, [
+		mergedOpen,
+		activeIndex,
+		picker
+	]);
+	// >>> For complex picker, we need check if need to focus next one
+	useLayoutEffect(function() {
+		var lastOp = lastOperation();
+		// Trade as confirm on field leave
+		if (!mergedOpen && lastOp === "input") {
+			triggerOpen(false);
+			triggerConfirm();
+		}
+		// Submit with complex picker
+		if (!mergedOpen && complexPicker && !needConfirm && lastOp === "panel") {
+			triggerConfirm();
+		}
+	}, [mergedOpen]);
+	// ======================== Render ========================
+	return reactExports.createElement(PickerContext$1.Provider, { value: context }, reactExports.createElement(PickerTrigger, _extends$3({}, pickTriggerProps(filledProps), {
+		popupElement: panel,
+		popupStyle: mergedStyles.popup.root,
+		popupClassName: clsx(rootClassName, mergedClassNames.popup.root),
+		visible: mergedOpen,
+		onClose: onPopupClose
+	}), reactExports.createElement(SingleSelector$1, _extends$3({}, filledProps, {
+		ref: selectorRef,
+		className: clsx(filledProps.className, rootClassName, mergedClassNames.root),
+		style: _objectSpread(_objectSpread({}, mergedStyles.root), filledProps.style),
+		suffixIcon,
+		removeIcon,
+		activeHelp: !!internalHoverValue,
+		allHelp: !!internalHoverValue && hoverSource === "preset",
+		focused,
+		onFocus: onSelectorFocus,
+		onBlur: onSelectorBlur,
+		onKeyDown: onSelectorKeyDown,
+		onSubmit: triggerConfirm,
+		value: selectorValues,
+		maskFormat,
+		onChange: onSelectorChange,
+		onInputChange: onSelectorInputChange,
+		internalPicker,
+		format: formatList,
+		inputReadOnly,
+		disabled,
+		open: mergedOpen,
+		onOpenChange: triggerOpen,
+		onClick: onSelectorClick,
+		onClear: onSelectorClear,
+		invalid: submitInvalidate,
+		onInvalid: function(invalid) {
+			// Only `single` mode support type date.
+			// `multiple` mode can not typing.
+			onSelectorInvalid(invalid, 0);
+		}
+	}))));
+}
+var RefPicker = reactExports.forwardRef(Picker);
+var Picker$1 = RefPicker;
+function initInputToken(token) {
+	return merge(token, { inputAffixPadding: token.paddingXXS });
+}
+const initComponentToken = (token) => {
+	const { controlHeight, fontSize, lineHeight, lineWidth, controlHeightSM, controlHeightLG, fontSizeLG, lineHeightLG, paddingSM, controlPaddingHorizontalSM, controlPaddingHorizontal, colorFillAlter, colorPrimaryHover, colorPrimary, controlOutlineWidth, controlOutline, colorErrorOutline, colorWarningOutline, colorBgContainer, inputFontSize, inputFontSizeLG, inputFontSizeSM } = token;
+	const mergedFontSize = inputFontSize || fontSize;
+	const mergedFontSizeSM = inputFontSizeSM || mergedFontSize;
+	const mergedFontSizeLG = inputFontSizeLG || fontSizeLG;
+	const paddingBlock = Math.round((controlHeight - mergedFontSize * lineHeight) / 2 * 10) / 10 - lineWidth;
+	const paddingBlockSM = Math.round((controlHeightSM - mergedFontSizeSM * lineHeight) / 2 * 10) / 10 - lineWidth;
+	const paddingBlockLG = Math.ceil((controlHeightLG - mergedFontSizeLG * lineHeightLG) / 2 * 10) / 10 - lineWidth;
+	return {
+		paddingBlock: Math.max(paddingBlock, 0),
+		paddingBlockSM: Math.max(paddingBlockSM, 0),
+		paddingBlockLG: Math.max(paddingBlockLG, 0),
+		paddingInline: paddingSM - lineWidth,
+		paddingInlineSM: controlPaddingHorizontalSM - lineWidth,
+		paddingInlineLG: controlPaddingHorizontal - lineWidth,
+		addonBg: colorFillAlter,
+		activeBorderColor: colorPrimary,
+		hoverBorderColor: colorPrimaryHover,
+		activeShadow: `0 0 0 ${controlOutlineWidth}px ${controlOutline}`,
+		errorActiveShadow: `0 0 0 ${controlOutlineWidth}px ${colorErrorOutline}`,
+		warningActiveShadow: `0 0 0 ${controlOutlineWidth}px ${colorWarningOutline}`,
+		hoverBg: colorBgContainer,
+		activeBg: colorBgContainer,
+		inputFontSize: mergedFontSize,
+		inputFontSizeLG: mergedFontSizeLG,
+		inputFontSizeSM: mergedFontSizeSM
+	};
+};
+const genHoverStyle = (token) => ({
+	borderColor: token.hoverBorderColor,
+	backgroundColor: token.hoverBg
+});
+const genDisabledStyle = (token) => ({
+	color: token.colorTextDisabled,
+	backgroundColor: token.colorBgContainerDisabled,
+	borderColor: token.colorBorder,
+	boxShadow: "none",
+	cursor: "not-allowed",
+	opacity: 1,
+	"input[disabled], textarea[disabled]": { cursor: "not-allowed" },
+	"&:hover:not([disabled])": { ...genHoverStyle(merge(token, {
+		hoverBorderColor: token.colorBorder,
+		hoverBg: token.colorBgContainerDisabled
+	})) }
+});
+/* ============== Outlined ============== */
+const genBaseOutlinedStyle = (token, options) => ({
+	background: token.colorBgContainer,
+	borderWidth: token.lineWidth,
+	borderStyle: token.lineType,
+	borderColor: options.a,
+	"&:hover": {
+		borderColor: options.b,
+		backgroundColor: token.hoverBg
+	},
+	"&:focus, &:focus-within": {
+		borderColor: options.c,
+		boxShadow: options.d,
+		outline: 0,
+		backgroundColor: token.activeBg
+	}
+});
+const genOutlinedStatusStyle = (token, options) => ({
+	[`&${token.componentCls}-status-${options.f}:not(${token.componentCls}-disabled)`]: {
+		...genBaseOutlinedStyle(token, options),
+		[`${token.componentCls}-prefix, ${token.componentCls}-suffix`]: { color: options.e }
+	},
+	[`&${token.componentCls}-status-${options.f}${token.componentCls}-disabled`]: { borderColor: options.a }
+});
+const genOutlinedStyle = (token) => ({ "&-outlined": {
+	...genBaseOutlinedStyle(token, {
+		a: token.colorBorder,
+		b: token.hoverBorderColor,
+		c: token.activeBorderColor,
+		d: token.activeShadow
+	}),
+	[`&${token.componentCls}-disabled, &[disabled]`]: { ...genDisabledStyle(token) },
+	...genOutlinedStatusStyle(token, {
+		f: "error",
+		a: token.colorError,
+		b: token.colorErrorBorderHover,
+		c: token.colorError,
+		d: token.errorActiveShadow,
+		e: token.colorError
+	}),
+	...genOutlinedStatusStyle(token, {
+		f: "warning",
+		a: token.colorWarning,
+		b: token.colorWarningBorderHover,
+		c: token.colorWarning,
+		d: token.warningActiveShadow,
+		e: token.colorWarning
+	}),
+	...void 0
+} });
+const genOutlinedGroupStatusStyle = (token, options) => ({ [`&${token.componentCls}-group-wrapper-status-${options.c}`]: { [`${token.componentCls}-group-addon`]: {
+	borderColor: options.a,
+	color: options.b
+} } });
+const genOutlinedGroupStyle = (token) => ({ "&-outlined": {
+	[`${token.componentCls}-group`]: {
+		"&-addon": {
+			background: token.addonBg,
+			border: `${unit$1(token.lineWidth)} ${token.lineType} ${token.colorBorder}`
+		},
+		"&-addon:first-child": { borderInlineEnd: 0 },
+		"&-addon:last-child": { borderInlineStart: 0 }
+	},
+	...genOutlinedGroupStatusStyle(token, {
+		c: "error",
+		a: token.colorError,
+		b: token.colorErrorText
+	}),
+	...genOutlinedGroupStatusStyle(token, {
+		c: "warning",
+		a: token.colorWarning,
+		b: token.colorWarningText
+	}),
+	[`&${token.componentCls}-group-wrapper-disabled`]: { [`${token.componentCls}-group-addon`]: { ...genDisabledStyle(token) } }
+} });
+/* ============ Borderless ============ */
+const genBorderlessStyle = (token) => {
+	const { componentCls } = token;
+	return { "&-borderless": {
+		background: "transparent",
+		border: "none",
+		"&:focus, &:focus-within": { outline: "none" },
+		[`&${componentCls}-disabled, &[disabled]`]: {
+			color: token.colorTextDisabled,
+			cursor: "not-allowed"
+		},
+		[`&${componentCls}-status-error`]: { "&, & input, & textarea": { color: token.colorError } },
+		[`&${componentCls}-status-warning`]: { "&, & input, & textarea": { color: token.colorWarning } },
+		...void 0
+	} };
+};
+/* ============== Filled ============== */
+const genBaseFilledStyle = (token, options) => ({
+	background: options.a,
+	borderWidth: token.lineWidth,
+	borderStyle: token.lineType,
+	borderColor: "transparent",
+	"input&, & input, textarea&, & textarea": { color: options.b ?? "unset" },
+	"&:hover": { background: options.c },
+	"&:focus, &:focus-within": {
+		outline: 0,
+		borderColor: options.d,
+		backgroundColor: token.activeBg
+	}
+});
+const genFilledStatusStyle = (token, options) => ({ [`&${token.componentCls}-status-${options.f}:not(${token.componentCls}-disabled)`]: {
+	...genBaseFilledStyle(token, options),
+	[`${token.componentCls}-prefix, ${token.componentCls}-suffix`]: { color: options.e }
+} });
+const genFilledStyle = (token) => ({ "&-filled": {
+	...genBaseFilledStyle(token, {
+		a: token.colorFillTertiary,
+		c: token.colorFillSecondary,
+		d: token.activeBorderColor,
+		b: token.colorText
+	}),
+	[`&${token.componentCls}-disabled, &[disabled]`]: { ...genDisabledStyle(token) },
+	...genFilledStatusStyle(token, {
+		f: "error",
+		a: token.colorErrorBg,
+		c: token.colorErrorBgHover,
+		d: token.colorError,
+		b: token.colorErrorText,
+		e: token.colorError
+	}),
+	...genFilledStatusStyle(token, {
+		f: "warning",
+		a: token.colorWarningBg,
+		c: token.colorWarningBgHover,
+		d: token.colorWarning,
+		b: token.colorWarningText,
+		e: token.colorWarning
+	}),
+	...void 0
+} });
+const genFilledGroupStatusStyle = (token, options) => ({ [`&${token.componentCls}-group-wrapper-status-${options.c}`]: { [`${token.componentCls}-group-addon`]: {
+	background: options.a,
+	color: options.b
+} } });
+const genFilledGroupStyle = (token) => ({ "&-filled": {
+	[`${token.componentCls}-group-addon`]: {
+		background: token.colorFillTertiary,
+		"&:last-child": { position: "static" }
+	},
+	...genFilledGroupStatusStyle(token, {
+		c: "error",
+		a: token.colorErrorBg,
+		b: token.colorErrorText
+	}),
+	...genFilledGroupStatusStyle(token, {
+		c: "warning",
+		a: token.colorWarningBg,
+		b: token.colorWarningText
+	}),
+	[`&${token.componentCls}-group-wrapper-disabled`]: { [`${token.componentCls}-group`]: {
+		"&-addon": {
+			background: token.colorFillTertiary,
+			color: token.colorTextDisabled
+		},
+		"&-addon:first-child": {
+			borderInlineStart: `${unit$1(token.lineWidth)} ${token.lineType} ${token.colorBorder}`,
+			borderTop: `${unit$1(token.lineWidth)} ${token.lineType} ${token.colorBorder}`,
+			borderBottom: `${unit$1(token.lineWidth)} ${token.lineType} ${token.colorBorder}`
+		},
+		"&-addon:last-child": {
+			borderInlineEnd: `${unit$1(token.lineWidth)} ${token.lineType} ${token.colorBorder}`,
+			borderTop: `${unit$1(token.lineWidth)} ${token.lineType} ${token.colorBorder}`,
+			borderBottom: `${unit$1(token.lineWidth)} ${token.lineType} ${token.colorBorder}`
+		}
+	} }
+} });
+/* ============== Underlined ============== */
+// https://github.com/ant-design/ant-design/issues/51379
+const genBaseUnderlinedStyle = (token, options) => ({
+	background: token.colorBgContainer,
+	borderWidth: `${unit$1(token.lineWidth)} 0`,
+	borderStyle: `${token.lineType} none`,
+	borderColor: `transparent transparent ${options.a} transparent`,
+	borderRadius: 0,
+	"&:hover": {
+		borderColor: `transparent transparent ${options.b} transparent`,
+		backgroundColor: token.hoverBg
+	},
+	"&:focus, &:focus-within": {
+		borderColor: `transparent transparent ${options.c} transparent`,
+		outline: 0,
+		backgroundColor: token.activeBg
+	}
+});
+const genUnderlinedStatusStyle = (token, options) => ({
+	[`&${token.componentCls}-status-${options.e}:not(${token.componentCls}-disabled)`]: {
+		...genBaseUnderlinedStyle(token, options),
+		[`${token.componentCls}-prefix, ${token.componentCls}-suffix`]: { color: options.d }
+	},
+	[`&${token.componentCls}-status-${options.e}${token.componentCls}-disabled`]: { borderColor: `transparent transparent ${options.a} transparent` }
+});
+const genUnderlinedStyle = (token) => ({ "&-underlined": {
+	...genBaseUnderlinedStyle(token, {
+		a: token.colorBorder,
+		b: token.hoverBorderColor,
+		c: token.activeBorderColor
+	}),
+	[`&${token.componentCls}-disabled, &[disabled]`]: {
+		color: token.colorTextDisabled,
+		boxShadow: "none",
+		cursor: "not-allowed",
+		"&:hover": { borderColor: `transparent transparent ${token.colorBorder} transparent` }
+	},
+	"input[disabled], textarea[disabled]": { cursor: "not-allowed" },
+	...genUnderlinedStatusStyle(token, {
+		e: "error",
+		a: token.colorError,
+		b: token.colorErrorBorderHover,
+		c: token.colorError,
+		d: token.colorError
+	}),
+	...genUnderlinedStatusStyle(token, {
+		e: "warning",
+		a: token.colorWarning,
+		b: token.colorWarningBorderHover,
+		c: token.colorWarning,
+		d: token.colorWarning
+	}),
+	...void 0
+} });
+const genPlaceholderStyle = (color) => ({
+	"&::-moz-placeholder": { opacity: 1 },
+	"&::placeholder": {
+		color,
+		userSelect: "none"
+	},
+	"&:placeholder-shown": { textOverflow: "ellipsis" }
+});
+const genInputLargeStyle = (token) => {
+	const { paddingBlockLG, lineHeightLG, borderRadiusLG, paddingInlineLG } = token;
+	return {
+		padding: `${unit$1(paddingBlockLG)} ${unit$1(paddingInlineLG)}`,
+		fontSize: token.inputFontSizeLG,
+		lineHeight: lineHeightLG,
+		borderRadius: borderRadiusLG
+	};
+};
+const genInputSmallStyle = (token) => ({
+	padding: `${unit$1(token.paddingBlockSM)} ${unit$1(token.paddingInlineSM)}`,
+	fontSize: token.inputFontSizeSM,
+	borderRadius: token.borderRadiusSM
+});
+const genBasicInputStyle = (token) => ({
+	position: "relative",
+	display: "inline-block",
+	width: "100%",
+	minWidth: 0,
+	padding: `${unit$1(token.paddingBlock)} ${unit$1(token.paddingInline)}`,
+	color: token.colorText,
+	fontSize: token.inputFontSize,
+	lineHeight: token.lineHeight,
+	borderRadius: token.borderRadius,
+	transition: `all ${token.motionDurationMid}`,
+	...genPlaceholderStyle(token.colorTextPlaceholder),
+	"&-lg": {
+		...genInputLargeStyle(token),
+		...void 0
+	},
+	"&-sm": {
+		...genInputSmallStyle(token),
+		...void 0
+	},
+	"&-rtl, &-textarea-rtl": { direction: "rtl" }
+});
+const genInputGroupStyle = (token) => {
+	const { componentCls, antCls } = token;
+	return {
+		position: "relative",
+		display: "table",
+		width: "100%",
+		borderCollapse: "separate",
+		borderSpacing: 0,
+		"&[class*='col-']": {
+			paddingInlineEnd: token.paddingXS,
+			"&:last-child": { paddingInlineEnd: 0 }
+		},
+		[`&-lg ${componentCls}, &-lg > ${componentCls}-group-addon`]: { ...genInputLargeStyle(token) },
+		[`&-sm ${componentCls}, &-sm > ${componentCls}-group-addon`]: { ...genInputSmallStyle(token) },
+		[`&-lg ${antCls}-select-single`]: { height: token.controlHeightLG },
+		[`&-sm ${antCls}-select-single`]: { height: token.controlHeightSM },
+		[`> ${componentCls}`]: {
+			display: "table-cell",
+			"&:not(:first-child):not(:last-child)": { borderRadius: 0 }
+		},
+		[`${componentCls}-group`]: {
+			"&-addon, &-wrap": {
+				display: "table-cell",
+				width: 1,
+				whiteSpace: "nowrap",
+				verticalAlign: "middle",
+				"&:not(:first-child):not(:last-child)": { borderRadius: 0 }
+			},
+			"&-wrap > *": { display: "block !important" },
+			"&-addon": {
+				position: "relative",
+				padding: `0 ${unit$1(token.paddingInline)}`,
+				color: token.colorText,
+				fontWeight: "normal",
+				fontSize: token.inputFontSize,
+				textAlign: "center",
+				borderRadius: token.borderRadius,
+				transition: `all ${token.motionDurationSlow}`,
+				lineHeight: 1,
+				[`${antCls}-select`]: {
+					margin: `${unit$1(token.calc(token.paddingBlock).add(1).mul(-1).equal())} ${unit$1(token.calc(token.paddingInline).mul(-1).equal())}`,
+					[`&${antCls}-select-single:not(${antCls}-select-customize-input):not(${antCls}-pagination-size-changer)`]: {
+						backgroundColor: "inherit",
+						border: `${unit$1(token.lineWidth)} ${token.lineType} transparent`,
+						boxShadow: "none"
+					}
+				},
+				[`${antCls}-cascader-picker`]: {
+					margin: `-9px ${unit$1(token.calc(token.paddingInline).mul(-1).equal())}`,
+					backgroundColor: "transparent",
+					[`${antCls}-cascader-input`]: {
+						textAlign: "start",
+						border: 0,
+						boxShadow: "none"
+					}
+				}
+			}
+		},
+		[componentCls]: {
+			width: "100%",
+			marginBottom: 0,
+			textAlign: "inherit",
+			"&:focus": {
+				zIndex: 1,
+				borderInlineEndWidth: 1
+			},
+			"&:hover": {
+				zIndex: 1,
+				borderInlineEndWidth: 1
+			}
+		},
+		[`> ${componentCls}:first-child, ${componentCls}-group-addon:first-child`]: {
+			borderStartEndRadius: 0,
+			borderEndEndRadius: 0,
+			[`${antCls}-select`]: {
+				borderStartEndRadius: 0,
+				borderEndEndRadius: 0
+			}
+		},
+		[`> ${componentCls}-affix-wrapper`]: {
+			[`&:not(:first-child) ${componentCls}`]: {
+				borderStartStartRadius: 0,
+				borderEndStartRadius: 0
+			},
+			[`&:not(:last-child) ${componentCls}`]: {
+				borderStartEndRadius: 0,
+				borderEndEndRadius: 0
+			}
+		},
+		[`> ${componentCls}:last-child, ${componentCls}-group-addon:last-child`]: {
+			borderStartStartRadius: 0,
+			borderEndStartRadius: 0,
+			[`${antCls}-select`]: {
+				borderStartStartRadius: 0,
+				borderEndStartRadius: 0
+			}
+		},
+		[`${componentCls}-affix-wrapper`]: {
+			"&:not(:last-child)": {
+				borderStartEndRadius: 0,
+				borderEndEndRadius: 0
+			},
+			"&:not(:first-child)": {
+				borderStartStartRadius: 0,
+				borderEndStartRadius: 0
+			}
+		},
+		[`&${componentCls}-group-compact`]: {
+			display: "block",
+			...clearFix(),
+			[`${componentCls}-group-addon, ${componentCls}-group-wrap, > ${componentCls}`]: { "&:not(:first-child):not(:last-child)": {
+				borderInlineEndWidth: token.lineWidth,
+				"&:hover, &:focus": { zIndex: 1 }
+			} },
+			"& > *": {
+				display: "inline-flex",
+				float: "none",
+				verticalAlign: "top",
+				borderRadius: 0
+			},
+			[`
+        & > ${componentCls}-affix-wrapper,
+        & > ${componentCls}-number-affix-wrapper,
+        & > ${antCls}-picker-range
+      `]: { display: "inline-flex" },
+			"& > *:not(:last-child)": {
+				marginInlineEnd: token.calc(token.lineWidth).mul(-1).equal(),
+				borderInlineEndWidth: token.lineWidth
+			},
+			[componentCls]: { float: "none" },
+			[`& > ${antCls}-select,
+      & > ${antCls}-select-auto-complete ${componentCls},
+      & > ${antCls}-cascader-picker ${componentCls},
+      & > ${componentCls}-group-wrapper ${componentCls}`]: {
+				borderInlineEndWidth: token.lineWidth,
+				borderRadius: 0,
+				"&:hover, &:focus": { zIndex: 1 }
+			},
+			[`& > ${antCls}-select-focused`]: { zIndex: 1 },
+			[`& > ${antCls}-select > ${antCls}-select-arrow`]: { zIndex: 1 },
+			[`& > *:first-child,
+      & > ${antCls}-select:first-child,
+      & > ${antCls}-select-auto-complete:first-child ${componentCls},
+      & > ${antCls}-cascader-picker:first-child ${componentCls}`]: {
+				borderStartStartRadius: token.borderRadius,
+				borderEndStartRadius: token.borderRadius
+			},
+			[`& > *:last-child,
+      & > ${antCls}-select:last-child,
+      & > ${antCls}-cascader-picker:last-child ${componentCls},
+      & > ${antCls}-cascader-picker-focused:last-child ${componentCls}`]: {
+				borderInlineEndWidth: token.lineWidth,
+				borderStartEndRadius: token.borderRadius,
+				borderEndEndRadius: token.borderRadius
+			},
+			[`& > ${antCls}-select-auto-complete ${componentCls}`]: { verticalAlign: "top" },
+			[`${componentCls}-group-wrapper + ${componentCls}-group-wrapper`]: {
+				marginInlineStart: token.calc(token.lineWidth).mul(-1).equal(),
+				[`${componentCls}-affix-wrapper`]: {}
+			}
+		}
+	};
+};
+const genInputStyle = (token) => {
+	const { componentCls, controlHeightSM, lineWidth, calc } = token;
+	const colorSmallPadding = calc(controlHeightSM).sub(calc(lineWidth).mul(2)).sub(16).div(2).equal();
+	return { [componentCls]: {
+		...resetComponent(token),
+		...genBasicInputStyle(token),
+		...genOutlinedStyle(token),
+		...genFilledStyle(token),
+		...genBorderlessStyle(token),
+		...genUnderlinedStyle(token),
+		"&[type=\"color\"]": {
+			height: token.controlHeight,
+			[`&${componentCls}-lg`]: { height: token.controlHeightLG },
+			[`&${componentCls}-sm`]: {
+				height: controlHeightSM,
+				paddingTop: colorSmallPadding,
+				paddingBottom: colorSmallPadding
+			}
+		},
+		"&[type=\"search\"]::-webkit-search-cancel-button, &[type=\"search\"]::-webkit-search-decoration": { appearance: "none" }
+	} };
+};
+const genAllowClearStyle = (token) => {
+	const { componentCls } = token;
+	return { [`${componentCls}-clear-icon`]: {
+		margin: 0,
+		padding: 0,
+		lineHeight: 0,
+		color: token.colorTextQuaternary,
+		fontSize: token.fontSizeIcon,
+		verticalAlign: -1,
+		cursor: "pointer",
+		transition: `color ${token.motionDurationSlow}`,
+		border: "none",
+		outline: "none",
+		backgroundColor: "transparent",
+		"&:hover": { color: token.colorIcon },
+		"&:active": { color: token.colorText },
+		"&-hidden": { visibility: "hidden" },
+		"&-has-suffix": { margin: `0 ${unit$1(token.inputAffixPadding)}` }
+	} };
+};
+const genAffixStyle = (token) => {
+	const { componentCls, inputAffixPadding, colorTextDescription, motionDurationSlow, colorIcon, colorIconHover, iconCls } = token;
+	const affixCls = `${componentCls}-affix-wrapper`;
+	const affixClsDisabled = `${componentCls}-affix-wrapper-disabled`;
+	return {
+		[affixCls]: {
+			...genBasicInputStyle(token),
+			display: "inline-flex",
+			"&-focused, &:focus": { zIndex: 1 },
+			[`> input${componentCls}`]: { padding: 0 },
+			[`> input${componentCls}, > textarea${componentCls}`]: {
+				fontSize: "inherit",
+				border: "none",
+				borderRadius: 0,
+				outline: "none",
+				background: "transparent",
+				color: "inherit",
+				"&::-ms-reveal": { display: "none" },
+				"&:focus": { boxShadow: "none !important" }
+			},
+			"&::before": {
+				display: "inline-block",
+				width: 0,
+				visibility: "hidden",
+				content: "\"\\a0\""
+			},
+			[componentCls]: {
+				"&-prefix, &-suffix": {
+					display: "flex",
+					flex: "none",
+					alignItems: "center",
+					"> *:not(:last-child)": { marginInlineEnd: token.paddingXS }
+				},
+				"&-show-count-suffix": {
+					color: colorTextDescription,
+					direction: "ltr"
+				},
+				"&-show-count-has-suffix": { marginInlineEnd: token.paddingXXS },
+				"&-prefix": { marginInlineEnd: inputAffixPadding },
+				"&-suffix": { marginInlineStart: inputAffixPadding }
+			},
+			...genAllowClearStyle(token),
+			[`${iconCls}${componentCls}-password-icon`]: {
+				color: colorIcon,
+				cursor: "pointer",
+				transition: `all ${motionDurationSlow}`,
+				"&:hover": { color: colorIconHover }
+			}
+		},
+		[`${componentCls}-underlined`]: { borderRadius: 0 },
+		[affixClsDisabled]: { [`${iconCls}${componentCls}-password-icon`]: {
+			color: colorIcon,
+			cursor: "not-allowed",
+			"&:hover": { color: colorIcon }
+		} }
+	};
+};
+const genGroupStyle = (token) => {
+	const { componentCls, borderRadiusLG, borderRadiusSM } = token;
+	return { [`${componentCls}-group`]: {
+		...resetComponent(token),
+		...genInputGroupStyle(token),
+		"&-rtl": { direction: "rtl" },
+		"&-wrapper": {
+			display: "inline-block",
+			width: "100%",
+			textAlign: "start",
+			verticalAlign: "top",
+			"&-rtl": { direction: "rtl" },
+			"&-lg": { [`${componentCls}-group-addon`]: {
+				borderRadius: borderRadiusLG,
+				fontSize: token.inputFontSizeLG
+			} },
+			"&-sm": { [`${componentCls}-group-addon`]: { borderRadius: borderRadiusSM } },
+			...genOutlinedGroupStyle(token),
+			...genFilledGroupStyle(token),
+			[`&:not(${componentCls}-compact-first-item):not(${componentCls}-compact-last-item)${componentCls}-compact-item`]: { [`${componentCls}, ${componentCls}-group-addon`]: { borderRadius: 0 } },
+			[`&:not(${componentCls}-compact-last-item)${componentCls}-compact-first-item`]: { [`${componentCls}, ${componentCls}-group-addon`]: {
+				borderStartEndRadius: 0,
+				borderEndEndRadius: 0
+			} },
+			[`&:not(${componentCls}-compact-first-item)${componentCls}-compact-last-item`]: { [`${componentCls}, ${componentCls}-group-addon`]: {
+				borderStartStartRadius: 0,
+				borderEndStartRadius: 0
+			} },
+			[`&:not(${componentCls}-compact-last-item)${componentCls}-compact-item`]: { [`${componentCls}-affix-wrapper`]: {
+				borderStartEndRadius: 0,
+				borderEndEndRadius: 0
+			} },
+			[`&:not(${componentCls}-compact-first-item)${componentCls}-compact-item`]: { [`${componentCls}-affix-wrapper`]: {
+				borderStartStartRadius: 0,
+				borderEndStartRadius: 0
+			} }
+		}
+	} };
+};
+// ============================== Range ===============================
+const genRangeStyle = (token) => {
+	const { componentCls } = token;
+	return { [`${componentCls}-out-of-range`]: { [`&, & input, & textarea, ${componentCls}-show-count-suffix, ${componentCls}-data-count`]: { color: token.colorError } } };
+};
+// ============================== Export ==============================
+genStyleHooks(["Input", "Shared"], (token) => {
+	const inputToken = merge(token, initInputToken(token));
+	return [genInputStyle(inputToken), genAffixStyle(inputToken)];
+}, initComponentToken, { resetFont: false });
+genStyleHooks(["Input", "Component"], (token) => {
+	const inputToken = merge(token, initInputToken(token));
+	return [
+		genGroupStyle(inputToken),
+		genRangeStyle(inputToken),
+		genCompactItemStyle(inputToken, {
+			focus: true,
+			focusElCls: `${inputToken.componentCls}-affix-wrapper-focused`
+		})
+	];
+}, initComponentToken, { resetFont: false });
+/**
+* Get multiple selector needed style. The calculation:
+*
+* ContainerPadding = BasePadding - ItemMargin
+*
+* Border:                    ╔═══════════════════════════╗                 ┬
+* ContainerPadding:          ║                           ║                 │
+*                            ╟───────────────────────────╢     ┬           │
+* Item Margin:               ║                           ║     │           │
+*                            ║             ┌──────────┐  ║     │           │
+* Item(multipleItemHeight):  ║ BasePadding │   Item   │  ║  Overflow  Container(ControlHeight)
+*                            ║             └──────────┘  ║     │           │
+* Item Margin:               ║                           ║     │           │
+*                            ╟───────────────────────────╢     ┴           │
+* ContainerPadding:          ║                           ║                 │
+* Border:                    ╚═══════════════════════════╝                 ┴
+*/
+const getMultipleSelectorUnit = (token) => {
+	const { multipleSelectItemHeight, paddingXXS, lineWidth, INTERNAL_FIXED_ITEM_MARGIN } = token;
+	const basePadding = token.max(token.calc(paddingXXS).sub(lineWidth).equal(), 0);
+	const containerPadding = token.max(token.calc(basePadding).sub(INTERNAL_FIXED_ITEM_MARGIN).equal(), 0);
+	return {
+		a: basePadding,
+		b: containerPadding,
+		c: unit$1(multipleSelectItemHeight),
+		d: unit$1(token.calc(multipleSelectItemHeight).sub(token.calc(token.lineWidth).mul(2)).equal())
+	};
+};
+/**
+* Get the `@rc-component/overflow` needed style.
+* It's a share style which means not affected by `size`.
+*/
+const genOverflowStyle = (token) => {
+	const { componentCls, iconCls, borderRadiusSM, motionDurationSlow, paddingXS, multipleItemColorDisabled, multipleItemBorderColorDisabled, colorIcon, colorIconHover, INTERNAL_FIXED_ITEM_MARGIN } = token;
+	const selectOverflowPrefixCls = `${componentCls}-selection-overflow`;
+	return { [selectOverflowPrefixCls]: {
+		position: "relative",
+		display: "flex",
+		flex: "auto",
+		flexWrap: "wrap",
+		maxWidth: "100%",
+		"&-item": {
+			flex: "none",
+			alignSelf: "center",
+			maxWidth: "calc(100% - 4px)",
+			display: "inline-flex"
+		},
+		[`${componentCls}-selection-item`]: {
+			display: "flex",
+			alignSelf: "center",
+			flex: "none",
+			boxSizing: "border-box",
+			maxWidth: "100%",
+			marginBlock: INTERNAL_FIXED_ITEM_MARGIN,
+			borderRadius: borderRadiusSM,
+			cursor: "default",
+			transition: `font-size ${motionDurationSlow}, line-height ${motionDurationSlow}, height ${motionDurationSlow}`,
+			marginInlineEnd: token.calc(INTERNAL_FIXED_ITEM_MARGIN).mul(2).equal(),
+			paddingInlineStart: paddingXS,
+			paddingInlineEnd: token.calc(paddingXS).div(2).equal(),
+			[`${componentCls}-disabled&`]: {
+				color: multipleItemColorDisabled,
+				borderColor: multipleItemBorderColorDisabled,
+				cursor: "not-allowed"
+			},
+			"&-content": {
+				display: "inline-block",
+				marginInlineEnd: token.calc(paddingXS).div(2).equal(),
+				overflow: "hidden",
+				whiteSpace: "pre",
+				textOverflow: "ellipsis"
+			},
+			"&-remove": {
+				...resetIcon(),
+				display: "inline-flex",
+				alignItems: "center",
+				color: colorIcon,
+				fontWeight: "bold",
+				fontSize: 10,
+				lineHeight: "inherit",
+				cursor: "pointer",
+				[`> ${iconCls}`]: { verticalAlign: "-0.2em" },
+				"&:hover": { color: colorIconHover }
+			}
+		}
+	} };
+};
+const genSize = (token, suffix) => {
+	const { componentCls, controlHeight } = token;
+	const suffixCls = suffix ? `${componentCls}-${suffix}` : "";
+	const multipleSelectorUnit = getMultipleSelectorUnit(token);
+	return [(
+	// genSelectionStyle(token, suffix),
+	{ [`${componentCls}-multiple${suffixCls}`]: {
+		paddingBlock: multipleSelectorUnit.b,
+		paddingInlineStart: multipleSelectorUnit.a,
+		minHeight: controlHeight,
+		[`${componentCls}-selection-item`]: {
+			height: multipleSelectorUnit.c,
+			lineHeight: unit$1(multipleSelectorUnit.d)
+		}
+	} })];
+};
+const genPickerMultipleStyle = (token) => {
+	const { componentCls, calc, lineWidth } = token;
+	const smallToken = merge(token, {
+		fontHeight: token.fontSize,
+		selectHeight: token.controlHeightSM,
+		multipleSelectItemHeight: token.multipleItemHeightSM,
+		borderRadius: token.borderRadiusSM,
+		borderRadiusSM: token.borderRadiusXS,
+		controlHeight: token.controlHeightSM
+	});
+	const largeToken = merge(token, {
+		fontHeight: calc(token.multipleItemHeightLG).sub(calc(lineWidth).mul(2).equal()).equal(),
+		fontSize: token.fontSizeLG,
+		selectHeight: token.controlHeightLG,
+		multipleSelectItemHeight: token.multipleItemHeightLG,
+		borderRadius: token.borderRadiusLG,
+		borderRadiusSM: token.borderRadius,
+		controlHeight: token.controlHeightLG
+	});
+	return [
+		genSize(smallToken, "small"),
+		genSize(token),
+		genSize(largeToken, "large"),
+		(
+		// ====================== Selection ======================
+		{ [`${componentCls}${componentCls}-multiple`]: {
+			width: "100%",
+			cursor: "text",
+			[`${componentCls}-selector`]: {
+				flex: "auto",
+				padding: 0,
+				position: "relative",
+				"&:after": { margin: 0 },
+				[`${componentCls}-selection-placeholder`]: {
+					position: "absolute",
+					top: "50%",
+					insetInlineStart: token.inputPaddingHorizontalBase,
+					insetInlineEnd: 0,
+					transform: "translateY(-50%)",
+					transition: `all ${token.motionDurationSlow}`,
+					overflow: "hidden",
+					whiteSpace: "nowrap",
+					textOverflow: "ellipsis",
+					flex: 1,
+					color: token.colorTextPlaceholder,
+					pointerEvents: "none"
+				}
+			},
+			...genOverflowStyle(token),
+			[`${componentCls}-multiple-input`]: {
+				width: 0,
+				height: 0,
+				border: 0,
+				visibility: "hidden",
+				position: "absolute",
+				zIndex: -1
+			}
+		} })
+	];
+};
+const genPickerCellInnerStyle = (token) => {
+	const { pickerCellCls, pickerCellInnerCls, cellHeight, borderRadiusSM, motionDurationMid, cellHoverBg, lineWidth, lineType, colorPrimary, cellActiveWithRangeBg, colorTextLightSolid, colorTextDisabled, cellBgDisabled, colorFillSecondary } = token;
+	return {
+		"&::before": {
+			position: "absolute",
+			top: "50%",
+			insetInlineStart: 0,
+			insetInlineEnd: 0,
+			zIndex: 1,
+			height: cellHeight,
+			transform: "translateY(-50%)",
+			content: "\"\"",
+			pointerEvents: "none"
+		},
+		[pickerCellInnerCls]: {
+			position: "relative",
+			zIndex: 2,
+			display: "inline-block",
+			minWidth: cellHeight,
+			height: cellHeight,
+			lineHeight: unit$1(cellHeight),
+			borderRadius: borderRadiusSM,
+			transition: `background-color ${motionDurationMid}`
+		},
+		[`&:hover:not(${pickerCellCls}-in-view):not(${pickerCellCls}-disabled),
+    &:hover:not(${pickerCellCls}-selected):not(${pickerCellCls}-range-start):not(${pickerCellCls}-range-end):not(${pickerCellCls}-disabled)`]: { [pickerCellInnerCls]: { background: cellHoverBg } },
+		[`&-in-view${pickerCellCls}-today ${pickerCellInnerCls}`]: { "&::before": {
+			position: "absolute",
+			top: 0,
+			insetInlineEnd: 0,
+			bottom: 0,
+			insetInlineStart: 0,
+			zIndex: 1,
+			border: `${unit$1(lineWidth)} ${lineType} ${colorPrimary}`,
+			borderRadius: borderRadiusSM,
+			content: "\"\""
+		} },
+		[`&-in-view${pickerCellCls}-in-range,
+      &-in-view${pickerCellCls}-range-start,
+      &-in-view${pickerCellCls}-range-end`]: {
+			position: "relative",
+			[`&:not(${pickerCellCls}-disabled):before`]: { background: cellActiveWithRangeBg }
+		},
+		[`&-in-view${pickerCellCls}-selected,
+      &-in-view${pickerCellCls}-range-start,
+      &-in-view${pickerCellCls}-range-end`]: {
+			[`&:not(${pickerCellCls}-disabled) ${pickerCellInnerCls}`]: {
+				color: colorTextLightSolid,
+				background: colorPrimary
+			},
+			[`&${pickerCellCls}-disabled ${pickerCellInnerCls}`]: { background: colorFillSecondary }
+		},
+		[`&-in-view${pickerCellCls}-range-start:not(${pickerCellCls}-disabled):before`]: { insetInlineStart: "50%" },
+		[`&-in-view${pickerCellCls}-range-end:not(${pickerCellCls}-disabled):before`]: { insetInlineEnd: "50%" },
+		[`&-in-view${pickerCellCls}-range-start:not(${pickerCellCls}-range-end) ${pickerCellInnerCls}`]: {
+			borderStartStartRadius: borderRadiusSM,
+			borderEndStartRadius: borderRadiusSM,
+			borderStartEndRadius: 0,
+			borderEndEndRadius: 0
+		},
+		[`&-in-view${pickerCellCls}-range-end:not(${pickerCellCls}-range-start) ${pickerCellInnerCls}`]: {
+			borderStartStartRadius: 0,
+			borderEndStartRadius: 0,
+			borderStartEndRadius: borderRadiusSM,
+			borderEndEndRadius: borderRadiusSM
+		},
+		"&-disabled": {
+			color: colorTextDisabled,
+			cursor: "not-allowed",
+			[pickerCellInnerCls]: { background: "transparent" },
+			"&::before": { background: cellBgDisabled }
+		},
+		[`&-disabled${pickerCellCls}-today ${pickerCellInnerCls}::before`]: { borderColor: colorTextDisabled }
+	};
+};
+const genPanelStyle = (token) => {
+	const { componentCls, pickerCellCls, pickerCellInnerCls, pickerYearMonthCellWidth, pickerControlIconSize, cellWidth, paddingSM, paddingXS, paddingXXS, colorBgContainer, lineWidth, lineType, borderRadiusLG, colorPrimary, colorTextHeading, colorSplit, pickerControlIconBorderWidth, colorIcon, textHeight, motionDurationMid, colorIconHover, fontWeightStrong, cellHeight, pickerCellPaddingVertical, colorTextDisabled, colorText, fontSize, motionDurationSlow, withoutTimeCellHeight, pickerQuarterPanelContentHeight, borderRadiusSM, colorTextLightSolid, cellHoverBg, timeColumnHeight, timeColumnWidth, timeCellHeight, controlItemBgActive, marginXXS, pickerDatePanelPaddingHorizontal, pickerControlIconMargin } = token;
+	const pickerPanelWidth = token.calc(cellWidth).mul(7).add(token.calc(pickerDatePanelPaddingHorizontal).mul(2)).equal();
+	return { [componentCls]: {
+		"&-panel": {
+			display: "inline-flex",
+			flexDirection: "column",
+			textAlign: "center",
+			background: colorBgContainer,
+			borderRadius: borderRadiusLG,
+			outline: "none",
+			"&-focused": { borderColor: colorPrimary },
+			"&-rtl": {
+				[`${componentCls}-prev-icon,
+              ${componentCls}-super-prev-icon`]: { transform: "rotate(45deg)" },
+				[`${componentCls}-next-icon,
+              ${componentCls}-super-next-icon`]: { transform: "rotate(-135deg)" },
+				[`${componentCls}-time-panel`]: { [`${componentCls}-content`]: {
+					direction: "ltr",
+					"> *": { direction: "rtl" }
+				} }
+			}
+		},
+		["&-decade-panel,\n        &-year-panel,\n        &-quarter-panel,\n        &-month-panel,\n        &-week-panel,\n        &-date-panel,\n        &-time-panel"]: {
+			display: "flex",
+			flexDirection: "column",
+			width: pickerPanelWidth
+		},
+		"&-header": {
+			display: "flex",
+			padding: `0 ${unit$1(paddingXS)}`,
+			color: colorTextHeading,
+			borderBottom: `${unit$1(lineWidth)} ${lineType} ${colorSplit}`,
+			"> *": { flex: "none" },
+			button: {
+				padding: 0,
+				color: colorIcon,
+				lineHeight: unit$1(textHeight),
+				background: "transparent",
+				border: 0,
+				cursor: "pointer",
+				transition: `color ${motionDurationMid}`,
+				fontSize: "inherit",
+				display: "inline-flex",
+				alignItems: "center",
+				justifyContent: "center",
+				"&:empty": { display: "none" }
+			},
+			"> button": {
+				minWidth: "1.6em",
+				fontSize,
+				"&:hover": { color: colorIconHover },
+				"&:disabled": {
+					opacity: .25,
+					pointerEvents: "none"
+				}
+			},
+			"&-view": {
+				flex: "auto",
+				fontWeight: fontWeightStrong,
+				lineHeight: unit$1(textHeight),
+				"> button": {
+					color: "inherit",
+					fontWeight: "inherit",
+					verticalAlign: "top",
+					"&:not(:first-child)": { marginInlineStart: paddingXS },
+					"&:hover": { color: colorPrimary }
+				}
+			}
+		},
+		["&-prev-icon,\n        &-next-icon,\n        &-super-prev-icon,\n        &-super-next-icon"]: {
+			position: "relative",
+			width: pickerControlIconSize,
+			height: pickerControlIconSize,
+			"&::before": {
+				position: "absolute",
+				top: 0,
+				insetInlineStart: 0,
+				width: pickerControlIconSize,
+				height: pickerControlIconSize,
+				border: "0 solid currentcolor",
+				borderBlockStartWidth: pickerControlIconBorderWidth,
+				borderInlineStartWidth: pickerControlIconBorderWidth,
+				content: "\"\""
+			}
+		},
+		["&-super-prev-icon,\n        &-super-next-icon"]: { "&::after": {
+			position: "absolute",
+			top: pickerControlIconMargin,
+			insetInlineStart: pickerControlIconMargin,
+			display: "inline-block",
+			width: pickerControlIconSize,
+			height: pickerControlIconSize,
+			border: "0 solid currentcolor",
+			borderBlockStartWidth: pickerControlIconBorderWidth,
+			borderInlineStartWidth: pickerControlIconBorderWidth,
+			content: "\"\""
+		} },
+		"&-prev-icon, &-super-prev-icon": { transform: "rotate(-45deg)" },
+		"&-next-icon, &-super-next-icon": { transform: "rotate(135deg)" },
+		"&-content": {
+			width: "100%",
+			tableLayout: "fixed",
+			borderCollapse: "collapse",
+			"th, td": {
+				position: "relative",
+				minWidth: cellHeight,
+				fontWeight: "normal"
+			},
+			th: {
+				height: token.calc(cellHeight).add(token.calc(pickerCellPaddingVertical).mul(2)).equal(),
+				color: colorText,
+				verticalAlign: "middle"
+			}
+		},
+		"&-cell": {
+			padding: `${unit$1(pickerCellPaddingVertical)} 0`,
+			color: colorTextDisabled,
+			cursor: "pointer",
+			"&-in-view": { color: colorText },
+			...genPickerCellInnerStyle(token)
+		},
+		["&-decade-panel,\n        &-year-panel,\n        &-quarter-panel,\n        &-month-panel"]: {
+			[`${componentCls}-content`]: { height: token.calc(withoutTimeCellHeight).mul(4).equal() },
+			[pickerCellInnerCls]: { padding: `0 ${unit$1(paddingXS)}` }
+		},
+		"&-quarter-panel": { [`${componentCls}-content`]: { height: pickerQuarterPanelContentHeight } },
+		"&-decade-panel": {
+			[pickerCellInnerCls]: { padding: `0 ${unit$1(token.calc(paddingXS).div(2).equal())}` },
+			[`${componentCls}-cell::before`]: { display: "none" }
+		},
+		["&-year-panel,\n        &-quarter-panel,\n        &-month-panel"]: {
+			[`${componentCls}-body`]: { padding: `0 ${unit$1(paddingXS)}` },
+			[pickerCellInnerCls]: { width: pickerYearMonthCellWidth }
+		},
+		"&-date-panel": {
+			[`${componentCls}-body`]: { padding: `${unit$1(paddingXS)} ${unit$1(pickerDatePanelPaddingHorizontal)}` },
+			[`${componentCls}-content th`]: {
+				boxSizing: "border-box",
+				padding: 0
+			}
+		},
+		"&-week-panel-row": {
+			td: {
+				"&:before": { transition: `background-color ${motionDurationMid}` },
+				"&:first-child:before": {
+					borderStartStartRadius: borderRadiusSM,
+					borderEndStartRadius: borderRadiusSM
+				},
+				"&:last-child:before": {
+					borderStartEndRadius: borderRadiusSM,
+					borderEndEndRadius: borderRadiusSM
+				}
+			},
+			"&:hover td:before": { background: cellHoverBg },
+			"&-range-start td, &-range-end td, &-selected td, &-hover td": { [`&${pickerCellCls}`]: {
+				"&:before": { background: colorPrimary },
+				[`&${componentCls}-cell-week`]: { color: new FastColor(colorTextLightSolid).setA(.5).toHexString() },
+				[pickerCellInnerCls]: { color: colorTextLightSolid }
+			} },
+			"&-range-hover td:before": { background: controlItemBgActive }
+		},
+		"&-week-panel, &-date-panel-show-week": {
+			[`${componentCls}-body`]: { padding: `${unit$1(paddingXS)} ${unit$1(paddingSM)}` },
+			[`${componentCls}-content th`]: { width: "auto" }
+		},
+		"&-datetime-panel": {
+			display: "flex",
+			[`${componentCls}-time-panel`]: { borderInlineStart: `${unit$1(lineWidth)} ${lineType} ${colorSplit}` },
+			[`${componentCls}-date-panel,
+          ${componentCls}-time-panel`]: { transition: `opacity ${motionDurationSlow}` },
+			"&-active": { [`${componentCls}-date-panel,
+            ${componentCls}-time-panel`]: {
+				opacity: .3,
+				"&-active": { opacity: 1 }
+			} }
+		},
+		"&-time-panel": {
+			width: "auto",
+			minWidth: "auto",
+			[`${componentCls}-content`]: {
+				display: "flex",
+				flex: "auto",
+				height: timeColumnHeight
+			},
+			"&-column": {
+				flex: "1 0 auto",
+				width: timeColumnWidth,
+				margin: `${unit$1(paddingXXS)} 0`,
+				padding: 0,
+				overflowY: "hidden",
+				textAlign: "start",
+				listStyle: "none",
+				transition: `background-color ${motionDurationMid}`,
+				overflowX: "hidden",
+				"&::-webkit-scrollbar": {
+					width: 8,
+					backgroundColor: "transparent"
+				},
+				"&::-webkit-scrollbar-thumb": {
+					backgroundColor: token.colorTextTertiary,
+					borderRadius: token.borderRadiusSM
+				},
+				"&": {
+					scrollbarWidth: "thin",
+					scrollbarColor: `${token.colorTextTertiary} transparent`
+				},
+				"&::after": {
+					display: "block",
+					height: `calc(100% - ${unit$1(timeCellHeight)})`,
+					content: "\"\""
+				},
+				"&:not(:first-child)": { borderInlineStart: `${unit$1(lineWidth)} ${lineType} ${colorSplit}` },
+				"&-active": { background: new FastColor(controlItemBgActive).setA(.2).toHexString() },
+				"&:hover": { overflowY: "auto" },
+				"> li": {
+					margin: 0,
+					padding: 0,
+					[`&${componentCls}-time-panel-cell`]: {
+						marginInline: marginXXS,
+						[`${componentCls}-time-panel-cell-inner`]: {
+							display: "block",
+							width: token.calc(timeColumnWidth).sub(token.calc(marginXXS).mul(2)).equal(),
+							height: timeCellHeight,
+							margin: 0,
+							paddingBlock: 0,
+							paddingInlineEnd: 0,
+							paddingInlineStart: token.calc(timeColumnWidth).sub(timeCellHeight).div(2).equal(),
+							color: colorText,
+							lineHeight: unit$1(timeCellHeight),
+							borderRadius: borderRadiusSM,
+							cursor: "pointer",
+							transition: `background-color ${motionDurationMid}`,
+							"&:hover": { background: cellHoverBg }
+						},
+						"&-selected": { [`${componentCls}-time-panel-cell-inner`]: { background: controlItemBgActive } },
+						"&-disabled": { [`${componentCls}-time-panel-cell-inner`]: {
+							color: colorTextDisabled,
+							background: "transparent",
+							cursor: "not-allowed"
+						} }
+					}
+				}
+			}
+		}
+	} };
+};
+const genPickerPanelStyle = (token) => {
+	const { componentCls, textHeight, lineWidth, paddingSM, antCls, colorPrimary, cellActiveWithRangeBg, colorPrimaryBorder, lineType, colorSplit } = token;
+	return { [`${componentCls}-dropdown`]: {
+		[`${componentCls}-footer`]: {
+			borderTop: `${unit$1(lineWidth)} ${lineType} ${colorSplit}`,
+			"&-extra": {
+				padding: `0 ${unit$1(paddingSM)}`,
+				lineHeight: unit$1(token.calc(textHeight).sub(token.calc(lineWidth).mul(2)).equal()),
+				textAlign: "start",
+				"&:not(:last-child)": { borderBottom: `${unit$1(lineWidth)} ${lineType} ${colorSplit}` }
+			}
+		},
+		[`${componentCls}-panels + ${componentCls}-footer ${componentCls}-ranges`]: { justifyContent: "space-between" },
+		[`${componentCls}-ranges`]: {
+			marginBlock: 0,
+			paddingInline: unit$1(paddingSM),
+			overflow: "hidden",
+			textAlign: "start",
+			listStyle: "none",
+			display: "flex",
+			justifyContent: "center",
+			alignItems: "center",
+			"> li": {
+				lineHeight: unit$1(token.calc(textHeight).sub(token.calc(lineWidth).mul(2)).equal()),
+				display: "inline-block"
+			},
+			[`${componentCls}-now-btn-disabled`]: {
+				pointerEvents: "none",
+				color: token.colorTextDisabled
+			},
+			[`${componentCls}-preset > ${antCls}-tag-blue`]: {
+				color: colorPrimary,
+				background: cellActiveWithRangeBg,
+				borderColor: colorPrimaryBorder,
+				cursor: "pointer"
+			},
+			[`${componentCls}-ok`]: {
+				paddingBlock: token.calc(lineWidth).mul(2).equal(),
+				marginInlineStart: "auto"
+			}
+		}
+	} };
+};
+const initPickerPanelToken = (token) => {
+	const { componentCls, controlHeightLG, paddingXXS, padding } = token;
+	return {
+		pickerCellCls: `${componentCls}-cell`,
+		pickerCellInnerCls: `${componentCls}-cell-inner`,
+		pickerYearMonthCellWidth: token.calc(controlHeightLG).mul(1.5).equal(),
+		pickerQuarterPanelContentHeight: token.calc(controlHeightLG).mul(1.4).equal(),
+		pickerCellPaddingVertical: token.calc(paddingXXS).add(token.calc(paddingXXS).div(2)).equal(),
+		pickerCellBorderGap: 2,
+		pickerControlIconSize: 7,
+		pickerControlIconMargin: 4,
+		pickerControlIconBorderWidth: 1.5,
+		pickerDatePanelPaddingHorizontal: token.calc(padding).add(token.calc(paddingXXS).div(2)).equal()
+	};
+};
+const initPanelComponentToken = (token) => {
+	const { colorBgContainerDisabled, controlHeight, controlHeightSM, controlHeightLG, paddingXXS, lineWidth } = token;
+	// Item height default use `controlHeight - 2 * paddingXXS`,
+	// but some case `paddingXXS=0`.
+	// Let's fallback it.
+	const dblPaddingXXS = paddingXXS * 2;
+	const dblLineWidth = lineWidth * 2;
+	const multipleItemHeight = Math.min(controlHeight - dblPaddingXXS, controlHeight - dblLineWidth);
+	const multipleItemHeightSM = Math.min(controlHeightSM - dblPaddingXXS, controlHeightSM - dblLineWidth);
+	const multipleItemHeightLG = Math.min(controlHeightLG - dblPaddingXXS, controlHeightLG - dblLineWidth);
+	// FIXED_ITEM_MARGIN is a hardcode calculation since calc not support rounding
+	const INTERNAL_FIXED_ITEM_MARGIN = Math.floor(paddingXXS / 2);
+	const filledToken = {
+		INTERNAL_FIXED_ITEM_MARGIN,
+		cellHoverBg: token.controlItemBgHover,
+		cellActiveWithRangeBg: token.controlItemBgActive,
+		cellHoverWithRangeBg: new FastColor(token.colorPrimary).lighten(35).toHexString(),
+		cellRangeBorderColor: new FastColor(token.colorPrimary).lighten(20).toHexString(),
+		cellBgDisabled: colorBgContainerDisabled,
+		timeColumnWidth: controlHeightLG * 1.4,
+		timeColumnHeight: 224,
+		timeCellHeight: 28,
+		cellWidth: controlHeightSM * 1.5,
+		cellHeight: controlHeightSM,
+		textHeight: controlHeightLG,
+		withoutTimeCellHeight: controlHeightLG * 1.65,
+		multipleItemBg: token.colorFillSecondary,
+		multipleItemBorderColor: "transparent",
+		multipleItemHeight,
+		multipleItemHeightSM,
+		multipleItemHeightLG,
+		multipleSelectorBgDisabled: colorBgContainerDisabled,
+		multipleItemColorDisabled: token.colorTextDisabled,
+		multipleItemBorderColorDisabled: "transparent"
+	};
+	return filledToken;
+};
+const prepareComponentToken = (token) => ({
+	...initComponentToken(token),
+	...initPanelComponentToken(token),
+	...getArrowToken(token),
+	presetsWidth: 120,
+	presetsMaxWidth: 200,
+	zIndexPopup: token.zIndexPopupBase + 50
+});
+const genVariantsStyle = (token) => {
+	const { componentCls } = token;
+	return { [componentCls]: [{
+		...genOutlinedStyle(token),
+		...genUnderlinedStyle(token),
+		...genFilledStyle(token),
+		...genBorderlessStyle(token)
+	}, (
+	// ========================= Multiple =========================
+	{
+		"&-outlined": { [`&${componentCls}-multiple ${componentCls}-selection-item`]: {
+			background: token.multipleItemBg,
+			border: `${unit$1(token.lineWidth)} ${token.lineType} ${token.multipleItemBorderColor}`
+		} },
+		"&-filled": { [`&${componentCls}-multiple ${componentCls}-selection-item`]: {
+			background: token.colorBgContainer,
+			border: `${unit$1(token.lineWidth)} ${token.lineType} ${token.colorSplit}`
+		} },
+		"&-borderless": { [`&${componentCls}-multiple ${componentCls}-selection-item`]: {
+			background: token.multipleItemBg,
+			border: `${unit$1(token.lineWidth)} ${token.lineType} ${token.multipleItemBorderColor}`
+		} },
+		"&-underlined": { [`&${componentCls}-multiple ${componentCls}-selection-item`]: {
+			background: token.multipleItemBg,
+			border: `${unit$1(token.lineWidth)} ${token.lineType} ${token.multipleItemBorderColor}`
+		} }
+	})] };
+};
+const genPickerPadding = (paddingBlock, paddingInline) => {
+	return { padding: `${unit$1(paddingBlock)} ${unit$1(paddingInline)}` };
+};
+const genPickerStatusStyle = (token) => {
+	const { componentCls, colorError, colorWarning } = token;
+	return { [`${componentCls}:not(${componentCls}-disabled):not([disabled])`]: {
+		[`&${componentCls}-status-error`]: { [`${componentCls}-active-bar`]: { background: colorError } },
+		[`&${componentCls}-status-warning`]: { [`${componentCls}-active-bar`]: { background: colorWarning } }
+	} };
+};
+const genPickerStyle = (token) => {
+	const { componentCls, antCls, paddingInline, lineWidth, lineType, colorBorder, borderRadius, motionDurationMid, colorTextDisabled, colorTextPlaceholder, colorTextQuaternary, fontSizeLG, inputFontSizeLG, fontSizeSM, inputFontSizeSM, controlHeightSM, paddingInlineSM, paddingXS, marginXS, colorIcon, lineWidthBold, colorPrimary, motionDurationSlow, zIndexPopup, paddingXXS, sizePopupArrow, colorBgElevated, borderRadiusLG, boxShadowSecondary, borderRadiusSM, colorSplit, cellHoverBg, presetsWidth, presetsMaxWidth, boxShadowPopoverArrow, fontHeight, lineHeightLG } = token;
+	return [
+		{ [componentCls]: {
+			...resetComponent(token),
+			...genPickerPadding(token.paddingBlock, token.paddingInline),
+			position: "relative",
+			display: "inline-flex",
+			alignItems: "center",
+			lineHeight: 1,
+			borderRadius,
+			transition: `border ${motionDurationMid}, box-shadow ${motionDurationMid}, background ${motionDurationMid}`,
+			[`${componentCls}-prefix`]: {
+				flex: "0 0 auto",
+				marginInlineEnd: token.inputAffixPadding
+			},
+			[`${componentCls}-input`]: {
+				position: "relative",
+				display: "inline-flex",
+				alignItems: "center",
+				width: "100%",
+				"> input": {
+					position: "relative",
+					display: "inline-block",
+					width: "100%",
+					color: "inherit",
+					fontSize: token.inputFontSize ?? token.fontSize,
+					lineHeight: token.lineHeight,
+					transition: `all ${motionDurationMid}`,
+					...genPlaceholderStyle(colorTextPlaceholder),
+					flex: "auto",
+					minWidth: 1,
+					height: "auto",
+					padding: 0,
+					background: "transparent",
+					border: 0,
+					fontFamily: "inherit",
+					"&:focus": {
+						boxShadow: "none",
+						outline: 0
+					},
+					"&[disabled]": {
+						background: "transparent",
+						color: colorTextDisabled,
+						cursor: "not-allowed"
+					}
+				},
+				"&-placeholder": { "> input": { color: colorTextPlaceholder } }
+			},
+			"&-large": {
+				...genPickerPadding(token.paddingBlockLG, token.paddingInlineLG),
+				borderRadius: token.borderRadiusLG,
+				[`${componentCls}-input > input`]: {
+					fontSize: inputFontSizeLG ?? fontSizeLG,
+					lineHeight: lineHeightLG
+				}
+			},
+			"&-small": {
+				...genPickerPadding(token.paddingBlockSM, token.paddingInlineSM),
+				borderRadius: token.borderRadiusSM,
+				[`${componentCls}-input > input`]: { fontSize: inputFontSizeSM ?? fontSizeSM }
+			},
+			[`${componentCls}-suffix`]: {
+				display: "flex",
+				flex: "none",
+				alignSelf: "center",
+				marginInlineStart: token.calc(paddingXS).div(2).equal(),
+				color: colorTextQuaternary,
+				lineHeight: 1,
+				pointerEvents: "none",
+				transition: `opacity ${motionDurationMid}, color ${motionDurationMid}`,
+				"> *": {
+					verticalAlign: "top",
+					"&:not(:last-child)": { marginInlineEnd: marginXS }
+				}
+			},
+			[`${componentCls}-clear`]: {
+				position: "absolute",
+				top: "50%",
+				insetInlineEnd: 0,
+				color: colorTextQuaternary,
+				lineHeight: 1,
+				transform: "translateY(-50%)",
+				cursor: "pointer",
+				opacity: 0,
+				transition: `opacity ${motionDurationMid}, color ${motionDurationMid}`,
+				"> *": { verticalAlign: "top" },
+				"&:hover": { color: colorIcon }
+			},
+			"&:hover": {
+				[`${componentCls}-clear`]: { opacity: 1 },
+				[`${componentCls}-suffix:not(:last-child)`]: { opacity: 0 }
+			},
+			[`${componentCls}-separator`]: {
+				position: "relative",
+				display: "inline-block",
+				width: "1em",
+				height: fontSizeLG,
+				color: colorTextQuaternary,
+				fontSize: fontSizeLG,
+				verticalAlign: "top",
+				cursor: "default",
+				[`${componentCls}-focused &`]: { color: colorIcon },
+				[`${componentCls}-range-separator &`]: { [`${componentCls}-disabled &`]: { cursor: "not-allowed" } }
+			},
+			"&-range": {
+				position: "relative",
+				display: "inline-flex",
+				[`${componentCls}-active-bar`]: {
+					bottom: token.calc(lineWidth).mul(-1).equal(),
+					height: lineWidthBold,
+					background: colorPrimary,
+					opacity: 0,
+					transition: `all ${motionDurationSlow} ease-out`,
+					pointerEvents: "none"
+				},
+				[`&${componentCls}-focused`]: { [`${componentCls}-active-bar`]: { opacity: 1 } },
+				[`${componentCls}-range-separator`]: {
+					alignItems: "center",
+					padding: `0 ${unit$1(paddingXS)}`,
+					lineHeight: 1
+				}
+			},
+			"&-range, &-multiple": {
+				[`${componentCls}-clear`]: { insetInlineEnd: paddingInline },
+				[`&${componentCls}-small`]: { [`${componentCls}-clear`]: { insetInlineEnd: paddingInlineSM } }
+			},
+			"&-dropdown": {
+				...resetComponent(token),
+				...genPanelStyle(token),
+				pointerEvents: "none",
+				position: "absolute",
+				top: -9999,
+				left: {
+					_skip_check_: true,
+					value: -9999
+				},
+				zIndex: zIndexPopup,
+				[`&${componentCls}-dropdown-hidden`]: { display: "none" },
+				"&-rtl": { direction: "rtl" },
+				[`&${componentCls}-dropdown-placement-bottomLeft,
+            &${componentCls}-dropdown-placement-bottomRight`]: { [`${componentCls}-range-arrow`]: {
+					top: 0,
+					display: "block",
+					transform: "translateY(-100%)"
+				} },
+				[`&${componentCls}-dropdown-placement-topLeft,
+            &${componentCls}-dropdown-placement-topRight`]: { [`${componentCls}-range-arrow`]: {
+					bottom: 0,
+					display: "block",
+					transform: "translateY(100%) rotate(180deg)"
+				} },
+				[`&${antCls}-slide-up-appear, &${antCls}-slide-up-enter`]: { [`${componentCls}-range-arrow${componentCls}-range-arrow`]: { transition: "none" } },
+				[`&${antCls}-slide-up-enter${antCls}-slide-up-enter-active${componentCls}-dropdown-placement-topLeft,
+          &${antCls}-slide-up-enter${antCls}-slide-up-enter-active${componentCls}-dropdown-placement-topRight,
+          &${antCls}-slide-up-appear${antCls}-slide-up-appear-active${componentCls}-dropdown-placement-topLeft,
+          &${antCls}-slide-up-appear${antCls}-slide-up-appear-active${componentCls}-dropdown-placement-topRight`]: { animationName: slideDownIn },
+				[`&${antCls}-slide-up-enter${antCls}-slide-up-enter-active${componentCls}-dropdown-placement-bottomLeft,
+          &${antCls}-slide-up-enter${antCls}-slide-up-enter-active${componentCls}-dropdown-placement-bottomRight,
+          &${antCls}-slide-up-appear${antCls}-slide-up-appear-active${componentCls}-dropdown-placement-bottomLeft,
+          &${antCls}-slide-up-appear${antCls}-slide-up-appear-active${componentCls}-dropdown-placement-bottomRight`]: { animationName: slideUpIn },
+				[`&${antCls}-slide-up-leave ${componentCls}-panel-container`]: { pointerEvents: "none" },
+				[`&${antCls}-slide-up-leave${antCls}-slide-up-leave-active${componentCls}-dropdown-placement-topLeft,
+          &${antCls}-slide-up-leave${antCls}-slide-up-leave-active${componentCls}-dropdown-placement-topRight`]: { animationName: slideDownOut },
+				[`&${antCls}-slide-up-leave${antCls}-slide-up-leave-active${componentCls}-dropdown-placement-bottomLeft,
+          &${antCls}-slide-up-leave${antCls}-slide-up-leave-active${componentCls}-dropdown-placement-bottomRight`]: { animationName: slideUpOut },
+				[`${componentCls}-panel > ${componentCls}-time-panel`]: { paddingTop: paddingXXS },
+				[`${componentCls}-range-wrapper`]: {
+					display: "flex",
+					position: "relative"
+				},
+				[`${componentCls}-range-arrow`]: {
+					position: "absolute",
+					zIndex: 1,
+					display: "none",
+					paddingInline: token.calc(paddingInline).mul(1.5).equal(),
+					boxSizing: "content-box",
+					transition: `all ${motionDurationSlow} ease-out`,
+					...genRoundedArrow(token, colorBgElevated, boxShadowPopoverArrow),
+					"&:before": { insetInlineStart: token.calc(paddingInline).mul(1.5).equal() }
+				},
+				[`${componentCls}-panel-container`]: {
+					overflow: "hidden",
+					verticalAlign: "top",
+					background: colorBgElevated,
+					borderRadius: borderRadiusLG,
+					boxShadow: boxShadowSecondary,
+					transition: `margin ${motionDurationSlow}`,
+					display: "inline-block",
+					pointerEvents: "auto",
+					[`${componentCls}-panel-layout`]: {
+						display: "flex",
+						flexWrap: "nowrap",
+						alignItems: "stretch"
+					},
+					[`${componentCls}-presets`]: {
+						display: "flex",
+						flexDirection: "column",
+						minWidth: presetsWidth,
+						maxWidth: presetsMaxWidth,
+						ul: {
+							height: 0,
+							flex: "auto",
+							listStyle: "none",
+							overflow: "auto",
+							margin: 0,
+							padding: paddingXS,
+							borderInlineEnd: `${unit$1(lineWidth)} ${lineType} ${colorSplit}`,
+							li: {
+								...textEllipsis,
+								borderRadius: borderRadiusSM,
+								paddingInline: paddingXS,
+								paddingBlock: token.calc(controlHeightSM).sub(fontHeight).div(2).equal(),
+								cursor: "pointer",
+								transition: `all ${motionDurationSlow}`,
+								"+ li": { marginTop: marginXS },
+								"&:hover": { background: cellHoverBg }
+							}
+						}
+					},
+					[`${componentCls}-panels`]: {
+						display: "inline-flex",
+						flexWrap: "nowrap",
+						"&:last-child": { [`${componentCls}-panel`]: { borderWidth: 0 } }
+					},
+					[`${componentCls}-panel`]: {
+						verticalAlign: "top",
+						background: "transparent",
+						borderRadius: 0,
+						borderWidth: 0,
+						[`${componentCls}-content, table`]: { textAlign: "center" },
+						"&-focused": { borderColor: colorBorder }
+					}
+				}
+			},
+			"&-dropdown-range": {
+				padding: `${unit$1(token.calc(sizePopupArrow).mul(2).div(3).equal())} 0`,
+				"&-hidden": { display: "none" }
+			},
+			"&-rtl": {
+				direction: "rtl",
+				[`${componentCls}-separator`]: { transform: "scale(-1, 1)" },
+				[`${componentCls}-footer`]: { "&-extra": { direction: "rtl" } }
+			}
+		} },
+		initSlideMotion(token, "slide-up"),
+		initSlideMotion(token, "slide-down"),
+		initMoveMotion(token, "move-up"),
+		initMoveMotion(token, "move-down")
+	];
+};
+// ============================== Export ==============================
+var useStyle = genStyleHooks("DatePicker", (token) => {
+	const pickerToken = merge(initInputToken(token), initPickerPanelToken(token), {
+		inputPaddingHorizontalBase: token.calc(token.paddingSM).sub(1).equal(),
+		multipleSelectItemHeight: token.multipleItemHeight,
+		selectHeight: token.controlHeight
+	});
+	return [
+		genPickerPanelStyle(pickerToken),
+		genPickerStyle(pickerToken),
+		genVariantsStyle(pickerToken),
+		genPickerStatusStyle(pickerToken),
+		genPickerMultipleStyle(pickerToken),
+		genCompactItemStyle(token, { focusElCls: `${token.componentCls}-focused` })
+	];
+}, prepareComponentToken);
+// This icon file is generated automatically.
+var SwapRightOutlined$1 = {
+	"icon": {
+		"tag": "svg",
+		"attrs": {
+			"viewBox": "0 0 1024 1024",
+			"focusable": "false"
+		},
+		"children": [{
+			"tag": "path",
+			"attrs": { "d": "M873.1 596.2l-164-208A32 32 0 00684 376h-64.8c-6.7 0-10.4 7.7-6.3 13l144.3 183H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h695.9c26.8 0 41.7-30.8 25.2-51.8z" }
+		}]
+	},
+	"name": "swap-right",
+	"theme": "outlined"
+};
+var SwapRightOutlinedSvg = SwapRightOutlined$1;
+function _extends$2() {
+	_extends$2 = Object.assign.bind();
+	return _extends$2.apply(this, arguments);
+}
+const SwapRightOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$2({}, props, {
+	ref,
+	icon: SwapRightOutlinedSvg
+}));
+/**![swap-right](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTg3My4xIDU5Ni4ybC0xNjQtMjA4QTMyIDMyIDAgMDA2ODQgMzc2aC02NC44Yy02LjcgMC0xMC40IDcuNy02LjMgMTNsMTQ0LjMgMTgzSDE1MmMtNC40IDAtOCAzLjYtOCA4djYwYzAgNC40IDMuNiA4IDggOGg2OTUuOWMyNi44IDAgNDEuNy0zMC44IDI1LjItNTEuOHoiIC8+PC9zdmc+) */
+const RefIcon$2 = reactExports.forwardRef(SwapRightOutlined);
+const useMergedPickerSemantic = (pickerType, classNames, styles, popupClassName, popupStyle, mergedProps) => {
+	const { classNames: contextClassNames, styles: contextStyles } = useComponentConfig(pickerType);
+	const [mergedClassNames, mergedStyles] = useMergeSemantic([contextClassNames, classNames], [contextStyles, styles], { props: mergedProps }, { popup: { _default: "root" } });
+	return reactExports.useMemo(() => {
+		// ClassNames
+		const filledClassNames = {
+			...mergedClassNames,
+			popup: {
+				...mergedClassNames.popup,
+				root: clsx(mergedClassNames.popup?.root, popupClassName)
+			}
+		};
+		// Styles
+		const filledStyles = {
+			...mergedStyles,
+			popup: {
+				...mergedStyles.popup,
+				root: {
+					...mergedStyles.popup?.root,
+					...popupStyle
+				}
+			}
+		};
+		// Return
+		return [filledClassNames, filledStyles];
+	}, [
+		mergedClassNames,
+		mergedStyles,
+		popupClassName,
+		popupStyle
+	]);
+};
+function getPlaceholder(locale, picker, customizePlaceholder) {
+	if (customizePlaceholder !== void 0) {
+		return customizePlaceholder;
+	}
+	if (picker === "year" && locale.lang.yearPlaceholder) {
+		return locale.lang.yearPlaceholder;
+	}
+	if (picker === "quarter" && locale.lang.quarterPlaceholder) {
+		return locale.lang.quarterPlaceholder;
+	}
+	if (picker === "month" && locale.lang.monthPlaceholder) {
+		return locale.lang.monthPlaceholder;
+	}
+	if (picker === "week" && locale.lang.weekPlaceholder) {
+		return locale.lang.weekPlaceholder;
+	}
+	if (picker === "time" && locale.timePickerLocale.placeholder) {
+		return locale.timePickerLocale.placeholder;
+	}
+	return locale.lang.placeholder;
+}
+function getRangePlaceholder(locale, picker, customizePlaceholder) {
+	if (customizePlaceholder !== void 0) {
+		return customizePlaceholder;
+	}
+	if (picker === "year" && locale.lang.yearPlaceholder) {
+		return locale.lang.rangeYearPlaceholder;
+	}
+	if (picker === "quarter" && locale.lang.quarterPlaceholder) {
+		return locale.lang.rangeQuarterPlaceholder;
+	}
+	if (picker === "month" && locale.lang.monthPlaceholder) {
+		return locale.lang.rangeMonthPlaceholder;
+	}
+	if (picker === "week" && locale.lang.weekPlaceholder) {
+		return locale.lang.rangeWeekPlaceholder;
+	}
+	if (picker === "time" && locale.timePickerLocale.placeholder) {
+		return locale.timePickerLocale.rangePlaceholder;
+	}
+	return locale.lang.rangePlaceholder;
+}
+function useIcons(props) {
+	const { allowClear = true } = props;
+	const { a: clearIcon, b: removeIcon } = useIcons$1({ ...props });
+	const mergedAllowClear = reactExports.useMemo(() => {
+		if (allowClear === false) {
+			return false;
+		}
+		const allowClearConfig = allowClear === true ? {} : allowClear;
+		return {
+			clearIcon,
+			...allowClearConfig
+		};
+	}, [allowClear, clearIcon]);
+	return [mergedAllowClear, removeIcon];
+}
+const [, QUARTERPICKER] = [, "QuarterPicker"];
+// This icon file is generated automatically.
+var CalendarOutlined$1 = {
+	"icon": {
+		"tag": "svg",
+		"attrs": {
+			"viewBox": "64 64 896 896",
+			"focusable": "false"
+		},
+		"children": [{
+			"tag": "path",
+			"attrs": { "d": "M880 184H712v-64c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v64H384v-64c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v64H144c-17.7 0-32 14.3-32 32v664c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V216c0-17.7-14.3-32-32-32zm-40 656H184V460h656v380zM184 392V256h128v48c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-48h256v48c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8v-48h128v136H184z" }
+		}]
+	},
+	"name": "calendar",
+	"theme": "outlined"
+};
+var CalendarOutlinedSvg = CalendarOutlined$1;
+function _extends$1() {
+	_extends$1 = Object.assign.bind();
+	return _extends$1.apply(this, arguments);
+}
+const CalendarOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$1({}, props, {
+	ref,
+	icon: CalendarOutlinedSvg
+}));
+/**![calendar](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTg4MCAxODRINzEydi02NGMwLTQuNC0zLjYtOC04LThoLTU2Yy00LjQgMC04IDMuNi04IDh2NjRIMzg0di02NGMwLTQuNC0zLjYtOC04LThoLTU2Yy00LjQgMC04IDMuNi04IDh2NjRIMTQ0Yy0xNy43IDAtMzIgMTQuMy0zMiAzMnY2NjRjMCAxNy43IDE0LjMgMzIgMzIgMzJoNzM2YzE3LjcgMCAzMi0xNC4zIDMyLTMyVjIxNmMwLTE3LjctMTQuMy0zMi0zMi0zMnptLTQwIDY1NkgxODRWNDYwaDY1NnYzODB6TTE4NCAzOTJWMjU2aDEyOHY0OGMwIDQuNCAzLjYgOCA4IDhoNTZjNC40IDAgOC0zLjYgOC04di00OGgyNTZ2NDhjMCA0LjQgMy42IDggOCA4aDU2YzQuNCAwIDgtMy42IDgtOHYtNDhoMTI4djEzNkgxODR6IiAvPjwvc3ZnPg==) */
+const RefIcon$1 = reactExports.forwardRef(CalendarOutlined);
+// This icon file is generated automatically.
+var ClockCircleOutlined$1 = {
+	"icon": {
+		"tag": "svg",
+		"attrs": {
+			"viewBox": "64 64 896 896",
+			"focusable": "false"
+		},
+		"children": [{
+			"tag": "path",
+			"attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" }
+		}, {
+			"tag": "path",
+			"attrs": { "d": "M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z" }
+		}]
+	},
+	"name": "clock-circle",
+	"theme": "outlined"
+};
+var ClockCircleOutlinedSvg = ClockCircleOutlined$1;
+function _extends() {
+	_extends = Object.assign.bind();
+	return _extends.apply(this, arguments);
+}
+const ClockCircleOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends({}, props, {
+	ref,
+	icon: ClockCircleOutlinedSvg
+}));
+/**![clock-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0wIDgyMGMtMjA1LjQgMC0zNzItMTY2LjYtMzcyLTM3MnMxNjYuNi0zNzIgMzcyLTM3MiAzNzIgMTY2LjYgMzcyIDM3Mi0xNjYuNiAzNzItMzcyIDM3MnoiIC8+PHBhdGggZD0iTTY4Ni43IDYzOC42TDU0NC4xIDUzNS41VjI4OGMwLTQuNC0zLjYtOC04LThINDg4Yy00LjQgMC04IDMuNi04IDh2Mjc1LjRjMCAyLjYgMS4yIDUgMy4zIDYuNWwxNjUuNCAxMjAuNmMzLjYgMi42IDguNiAxLjggMTEuMi0xLjdsMjguNi0zOWMyLjYtMy43IDEuOC04LjctMS44LTExLjJ6IiAvPjwvc3ZnPg==) */
+const RefIcon = reactExports.forwardRef(ClockCircleOutlined);
+const useSuffixIcon = ({ a: picker, b: hasFeedback, c: feedbackIcon, d: suffixIcon }) => {
+	if (suffixIcon === null || suffixIcon === false) {
+		return null;
+	}
+	if (suffixIcon === true || suffixIcon === void 0) {
+		return React.createElement(React.Fragment, null, picker === "time" ? React.createElement(RefIcon, null) : React.createElement(RefIcon$1, null), hasFeedback && feedbackIcon);
+	}
+	return suffixIcon;
+};
+const PickerButton = (props) => reactExports.createElement(Button, {
+	size: "small",
+	type: "primary",
+	...props
+});
+function useComponents(components) {
+	return reactExports.useMemo(() => ({
+		button: PickerButton,
+		...components
+	}), [components]);
+}
+const generateRangePicker = (generateConfig) => {
+	const RangePicker = reactExports.forwardRef((props, ref) => {
+		const { prefixCls: customizePrefixCls, getPopupContainer: customGetPopupContainer, components, className, style, classNames, styles, placement, size: customizeSize, disabled: customDisabled, bordered = true, placeholder, status: customStatus, variant: customVariant, picker, dropdownClassName, popupClassName, popupStyle, rootClassName, suffixIcon, ...restProps } = props;
+		const pickerType = picker === "time" ? "timePicker" : "datePicker";
+		const [mergedClassNames, mergedStyles] = useMergedPickerSemantic(pickerType, classNames, styles, popupClassName || dropdownClassName, popupStyle);
+		const innerRef = reactExports.useRef(null);
+		const { getPrefixCls, direction, getPopupContainer, rangePicker } = reactExports.useContext(ConfigContext);
+		const prefixCls = getPrefixCls("picker", customizePrefixCls);
+		const { a: compactSize, b: compactItemClassnames } = useCompactItemContext(prefixCls, direction);
+		const rootPrefixCls = getPrefixCls();
+		const [variant, enableVariantCls] = useVariant("rangePicker", customVariant, bordered);
+		const rootCls = useCSSVarCls(prefixCls);
+		const [hashId, cssVarCls] = useStyle(prefixCls, rootCls);
+		const mergedRootClassName = clsx(hashId, cssVarCls, rootCls, rootClassName);
+		// ===================== Icon =====================
+		const [mergedAllowClear] = useIcons(props);
+		// ================== components ==================
+		const mergedComponents = useComponents(components);
+		// ===================== Size =====================
+		const mergedSize = useSize((ctx) => customizeSize ?? compactSize ?? ctx);
+		// ===================== Disabled =====================
+		const disabled = reactExports.useContext(DisabledContext);
+		const mergedDisabled = customDisabled ?? disabled;
+		// ===================== FormItemInput =====================
+		const formItemContext = reactExports.useContext(FormItemInputContext);
+		const { hasFeedback, status: contextStatus, feedbackIcon } = formItemContext;
+		const mergedSuffixIcon = useSuffixIcon({
+			a: picker,
+			b: hasFeedback,
+			c: feedbackIcon,
+			d: suffixIcon
+		});
+		reactExports.useImperativeHandle(ref, () => innerRef.current);
+		const [contextLocale] = useLocale$1("Calendar", locale);
+		const locale$1 = merge$1(contextLocale, props.locale || {});
+		// ============================ zIndex ============================
+		const [zIndex] = useZIndex(0, mergedStyles?.popup?.root?.zIndex);
+		return reactExports.createElement(ContextIsolator, { space: true }, reactExports.createElement(RCRangePicker, {
+			separator: reactExports.createElement("span", {
+				"aria-label": "to",
+				className: `${prefixCls}-separator`
+			}, reactExports.createElement(RefIcon$2, null)),
+			disabled: mergedDisabled,
+			ref: innerRef,
+			placement,
+			placeholder: getRangePlaceholder(locale$1, picker, placeholder),
+			suffixIcon: mergedSuffixIcon,
+			prevIcon: reactExports.createElement("span", { className: `${prefixCls}-prev-icon` }),
+			nextIcon: reactExports.createElement("span", { className: `${prefixCls}-next-icon` }),
+			superPrevIcon: reactExports.createElement("span", { className: `${prefixCls}-super-prev-icon` }),
+			superNextIcon: reactExports.createElement("span", { className: `${prefixCls}-super-next-icon` }),
+			transitionName: `${rootPrefixCls}-slide-up`,
+			picker,
+			...restProps,
+			locale: locale$1.lang,
+			getPopupContainer: customGetPopupContainer || getPopupContainer,
+			generateConfig,
+			components: mergedComponents,
+			direction,
+			prefixCls,
+			rootClassName: mergedRootClassName,
+			className: clsx({
+				[`${prefixCls}-${mergedSize}`]: mergedSize,
+				[`${prefixCls}-${variant}`]: enableVariantCls
+			}, getStatusClassNames(prefixCls, getMergedStatus(contextStatus, customStatus), hasFeedback), compactItemClassnames, className, rangePicker?.className),
+			style: {
+				...rangePicker?.style,
+				...style
+			},
+			classNames: mergedClassNames,
+			styles: {
+				...mergedStyles,
+				popup: {
+					...mergedStyles.popup,
+					root: {
+						...mergedStyles.popup.root,
+						zIndex
+					}
+				}
+			},
+			allowClear: mergedAllowClear
+		}));
+	});
+	return RangePicker;
+};
+const generatePicker$1 = (generateConfig) => {
+	const getPicker = (picker, displayName) => {
+		const pickerType = displayName === "TimePicker" ? "timePicker" : "datePicker";
+		const Picker = reactExports.forwardRef((props, ref) => {
+			const { prefixCls: customizePrefixCls, getPopupContainer: customizeGetPopupContainer, components, style, className, size: customizeSize, bordered, placement, placeholder, disabled: customDisabled, status: customStatus, variant: customVariant, onCalendarChange, classNames, styles, dropdownClassName, popupClassName, popupStyle, rootClassName, suffixIcon, ...restProps } = props;
+			const { getPrefixCls, direction, getPopupContainer, [pickerType]: contextPickerConfig } = reactExports.useContext(ConfigContext);
+			const prefixCls = getPrefixCls("picker", customizePrefixCls);
+			// ===================== Size =====================
+			const { a: compactSize, b: compactItemClassnames } = useCompactItemContext(prefixCls, direction);
+			const mergedSize = useSize((ctx) => customizeSize ?? compactSize ?? ctx);
+			// ===================== Disabled =====================
+			const disabled = reactExports.useContext(DisabledContext);
+			const mergedDisabled = customDisabled ?? disabled;
+			// =========== Merged Props for Semantic ===========
+			const mergedProps = {
+				...props,
+				size: mergedSize,
+				disabled: mergedDisabled,
+				status: customStatus,
+				variant: customVariant
+			};
+			// ========================= Style ==========================
+			// Use original useMergedPickerSemantic for proper popup handling
+			const [mergedClassNames, mergedStyles] = useMergedPickerSemantic(pickerType, classNames, styles, popupClassName || dropdownClassName, popupStyle, mergedProps);
+			const innerRef = reactExports.useRef(null);
+			const [variant, enableVariantCls] = useVariant("datePicker", customVariant, bordered);
+			const rootCls = useCSSVarCls(prefixCls);
+			const [hashId, cssVarCls] = useStyle(prefixCls, rootCls);
+			const mergedRootClassName = clsx(hashId, cssVarCls, rootCls, rootClassName);
+			reactExports.useImperativeHandle(ref, () => innerRef.current);
+			const additionalProps = { showToday: true };
+			const mergedPicker = picker || props.picker;
+			const rootPrefixCls = getPrefixCls();
+			// ==================== Legacy =====================
+			const { onSelect, multiple } = restProps;
+			const hasLegacyOnSelect = onSelect && picker === "time" && !multiple;
+			const onInternalCalendarChange = (date, dateStr, info) => {
+				onCalendarChange?.(date, dateStr, info);
+				if (hasLegacyOnSelect) {
+					onSelect(date);
+				}
+			};
+			// ===================== Icon =====================
+			const [mergedAllowClear, removeIcon] = useIcons(props);
+			// ================== components ==================
+			const mergedComponents = useComponents(components);
+			// ===================== FormItemInput =====================
+			const formItemContext = reactExports.useContext(FormItemInputContext);
+			const { hasFeedback, status: contextStatus, feedbackIcon } = formItemContext;
+			const mergedSuffixIcon = useSuffixIcon({
+				a: mergedPicker,
+				b: hasFeedback,
+				c: feedbackIcon,
+				d: suffixIcon
+			});
+			const [contextLocale] = useLocale$1("DatePicker", locale);
+			const locale$1 = merge$1(contextLocale, props.locale || {});
+			// ============================ zIndex ============================
+			const [zIndex] = useZIndex(0, mergedStyles?.popup?.root?.zIndex);
+			return reactExports.createElement(ContextIsolator, { space: true }, reactExports.createElement(Picker$1, {
+				ref: innerRef,
+				placeholder: getPlaceholder(locale$1, mergedPicker, placeholder),
+				suffixIcon: mergedSuffixIcon,
+				placement,
+				prevIcon: reactExports.createElement("span", { className: `${prefixCls}-prev-icon` }),
+				nextIcon: reactExports.createElement("span", { className: `${prefixCls}-next-icon` }),
+				superPrevIcon: reactExports.createElement("span", { className: `${prefixCls}-super-prev-icon` }),
+				superNextIcon: reactExports.createElement("span", { className: `${prefixCls}-super-next-icon` }),
+				transitionName: `${rootPrefixCls}-slide-up`,
+				picker,
+				onCalendarChange: onInternalCalendarChange,
+				...additionalProps,
+				...restProps,
+				locale: locale$1.lang,
+				getPopupContainer: customizeGetPopupContainer || getPopupContainer,
+				generateConfig,
+				components: mergedComponents,
+				direction,
+				disabled: mergedDisabled,
+				prefixCls,
+				rootClassName: mergedRootClassName,
+				className: clsx({
+					[`${prefixCls}-${mergedSize}`]: mergedSize,
+					[`${prefixCls}-${variant}`]: enableVariantCls
+				}, getStatusClassNames(prefixCls, getMergedStatus(contextStatus, customStatus), hasFeedback), compactItemClassnames, contextPickerConfig?.className, className),
+				style: {
+					...contextPickerConfig?.style,
+					...style
+				},
+				classNames: mergedClassNames,
+				styles: {
+					...mergedStyles,
+					popup: {
+						...mergedStyles.popup,
+						root: {
+							...mergedStyles.popup.root,
+							zIndex
+						}
+					}
+				},
+				allowClear: mergedAllowClear,
+				removeIcon
+			}));
+		});
+		return Picker;
+	};
+	const DatePicker = getPicker();
+	const WeekPicker = getPicker("week", "WeekPicker");
+	const MonthPicker = getPicker("month", "MonthPicker");
+	const YearPicker = getPicker("year", "YearPicker");
+	const QuarterPicker = getPicker("quarter", QUARTERPICKER);
+	const TimePicker = getPicker("time", "TimePicker");
+	return {
+		a: DatePicker,
+		b: WeekPicker,
+		c: MonthPicker,
+		d: YearPicker,
+		e: TimePicker,
+		f: QuarterPicker
+	};
+};
+const generatePicker = (generateConfig) => {
+	// =========================== Picker ===========================
+	const { a: DatePicker, b: WeekPicker, c: MonthPicker, d: YearPicker, e: TimePicker, f: QuarterPicker } = generatePicker$1(generateConfig);
+	// ======================== Range Picker ========================
+	const RangePicker = generateRangePicker(generateConfig);
+	const MergedDatePicker = DatePicker;
+	MergedDatePicker.WeekPicker = WeekPicker;
+	MergedDatePicker.MonthPicker = MonthPicker;
+	MergedDatePicker.YearPicker = YearPicker;
+	MergedDatePicker.RangePicker = RangePicker;
+	MergedDatePicker.TimePicker = TimePicker;
+	MergedDatePicker.QuarterPicker = QuarterPicker;
+	return MergedDatePicker;
+};
+const DatePicker = generatePicker(dayjsGenerateConfig);
+// We don't care debug panel
+/* istanbul ignore next */
+const PurePanel = genPurePanel(DatePicker);
+DatePicker._InternalPanelDoNotUseOrYouWillBeFired = PurePanel;
+const PureRangePanel = genPurePanel(DatePicker.RangePicker);
+DatePicker._InternalRangePanelDoNotUseOrYouWillBeFired = PureRangePanel;
+DatePicker.generatePicker = generatePicker;
 var jsxRuntime = {};
 var reactJsxRuntime_production = {};
 function requireReactJsxRuntime_production() {
@@ -15754,7 +33639,4 @@ function requireJsxRuntime() {
 var jsxRuntimeExports = requireJsxRuntime();
 const container = document.getElementById("root");
 const root = ReactDOM.a(container);
-root.render(jsxRuntimeExports.b(React.g, { children: jsxRuntimeExports.b(Button, {
-	variant: "text",
-	children: "Text"
-}) }));
+root.render(jsxRuntimeExports.b(React.StrictMode, { children: jsxRuntimeExports.b(DatePicker, {}) }));

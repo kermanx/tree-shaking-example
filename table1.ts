@@ -50,10 +50,10 @@ function parseData(sizes: Record<string, number>, toolchains: Record<string, str
           data[testcase] = {};
         }
 
-        const gzKey = `${key}.gz`;
+        // const gzKey = `${key}.gz`;
         data[testcase][toolchain] = {
           size: value,
-          gz_size: sizes[gzKey] || 0
+          gz_size: sizes[key] || 0
         };
         break;
       }
@@ -73,7 +73,7 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
   const columnSpec = 'l' + 'r'.repeat(numColumns - 1);
 
   let latex = '\\begin{table}[t]\n';
-  latex += '\\small\n';
+  latex += '\\scriptsize\n';
   latex += '\\centering\n';
   latex += '\\caption{Size improvement for target programs}\n';
   latex += '\\label{tab:size-reduction}\n';
@@ -81,7 +81,7 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
   latex += '\\toprule\n';
 
   // Header row
-  latex += 'Program & Baseline (bytes)';
+  latex += 'Program & Baseline (KB)';
   for (let i = 1; i < toolchainKeys.length; i++) {
     const displayName = toolchains[toolchainKeys[i]];
     // Escape special LaTeX characters
@@ -130,7 +130,7 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
 
     // Escape underscores in testcase name for LaTeX
     const escapedTestcase = testcase.replace(/_/g, '\\_');
-    latex += `${escapedTestcase} & ${baselineGzSize.toLocaleString()}`;
+    latex += `${escapedTestcase} & ${(baselineGzSize / 1024).toFixed(2)}`;
 
     // Second pass: output with formatting
     for (let i = 1; i < toolchainKeys.length; i++) {

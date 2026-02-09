@@ -35,8 +35,11 @@ export function gccWithTiming(
   jsSource: string,
   options: ClosureCompilerOptions = {}
 ): Promise<{ code: string; time: number }> {
-  if (jsSource.includes('const Text = ') || jsSource.includes('var dump  ')) {
-    jsSource = `(function(){${jsSource}})()`; // 包裹在块作用域中，避免全局变量污染
+  if (jsSource.includes('const Text = ') || jsSource.includes('class Keyframe {') || jsSource.includes('const Map = getNative(root,') || jsSource.includes('var dump  ')) {
+    jsSource = `(function(){${jsSource}})()`;
+  }
+  else if (jsSource.includes('supportsWebCodecsH264Decode = await _checkWebCodecsH264DecodeSupport')) {
+    jsSource = `(async function(){${jsSource}})()`;
   }
 
   const startTime = performance.now();
