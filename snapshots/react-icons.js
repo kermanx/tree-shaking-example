@@ -60,14 +60,6 @@ var __assign = function() {
 	__assign = Object.assign;
 	return __assign.apply(0, arguments);
 };
-var __rest = function(s, e) {
-	var t = {};
-	for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0) t[p] = s[p];
-	if (s != null && typeof Object.getOwnPropertySymbols === "function") {
-		for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) if (e.indexOf(p[i]) < 0) t[p[i]] = s[p[i]];
-	}
-	return t;
-};
 function Tree2Element(tree) {
 	return tree && tree.map(function(node, i) {
 		return reactExports.o(node.tag, __assign({ key: i }, node.attr), Tree2Element(node.child));
@@ -78,28 +70,8 @@ function GenIcon(data) {
 		return reactExports.o(IconBase, __assign({ attr: __assign({}, data.b) }, void 0), Tree2Element(data.a));
 	};
 }
-function IconBase(props) {
-	var elem = function(conf) {
-		var computedSize = props.size || conf.size || "1em";
-		var className;
-		if (conf.className) className = conf.className;
-		if (props.className) className = (className ? className + " " : "") + props.className;
-		var attr = props.attr, title = props.title, svgProps = __rest(props, ["attr", "title"]);
-		return reactExports.o("svg", __assign({
-			stroke: "currentColor",
-			fill: "currentColor",
-			strokeWidth: "0"
-		}, conf.attr, attr, svgProps, {
-			className,
-			style: __assign({ color: props.color || conf.color }, conf.style, props.style),
-			height: computedSize,
-			width: computedSize,
-			xmlns: "http://www.w3.org/2000/svg"
-		}), title && reactExports.o("title", null, title), props.children);
-	};
-	return reactExports.o(IconContext.Consumer, null, function(conf) {
-		return elem(conf);
-	});
+function IconBase() {
+	return reactExports.o(IconContext.Consumer);
 }
 var FaBeer = function() {
 	return GenIcon({

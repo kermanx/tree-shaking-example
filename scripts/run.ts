@@ -22,16 +22,40 @@ export async function run({
   cjs: boolean;
 }) {
   let filename = [name, bundler, ...optimizers].join('_');
-  let code = await bundlers[bundler]({ name, entry, env: env as 'browser' | 'node', cjs });
+
+  const isJsShaker = optimizers[0] === 'jsshaker';
+  let code = await bundlers[bundler]({
+    name,
+    entry,
+    env,
+    cjs,
+    excludeReact: isJsShaker,
+  });
+
   console.log(`Bundled: ${code.length}B`);
 
-  for (const optimizer of optimizers) {
+  for (const [index, optimizer] of optimizers.entries()) {
     code = await Optimizers[optimizer]({
       name,
       code,
-      env: env as 'browser' | 'node',
+      env,
     });
     console.log(`Optimized (${optimizer}): ${code.length}B`);
+    
+    if (isJsShaker && index === 0 && code.includes('')) {
+      code = await Optimizers.rollup({
+        name,
+        code,
+        env,
+      });
+      console.log(`Bundle all: ${code.length}B`);
+      code = await Optimizers.jsshaker({
+        name,
+        code,
+        env: env as 'browser' | 'node',
+      });
+      console.log(`Optimized all (jsshaker): ${code.length}B`);
+    }
   }
 
   // if (zip) 

@@ -3695,7 +3695,7 @@ function inflateResetKeep(strm) {
 		return;
 	}
 	state = strm.state;
-	strm.total_in = (strm.total_out = state.total = 0, 0);
+	strm.total_in = strm.total_out = state.total = 0;
 	strm.msg = "";
 	if (state.wrap) {
 		strm.adler = state.wrap & 1;
@@ -6827,7 +6827,7 @@ function deflateResetKeep(strm) {
 	return;
 }
 function deflateReset(strm) {
-	var __unused_0E02 = deflateResetKeep(strm);
+	deflateResetKeep(strm);
 	{
 		{
 			lm_init(strm.state);
@@ -7141,15 +7141,15 @@ exports.deflateTune = deflateTune;
 class Deflator {
 	constructor() {
 		this.a = new ZStream();
-		this.c = new Uint8Array(102400);
+		this.b = new Uint8Array(102400);
 		deflateInit(this.a);
 	}
-	d(inData) {
+	c(inData) {
 		/* eslint-disable camelcase */
 		this.a.input = inData;
 		this.a.avail_in = this.a.input.length;
 		this.a.next_in = 0;
-		this.a.output = this.c;
+		this.a.output = this.b;
 		this.a.avail_out = 102400;
 		this.a.next_out = 0;
 		/* eslint-enable camelcase */
@@ -7972,7 +7972,7 @@ class Websock {
 	// Check to see if we must wait for 'num' bytes (default to FBU.bytes)
 	// to be available in the receive queue. Return true if we need to
 	// wait (and possibly print a debug message), otherwise false.
-	rQwait(__unused_60A7, num, goback) {
+	rQwait(__unused_1628, num, goback) {
 		if (this._rQlen - this._rQi < num) {
 			if (goback) {
 				if (this._rQi < goback) {
@@ -8333,7 +8333,7 @@ class AESECBCipher {
 	get algorithm() {
 		return { name: "AES-ECB" };
 	}
-	static async a(key, __unused_4442, __unused_6DC5, keyUsages) {
+	static async a(key, __unused_33DC, __unused_E4B7, keyUsages) {
 		const cipher = new AESECBCipher();
 		await cipher._importKey(key, false, keyUsages);
 		return cipher;
@@ -8341,7 +8341,7 @@ class AESECBCipher {
 	async _importKey(key, extractable, keyUsages) {
 		this._key = await window.crypto.subtle.importKey("raw", key, { name: "AES-CBC" }, extractable, keyUsages);
 	}
-	async encrypt(__unused_EE79, plaintext) {
+	async encrypt(__unused_F479, plaintext) {
 		const x = new Uint8Array(plaintext);
 		if (x.length % 16 !== 0 || this._key === null) {
 			return null;
@@ -8669,559 +8669,10 @@ const PC2 = [
 	27,
 	28
 ];
-let a, b, c;
-b = 1 << 24;
-c = 65536 | b;
-const SP1 = [
-	c | 1024,
-	0,
-	65536,
-	c | 1028,
-	c | 4,
-	66564,
-	4,
-	65536,
-	1024,
-	c | 1024,
-	c | 1028,
-	1024,
-	b | 1028,
-	c | 4,
-	b | 0,
-	4,
-	1028,
-	b | 1024,
-	b | 1024,
-	66560,
-	66560,
-	c | 0,
-	c | 0,
-	b | 1028,
-	65540,
-	b | 4,
-	b | 4,
-	65540,
-	0,
-	1028,
-	66564,
-	b | 0,
-	65536,
-	c | 1028,
-	4,
-	c | 0,
-	c | 1024,
-	b | 0,
-	b | 0,
-	1024,
-	c | 4,
-	65536,
-	66560,
-	b | 4,
-	1024,
-	4,
-	b | 1028,
-	66564,
-	c | 1028,
-	65540,
-	c | 0,
-	b | 1028,
-	b | 4,
-	1028,
-	66564,
-	c | 1024,
-	1028,
-	b | 1024,
-	b | 1024,
-	0,
-	65540,
-	66560,
-	0,
-	c | 4
-];
-a = 1 << 20;
-b = 1 << 31;
-c = a | b;
-const SP2 = [
-	c | 32800,
-	b | 32768,
-	32768,
-	a | 32800,
-	a | 0,
-	32,
-	c | 32,
-	b | 32800,
-	b | 32,
-	c | 32800,
-	c | 32768,
-	b | 0,
-	b | 32768,
-	a | 0,
-	32,
-	c | 32,
-	a | 32768,
-	a | 32,
-	b | 32800,
-	0,
-	b | 0,
-	32768,
-	a | 32800,
-	c | 0,
-	a | 32,
-	b | 32,
-	0,
-	a | 32768,
-	32800,
-	c | 32768,
-	c | 0,
-	32800,
-	0,
-	a | 32800,
-	c | 32,
-	a | 0,
-	b | 32800,
-	c | 0,
-	c | 32768,
-	32768,
-	c | 0,
-	b | 32768,
-	32,
-	c | 32800,
-	a | 32800,
-	32,
-	32768,
-	b | 0,
-	32800,
-	c | 32768,
-	a | 0,
-	b | 32,
-	a | 32,
-	b | 32800,
-	b | 32,
-	a | 32,
-	a | 32768,
-	0,
-	b | 32768,
-	32800,
-	b | 0,
-	c | 32,
-	c | 32800,
-	a | 32768
-];
-b = 1 << 27;
-c = 131072 | b;
-const SP3 = [
-	520,
-	c | 512,
-	0,
-	c | 8,
-	b | 512,
-	0,
-	131592,
-	b | 512,
-	131080,
-	b | 8,
-	b | 8,
-	131072,
-	c | 520,
-	131080,
-	c | 0,
-	520,
-	b | 0,
-	8,
-	c | 512,
-	512,
-	131584,
-	c | 0,
-	c | 8,
-	131592,
-	b | 520,
-	131584,
-	131072,
-	b | 520,
-	8,
-	c | 520,
-	512,
-	b | 0,
-	c | 512,
-	b | 0,
-	131080,
-	520,
-	131072,
-	c | 512,
-	b | 512,
-	0,
-	512,
-	131080,
-	c | 520,
-	b | 512,
-	b | 8,
-	512,
-	0,
-	c | 8,
-	b | 520,
-	131072,
-	b | 0,
-	c | 520,
-	8,
-	131592,
-	131584,
-	b | 8,
-	c | 0,
-	b | 520,
-	520,
-	c | 0,
-	131592,
-	8,
-	c | 8,
-	131584
-];
-b = 1 << 23;
-c = 8192 | b;
-const SP4 = [
-	c | 1,
-	8321,
-	8321,
-	128,
-	c | 128,
-	b | 129,
-	b | 1,
-	8193,
-	0,
-	c | 0,
-	c | 0,
-	c | 129,
-	129,
-	0,
-	b | 128,
-	b | 1,
-	1,
-	8192,
-	b | 0,
-	c | 1,
-	128,
-	b | 0,
-	8193,
-	8320,
-	b | 129,
-	1,
-	8320,
-	b | 128,
-	8192,
-	c | 128,
-	c | 129,
-	129,
-	b | 128,
-	b | 1,
-	c | 0,
-	c | 129,
-	129,
-	0,
-	0,
-	c | 0,
-	8320,
-	b | 128,
-	b | 129,
-	1,
-	c | 1,
-	8321,
-	8321,
-	128,
-	c | 129,
-	129,
-	1,
-	8192,
-	b | 1,
-	8193,
-	c | 128,
-	b | 129,
-	8193,
-	8320,
-	b | 0,
-	c | 1,
-	128,
-	b | 0,
-	8192,
-	c | 128
-];
-a = 1 << 25;
-b = 1 << 30;
-c = a | b;
-const SP5 = [
-	256,
-	a | 524544,
-	a | 524288,
-	c | 256,
-	524288,
-	256,
-	b | 0,
-	a | 524288,
-	b | 524544,
-	524288,
-	a | 256,
-	b | 524544,
-	c | 256,
-	c | 524288,
-	524544,
-	b | 0,
-	a | 0,
-	b | 524288,
-	b | 524288,
-	0,
-	b | 256,
-	c | 524544,
-	c | 524544,
-	a | 256,
-	c | 524288,
-	b | 256,
-	0,
-	c | 0,
-	a | 524544,
-	a | 0,
-	c | 0,
-	524544,
-	524288,
-	c | 256,
-	256,
-	a | 0,
-	b | 0,
-	a | 524288,
-	c | 256,
-	b | 524544,
-	a | 256,
-	b | 0,
-	c | 524288,
-	a | 524544,
-	b | 524544,
-	256,
-	a | 0,
-	c | 524288,
-	c | 524544,
-	524544,
-	c | 0,
-	c | 524544,
-	a | 524288,
-	0,
-	b | 524288,
-	c | 0,
-	524544,
-	a | 256,
-	b | 256,
-	524288,
-	0,
-	b | 524288,
-	a | 524544,
-	b | 256
-];
-a = 1 << 22;
-b = 1 << 29;
-c = a | b;
-const SP6 = [
-	b | 16,
-	c | 0,
-	16384,
-	c | 16400,
-	c | 0,
-	16,
-	c | 16400,
-	a | 0,
-	b | 16384,
-	a | 16400,
-	a | 0,
-	b | 16,
-	a | 16,
-	b | 16384,
-	b | 0,
-	16400,
-	0,
-	a | 16,
-	b | 16400,
-	16384,
-	a | 16384,
-	b | 16400,
-	16,
-	c | 16,
-	c | 16,
-	0,
-	a | 16400,
-	c | 16384,
-	16400,
-	a | 16384,
-	c | 16384,
-	b | 0,
-	b | 16384,
-	16,
-	c | 16,
-	a | 16384,
-	c | 16400,
-	a | 0,
-	16400,
-	b | 16,
-	a | 0,
-	b | 16384,
-	b | 0,
-	16400,
-	b | 16,
-	c | 16400,
-	a | 16384,
-	c | 0,
-	a | 16400,
-	c | 16384,
-	0,
-	c | 16,
-	16,
-	16384,
-	c | 0,
-	a | 16400,
-	16384,
-	a | 16,
-	b | 16400,
-	0,
-	c | 16384,
-	b | 0,
-	a | 16,
-	b | 16400
-];
-a = 1 << 21;
-b = 1 << 26;
-c = a | b;
-const SP7 = [
-	a | 0,
-	c | 2,
-	b | 2050,
-	0,
-	2048,
-	b | 2050,
-	a | 2050,
-	c | 2048,
-	c | 2050,
-	a | 0,
-	0,
-	b | 2,
-	2,
-	b | 0,
-	c | 2,
-	2050,
-	b | 2048,
-	a | 2050,
-	a | 2,
-	b | 2048,
-	b | 2,
-	c | 0,
-	c | 2048,
-	a | 2,
-	c | 0,
-	2048,
-	2050,
-	c | 2050,
-	a | 2048,
-	2,
-	b | 0,
-	a | 2048,
-	b | 0,
-	a | 2048,
-	a | 0,
-	b | 2050,
-	b | 2050,
-	c | 2,
-	c | 2,
-	2,
-	a | 2,
-	b | 0,
-	b | 2048,
-	a | 0,
-	c | 2048,
-	2050,
-	a | 2050,
-	c | 2048,
-	2050,
-	b | 2,
-	c | 2050,
-	c | 0,
-	a | 2048,
-	0,
-	2,
-	c | 2050,
-	0,
-	a | 2050,
-	c | 0,
-	2048,
-	b | 2,
-	b | 2048,
-	2048,
-	a | 2
-];
-b = 1 << 28;
-c = 262144 | b;
-const SP8 = [
-	b | 4160,
-	4096,
-	262144,
-	c | 4160,
-	b | 0,
-	b | 4160,
-	64,
-	b | 0,
-	262208,
-	c | 0,
-	c | 4160,
-	266240,
-	c | 4096,
-	266304,
-	4096,
-	64,
-	c | 0,
-	b | 64,
-	b | 4096,
-	4160,
-	266240,
-	262208,
-	c | 64,
-	c | 4096,
-	4160,
-	0,
-	0,
-	c | 64,
-	b | 64,
-	b | 4096,
-	266304,
-	262144,
-	266304,
-	262144,
-	c | 4096,
-	4096,
-	64,
-	c | 64,
-	4096,
-	266304,
-	b | 4096,
-	64,
-	b | 64,
-	c | 0,
-	c | 64,
-	b | 0,
-	262144,
-	b | 4160,
-	0,
-	c | 4160,
-	262208,
-	b | 64,
-	c | 0,
-	b | 4096,
-	b | 4160,
-	0,
-	c | 4160,
-	266240,
-	266240,
-	4160,
-	4160,
-	262208,
-	b | 0,
-	c | 4096
-];
 /* eslint-enable comma-spacing */
 class DES {
 	constructor(password) {
-		this.keys = [];
+		this.a = [];
 		// Set the key.
 		const pc1m = [], pcr = [], kn = [];
 		for (let j = 0, l = 56; j < 56; ++j, l -= 8) {
@@ -9252,94 +8703,17 @@ class DES {
 		for (let i = 0, rawi = 0, KnLi = 0; i < 16; ++i) {
 			const raw0 = kn[rawi++];
 			const raw1 = kn[rawi++];
-			this.keys[KnLi] = (raw0 & 16515072) << 6;
-			this.keys[KnLi] |= (raw0 & 4032) << 10;
-			this.keys[KnLi] |= (raw1 & 16515072) >>> 10;
-			this.keys[KnLi] |= (raw1 & 4032) >>> 6;
+			this.a[KnLi] = (raw0 & 16515072) << 6;
+			this.a[KnLi] |= (raw0 & 4032) << 10;
+			this.a[KnLi] |= (raw1 & 16515072) >>> 10;
+			this.a[KnLi] |= (raw1 & 4032) >>> 6;
 			++KnLi;
-			this.keys[KnLi] = (raw0 & 258048) << 12;
-			this.keys[KnLi] |= (raw0 & 63) << 16;
-			this.keys[KnLi] |= (raw1 & 258048) >>> 4;
-			this.keys[KnLi] |= raw1 & 63;
+			this.a[KnLi] = (raw0 & 258048) << 12;
+			this.a[KnLi] |= (raw0 & 63) << 16;
+			this.a[KnLi] |= (raw1 & 258048) >>> 4;
+			this.a[KnLi] |= raw1 & 63;
 			++KnLi;
 		}
-	}
-	// Encrypt 8 bytes of text
-	enc8(text) {
-		const b = text.slice();
-		let i = 0, l, r, x;
-		// Squash 8 bytes to 2 ints
-		l = b[i++] << 24 | b[i++] << 16 | b[i++] << 8 | b[i++];
-		r = b[i++] << 24 | b[i++] << 16 | b[i++] << 8 | b[+i];
-		x = (l >>> 4 ^ r) & 252645135;
-		r ^= x;
-		l ^= x << 4;
-		x = (l >>> 16 ^ r) & 65535;
-		r ^= x;
-		l ^= x << 16;
-		x = (r >>> 2 ^ l) & 858993459;
-		l ^= x;
-		r ^= x << 2;
-		x = (r >>> 8 ^ l) & 16711935;
-		l ^= x;
-		r ^= x << 8;
-		r = r << 1 | r >>> 31 & 1;
-		x = (l ^ r) & 2863311530;
-		l ^= x;
-		r ^= x;
-		l = l << 1 | l >>> 31 & 1;
-		for (let i = 0, keysi = 0; i < 8; ++i) {
-			x = r << 28 | r >>> 4;
-			x ^= this.keys[keysi++];
-			let fval = SP7[x & 63];
-			fval |= SP5[x >>> 8 & 63];
-			fval |= SP3[x >>> 16 & 63];
-			fval |= SP1[x >>> 24 & 63];
-			x = r ^ this.keys[keysi++];
-			fval |= SP8[x & 63];
-			fval |= SP6[x >>> 8 & 63];
-			fval |= SP4[x >>> 16 & 63];
-			fval |= SP2[x >>> 24 & 63];
-			l ^= fval;
-			x = l << 28 | l >>> 4;
-			x ^= this.keys[keysi++];
-			fval = SP7[x & 63];
-			fval |= SP5[x >>> 8 & 63];
-			fval |= SP3[x >>> 16 & 63];
-			fval |= SP1[x >>> 24 & 63];
-			x = l ^ this.keys[keysi++];
-			fval |= SP8[x & 63];
-			fval |= SP6[x >>> 8 & 63];
-			fval |= SP4[x >>> 16 & 63];
-			fval |= SP2[x >>> 24 & 63];
-			r ^= fval;
-		}
-		r = r << 31 | r >>> 1;
-		x = (l ^ r) & 2863311530;
-		l ^= x;
-		r ^= x;
-		l = l << 31 | l >>> 1;
-		x = (l >>> 8 ^ r) & 16711935;
-		r ^= x;
-		l ^= x << 8;
-		x = (l >>> 2 ^ r) & 858993459;
-		r ^= x;
-		l ^= x << 2;
-		x = (r >>> 16 ^ l) & 65535;
-		l ^= x;
-		r ^= x << 16;
-		x = (r >>> 4 ^ l) & 252645135;
-		l ^= x;
-		r ^= x << 4;
-		// Spread ints to bytes
-		x = [r, l];
-		for (i = 0; i < 8; i++) {
-			b[i] = (x[i >>> 2] >>> 8 * (3 - i % 4)) % 256;
-			if (b[i] < 0) {
-				b[i] += 256;
-			}
-		}
-		return b;
 	}
 }
 class DESECBCipher {
@@ -9352,18 +8726,7 @@ class DESECBCipher {
 		return cipher;
 	}
 	_importKey(key) {
-		this._cipher = new DES(key);
-	}
-	encrypt(__unused_EE79_0, plaintext) {
-		const x = new Uint8Array(plaintext);
-		if (x.length % 8 !== 0 || this._cipher === null) {
-			return null;
-		}
-		const n = x.length / 8;
-		for (let i = 0; i < n; i++) {
-			x.set(this._cipher.enc8(x.slice(i * 8, i * 8 + 8)), i * 8);
-		}
-		return x;
+		new DES(key);
 	}
 }
 class DESCBCCipher {
@@ -9376,23 +8739,7 @@ class DESCBCCipher {
 		return cipher;
 	}
 	_importKey(key) {
-		this._cipher = new DES(key);
-	}
-	encrypt(algorithm, plaintext) {
-		const x = new Uint8Array(plaintext);
-		let y = new Uint8Array(algorithm.iv);
-		if (x.length % 8 !== 0 || this._cipher === null) {
-			return null;
-		}
-		const n = x.length / 8;
-		for (let i = 0; i < n; i++) {
-			for (let j = 0; j < 8; j++) {
-				y[j] ^= plaintext[i * 8 + j];
-			}
-			y = this._cipher.enc8(y);
-			x.set(y, i * 8);
-		}
-		return x;
+		new DES(key);
 	}
 }
 function modPow(b, e, m) {
@@ -9496,7 +8843,7 @@ class RSACipher {
 		this._eBigInt = u8ArrayToBigInt(this._e);
 		this._extractable = extractable;
 	}
-	async encrypt(__unused_4C47, message) {
+	async encrypt(__unused_0C70, message) {
 		if (message.length > this._keyBytes - 11) {
 			return null;
 		}
@@ -9513,7 +8860,7 @@ class RSACipher {
 		const c = modPow(emBigInt, this._eBigInt, this._nBigInt);
 		return bigIntToU8Array(c, this._keyBytes);
 	}
-	async decrypt(__unused_4C47_0, message) {
+	async decrypt(__unused_45BC, message) {
 		if (message.length !== this._keyBytes) {
 			return null;
 		}
@@ -9688,7 +9035,7 @@ class LegacyCrypto {
 		}
 		return key.decrypt(algorithm, data);
 	}
-	d(__unused_BD75, keyData, algorithm, __unused_6DC5_1, keyUsages) {
+	d(__unused_5999, keyData, algorithm, __unused_501D, keyUsages) {
 		const alg = this.a[algorithm.a];
 		return alg.a(keyData, 0, 0, keyUsages);
 	}
@@ -9696,13 +9043,13 @@ class LegacyCrypto {
 		const alg = this.a[algorithm.name];
 		return alg.b(algorithm);
 	}
-	f(__unused_BD75_0, key) {
+	f(__unused_AA8D, key) {
 		if (typeof key.exportKey !== "function") {
 			throw new Error("key does not support exportKey");
 		}
 		return key.exportKey();
 	}
-	g(__unused_9B39, data) {
+	g(__unused_11EB, data) {
 		const alg = this.a["MD5"];
 		return alg(data);
 	}
@@ -10703,7 +10050,7 @@ class ZRLEDecoder {
 		}
 		return data;
 	}
-	_decodePaletteTile(paletteSize, __unused_8080, tilew, tileh) {
+	_decodePaletteTile(paletteSize, __unused_3442, tilew, tileh) {
 		const data = this._tileBuffer;
 		const palette = this._readPixels(paletteSize);
 		const bitsPerPixel = this._getBitsPerPixelInPalette(paletteSize);
@@ -11401,7 +10748,7 @@ class RFB extends EventTargetMixin {
 	get touchButton() {
 		return 0;
 	}
-	set touchButton(__unused_0BE9) {
+	set touchButton(__unused_FD63) {
 		Warn("Using old API!");
 	}
 	get clipViewport() {
@@ -12650,12 +11997,8 @@ class RFB extends EventTargetMixin {
 			return false;
 		}
 		// TODO(directxman12): make genDES not require an Array
-		const challenge = Array.prototype.slice.call(this._sock.rQshiftBytes(16));
-		const response = RFB.d(this._rfbCredentials.password, challenge);
-		this._sock.sQpushBytes(response);
-		this._sock.flush();
-		this._rfbInitState = "SecurityResult";
-		return true;
+		const __unused_D352 = Array.prototype.slice.call(this._sock.rQshiftBytes(16));
+		const __unused_57F6 = RFB.d(this._rfbCredentials.password);
 	}
 	_negotiateARDAuth() {
 		if (this._rfbCredentials.username === void 0 || this._rfbCredentials.password === void 0) {
@@ -12729,10 +12072,7 @@ class RFB extends EventTargetMixin {
 		return true;
 	}
 	_negotiateTightTunnels(numTunnels) {
-		const clientSupportedTunnelTypes = { 0: {
-			vendor: "TGHT",
-			signature: "NOTUNNEL"
-		} };
+		const clientSupportedTunnelTypes = { 0: {} };
 		const serverSupportedTunnelTypes = {};
 		// receive tunnel capabilities
 		for (let i = 0; i < numTunnels; i++) {
@@ -12872,7 +12212,7 @@ class RFB extends EventTargetMixin {
 			g,
 			p
 		});
-		const B = legacyCrypto.f(0, dhKey.publicKey);
+		const __unused_E59C = dhKey.publicKey;
 		const secret = legacyCrypto.h({ public: A }, dhKey.privateKey, 64);
 		const key = legacyCrypto.d(0, secret, { a: "DES-CBC" });
 		const username = encodeUTF8(this._rfbCredentials.username).substring(0, 255);
@@ -12889,20 +12229,7 @@ class RFB extends EventTargetMixin {
 			passwordBytes[i] = password.charCodeAt(i);
 		}
 		passwordBytes[password.length] = 0;
-		usernameBytes = legacyCrypto.b({
-			name: "b",
-			iv: secret
-		}, key, usernameBytes);
-		passwordBytes = legacyCrypto.b({
-			name: "b",
-			iv: secret
-		}, key, passwordBytes);
-		this._sock.sQpushBytes(B);
-		this._sock.sQpushBytes(usernameBytes);
-		this._sock.sQpushBytes(passwordBytes);
-		this._sock.flush();
-		this._rfbInitState = "SecurityResult";
-		return true;
+		legacyCrypto.b({ name: "a" }, key);
 	}
 	_negotiateAuthentication() {
 		switch (this._rfbAuthScheme) {
@@ -13678,10 +13005,10 @@ class RFB extends EventTargetMixin {
 		const image = this._shouldShowDotCursor() ? RFB.a.b : this._cursorImage;
 		this._cursor.change(image.rgbaPixels, image.hotx, image.hoty, image.w, image.h);
 	}
-	static d(password, challenge) {
+	static d(password) {
 		const passwordChars = password.split("").map((c) => c.charCodeAt(0));
 		const key = legacyCrypto.d(0, passwordChars, { a: "DES-ECB" });
-		return legacyCrypto.b({ name: "b" }, key, challenge);
+		return legacyCrypto.b({ name: "a" }, key);
 	}
 }
 // Class Methods
@@ -13770,7 +13097,7 @@ RFB.b = {
 				dataToDeflate.push(text.charCodeAt(j));
 			}
 		}
-		let deflatedData = deflator.d(new Uint8Array(dataToDeflate));
+		let deflatedData = deflator.c(new Uint8Array(dataToDeflate));
 		// Build data  to send
 		let data = new Uint8Array(4 + deflatedData.length);
 		data.set(RFB.b.q([extendedClipboardActionProvide], formats));
@@ -13843,7 +13170,7 @@ RFB.b = {
 		sock.sQpushString(payload);
 		sock.flush();
 	},
-	o(sock, __unused_6A34, __unused_2BE2, __unused_7A43_0, width, height) {
+	o(sock, __unused_9F8F, __unused_7BB4, __unused_C7E9, width, height) {
 		sock.sQpush8(150);
 		sock.sQpush8(true);
 		sock.sQpush16(0);
@@ -13890,7 +13217,7 @@ RFB.b = {
 		}
 		sock.flush();
 	},
-	i(sock, incremental, __unused_01C5, __unused_C2DE, w, h) {
+	i(sock, incremental, __unused_A60C, __unused_2FEC, w, h) {
 		sock.sQpush8(3);
 		sock.sQpush8(incremental ? 1 : 0);
 		sock.sQpush16(0);
@@ -14588,7 +13915,6 @@ const UI = {
 				statusElem.classList.remove("noVNC_status_normal");
 				statusElem.classList.add("noVNC_status_warn");
 				break;
-			case "normal":
 		}
 		statusElem.textContent = text;
 		statusElem.classList.add("noVNC_open");
@@ -14953,7 +14279,7 @@ const UI = {
 	Va() {
 		document.getElementById("noVNC_connect_dlg").classList.remove("noVNC_open");
 	},
-	F(__unused_87A8, password) {
+	F(__unused_789A, password) {
 		// Ignore when rfb already exists
 		if (typeof UI.ha !== "undefined") {
 			return;

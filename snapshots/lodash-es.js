@@ -1058,8 +1058,8 @@ var argsTag$1 = "[object Arguments]", arrayTag$1 = "[object Array]", boolTag$1 =
 var arrayBufferTag$1 = "[object ArrayBuffer]", dataViewTag$2 = "[object DataView]", float32Tag = "[object Float32Array]", float64Tag = "[object Float64Array]", int8Tag = "[object Int8Array]", int16Tag = "[object Int16Array]", int32Tag = "[object Int32Array]", uint8Tag = "[object Uint8Array]", uint8ClampedTag = "[object Uint8ClampedArray]", uint16Tag = "[object Uint16Array]", uint32Tag = "[object Uint32Array]";
 /** Used to identify `toStringTag` values of typed arrays. */
 var typedArrayTags = {};
-typedArrayTags[float32Tag] = (typedArrayTags[float64Tag] = (typedArrayTags[int8Tag] = (typedArrayTags[int16Tag] = (typedArrayTags[int32Tag] = (typedArrayTags[uint8Tag] = (typedArrayTags[uint8ClampedTag] = (typedArrayTags[uint16Tag] = typedArrayTags[uint32Tag] = true, true), true), true), true), true), true), true);
-typedArrayTags[argsTag$1] = (typedArrayTags[arrayTag$1] = (typedArrayTags[arrayBufferTag$1] = (typedArrayTags[boolTag$1] = (typedArrayTags[dataViewTag$2] = (typedArrayTags[dateTag$1] = (typedArrayTags[errorTag$1] = (typedArrayTags[funcTag] = (typedArrayTags["[object Map]"] = (typedArrayTags[numberTag$1] = (typedArrayTags[objectTag$2] = (typedArrayTags[regexpTag$1] = (typedArrayTags["[object Set]"] = (typedArrayTags[stringTag$1] = typedArrayTags[weakMapTag$1] = false, false), false), false), false), false), false), false), false), false), false), false), false), false);
+typedArrayTags[float32Tag] = typedArrayTags[float64Tag] = typedArrayTags[int8Tag] = typedArrayTags[int16Tag] = typedArrayTags[int32Tag] = typedArrayTags[uint8Tag] = typedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] = typedArrayTags[uint32Tag] = true;
+typedArrayTags[argsTag$1] = typedArrayTags[arrayTag$1] = typedArrayTags[arrayBufferTag$1] = typedArrayTags[boolTag$1] = typedArrayTags[dataViewTag$2] = typedArrayTags[dateTag$1] = typedArrayTags[errorTag$1] = typedArrayTags[funcTag] = typedArrayTags["[object Map]"] = typedArrayTags[numberTag$1] = typedArrayTags[objectTag$2] = typedArrayTags[regexpTag$1] = typedArrayTags["[object Set]"] = typedArrayTags[stringTag$1] = typedArrayTags[weakMapTag$1] = false;
 /**
 * The base implementation of `_.isTypedArray` without Node.js optimizations.
 *
@@ -1216,7 +1216,7 @@ function keys(object) {
 	return isArrayLike(object) ? arrayLikeKeys(object) : baseKeys(object);
 }
 /* Built-in method references that are verified to be native. */
-var __unused_137B = getNative(Object, "create");
+getNative(Object, "create");
 /**
 * Creates an list cache object.
 *
@@ -1246,10 +1246,10 @@ function mapCacheClear() {
 * @param {Array} [entries] The key-value pairs to cache.
 */
 function MapCache() {
-	this.c();
+	this.a();
 }
 // Add methods to `MapCache`.
-MapCache.prototype.c = mapCacheClear;
+MapCache.prototype.a = mapCacheClear;
 /**
 * Creates a function that memoizes the result of `func`. If `resolver` is
 * provided, it determines the cache key for storing the result based on the
@@ -1309,7 +1309,7 @@ memoize.a = MapCache;
 * @returns {Function} Returns the new memoized function.
 */
 function memoizeCapped() {
-	var __unused_F990 = memoize();
+	memoize();
 	return;
 }
 /**
@@ -1319,7 +1319,7 @@ function memoizeCapped() {
 * @param {string} string The string to convert.
 * @returns {Array} Returns the property path array.
 */
-var __unused_B4E4 = memoizeCapped();
+memoizeCapped();
 /**
 * Appends the elements of `values` to `array`.
 *
@@ -1358,7 +1358,7 @@ function isFlattenable(value) {
 * @param {Array} [result=[]] The initial result value.
 * @returns {Array} Returns the new flattened array.
 */
-function baseFlatten(array, __unused_36D3, predicate, __unused_5A9D, result) {
+function baseFlatten(array, __unused_D2B7, predicate, __unused_59D2, result) {
 	var index = -1, length = array.length;
 	predicate = isFlattenable;
 	result = [];
@@ -1434,7 +1434,11 @@ var Set$1 = Set;
 var promiseTag = "[object Promise]";
 var dataViewTag$1 = "[object DataView]";
 /** Used to detect maps, sets, and weakmaps. */
-var __unused_9A4E = toSource(DataView$1), __unused_40F2 = toSource(Map$1), __unused_767E = toSource(Promise$2), __unused_824A = toSource(Set$1), __unused_EDDE = toSource(WeakMap$1);
+toSource(DataView$1);
+toSource(Map$1);
+toSource(Promise$2);
+toSource(Set$1);
+toSource(WeakMap$1);
 /**
 * Gets the `toStringTag` of `value`.
 *

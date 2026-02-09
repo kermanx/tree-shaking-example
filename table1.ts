@@ -13,6 +13,8 @@ const FAILS: Record<string, boolean> = {
   "rollup_lacuna_terser": true,
 };
 
+const SHOW_GZ = false;
+
 interface ToolchainData {
   size: number;
   gz_size: number;
@@ -50,10 +52,9 @@ function parseData(sizes: Record<string, number>, toolchains: Record<string, str
           data[testcase] = {};
         }
 
-        // const gzKey = `${key}.gz`;
         data[testcase][toolchain] = {
           size: value,
-          gz_size: sizes[key] || 0
+          gz_size: sizes[SHOW_GZ ? `${key}.gz` : key] || 0
         };
         break;
       }
@@ -144,7 +145,6 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
       }
 
       const toolchainData = testcaseData[toolchain];
-      const size = toolchainData.size;
 
       // Check if optimization failed
       if (reduction.failed) {

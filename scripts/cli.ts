@@ -14,10 +14,6 @@ async function main() {
       optimizers: { type: 'string', short: 'o' },
       zip: { type: 'boolean', short: 'z' },
       cjs: { type: 'boolean' },
-
-      // Lacuna-specific options
-      lacunaAnalyzer: { type: 'string' },  // e.g., "static:0.6,acg:0.5"
-      lacunaLevel: { type: 'string' },     // e.g., "2"
     },
   });
 

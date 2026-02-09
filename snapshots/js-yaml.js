@@ -898,7 +898,7 @@ function throwWarning(state, message) {
 	}
 }
 var directiveHandlers = {
-	YAML: function(state, __unused_3649, args) {
+	YAML: function(state, __unused_0350, args) {
 		var match, major, minor;
 		if (state.version !== null) {
 			throwError(state, "duplication of %YAML directive");
@@ -921,7 +921,7 @@ var directiveHandlers = {
 			throwWarning(state, "unsupported YAML version of the document");
 		}
 	},
-	TAG: function(state, __unused_3649_0, args) {
+	TAG: function(state, __unused_4546, args) {
 		var handle, prefix;
 		if (args.length !== 2) {
 			throwError(state, "TAG directive accepts exactly two arguments");
@@ -1278,7 +1278,7 @@ function readFlowCollection(state, nodeIndent) {
 			// "flow collection entries can never be completely empty", as per YAML 1.2, section 7.4
 			throwError(state, "expected the node content, but found ','");
 		}
-		keyTag = (keyNode = valueNode = null, null);
+		keyTag = keyNode = valueNode = null;
 		isPair = isExplicitPair = false;
 		if (ch === 63) {
 			following = state.input.charCodeAt(state.position + 1);
@@ -1498,7 +1498,7 @@ function readBlockMapping(state, nodeIndent, flowIndent) {
 			if (ch === 63) {
 				if (atExplicitKey) {
 					storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
-					keyTag = (keyNode = valueNode = null, null);
+					keyTag = keyNode = valueNode = null;
 				}
 				detected = true;
 				atExplicitKey = true;
@@ -1533,7 +1533,7 @@ function readBlockMapping(state, nodeIndent, flowIndent) {
 					}
 					if (atExplicitKey) {
 						storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
-						keyTag = (keyNode = valueNode = null, null);
+						keyTag = keyNode = valueNode = null;
 					}
 					detected = true;
 					atExplicitKey = false;
@@ -1573,7 +1573,7 @@ function readBlockMapping(state, nodeIndent, flowIndent) {
 			}
 			if (!atExplicitKey) {
 				storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, _keyLine, _keyLineStart, _keyPos);
-				keyTag = (keyNode = valueNode = null, null);
+				keyTag = keyNode = valueNode = null;
 			}
 			skipSeparationSpace(state, true, -1);
 			ch = state.input.charCodeAt(state.position);

@@ -14,7 +14,7 @@ function _mergeNamespaces(n, m) {
 	});
 	return Object.freeze(n);
 }
-function getDefaultExportFromCjs(x) {
+function getDefaultExportFromCjs$1(x) {
 	return x;
 }
 var react = {};
@@ -367,21 +367,48 @@ function requireReact_production() {
 	react_production.version = "19.2.4";
 	return react_production;
 }
-var hasRequiredReact;
 function requireReact() {
-	if (hasRequiredReact) return react.a;
-	hasRequiredReact = 1;
 	{
 		react.a = requireReact_production();
 	}
 	return react.a;
 }
 var reactExports = requireReact();
-var React = getDefaultExportFromCjs(reactExports);
-var React$1 = _mergeNamespaces({
+var React__default = getDefaultExportFromCjs$1(reactExports);
+var React = _mergeNamespaces({
 	__proto__: null,
-	default: React
+	default: React__default
 }, [reactExports]);
+var jsxRuntime = {};
+var reactJsxRuntime_production = {};
+function requireReactJsxRuntime_production() {
+	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
+	function jsxProd(type, config, maybeKey) {
+		if ("key" in config) {
+			maybeKey = {};
+			for (var propName in config) maybeKey[propName] = config[propName];
+		} else maybeKey = config;
+		return {
+			$$typeof: REACT_ELEMENT_TYPE,
+			type,
+			key: null,
+			ref: null,
+			props: maybeKey
+		};
+	}
+	reactJsxRuntime_production.b = jsxProd;
+	return reactJsxRuntime_production;
+}
+function requireJsxRuntime() {
+	{
+		jsxRuntime.a = requireReactJsxRuntime_production();
+	}
+	return jsxRuntime.a;
+}
+var jsxRuntimeExports = requireJsxRuntime();
+function getDefaultExportFromCjs(x) {
+	return x;
+}
 var client = { a: {} };
 var reactDomClient_production = {};
 var scheduler = {};
@@ -514,16 +541,16 @@ function requireScheduler_production() {
 				callback(exports$1.a());
 			}, ms);
 		}
-		exports$1.h = function(task) {
+		exports$1.b = function(task) {
 			task.callback = null;
 		};
-		exports$1.j = function() {
+		exports$1.c = function() {
 			return currentPriorityLevel;
 		};
-		exports$1.l = function() {
+		exports$1.d = function() {
 			needsPaint = true;
 		};
-		exports$1.n = function(priorityLevel, callback, options) {
+		exports$1.e = function(priorityLevel, callback, options) {
 			var currentTime = exports$1.a();
 			"object" === typeof options && null !== options ? (options = options.delay, options = "number" === typeof options && 0 < options ? currentTime + options : currentTime) : options = currentTime;
 			switch (priorityLevel) {
@@ -553,7 +580,7 @@ function requireScheduler_production() {
 			options > currentTime ? (priorityLevel.sortIndex = options, push(timerQueue, priorityLevel), null === peek(taskQueue) && priorityLevel === peek(timerQueue) && (isHostTimeoutScheduled ? (localClearTimeout(taskTimeoutID), taskTimeoutID = -1) : isHostTimeoutScheduled = true, requestHostTimeout(handleTimeout, options - currentTime))) : (priorityLevel.sortIndex = timeout, push(taskQueue, priorityLevel), isHostCallbackScheduled || isPerformingWork || (isHostCallbackScheduled = true, isMessageLoopRunning || (isMessageLoopRunning = true, schedulePerformWorkUntilDeadline())));
 			return priorityLevel;
 		};
-		exports$1.o = shouldYieldToHost;
+		exports$1.f = shouldYieldToHost;
 	})(scheduler_production);
 	return scheduler_production;
 }
@@ -566,7 +593,7 @@ function requireScheduler() {
 var reactDom = {};
 var reactDom_production = {};
 function requireReactDom_production() {
-	var React = requireReact();
+	var React = React__default;
 	function formatProdErrorMessage(code) {
 		var url = "https://react.dev/errors/" + 299;
 		if (1 < arguments.length) {
@@ -604,7 +631,7 @@ function requireReactDom_production() {
 			ReactSharedInternals.T = previousTransition, Internals.a = previousUpdatePriority, Internals.b.a();
 		}
 	};
-	reactDom_production.k = function(fn) {
+	reactDom_production.d = function(fn) {
 		return fn();
 	};
 	return reactDom_production;
@@ -636,7 +663,7 @@ function requireReactDom() {
 	return reactDom.a;
 }
 function requireReactDomClient_production() {
-	var Scheduler = requireScheduler(), React = requireReact(), ReactDOM = requireReactDom();
+	var Scheduler = requireScheduler(), React = React__default, ReactDOM = requireReactDom();
 	function formatProdErrorMessage(code) {
 		var url = "https://react.dev/errors/" + code;
 		if (1 < arguments.length) {
@@ -880,7 +907,7 @@ function requireReactDomClient_production() {
 			return "\nError generating stack: " + x.message + "\n" + x.stack;
 		}
 	}
-	var hasOwnProperty = Object.prototype.hasOwnProperty, scheduleCallback$3 = Scheduler.n, cancelCallback$1 = Scheduler.h, shouldYield = Scheduler.o, requestPaint = Scheduler.l, now = Scheduler.a, getCurrentPriorityLevel = Scheduler.j, rendererID = null, injectedHook = null;
+	var hasOwnProperty = Object.prototype.hasOwnProperty, scheduleCallback$3 = Scheduler.e, cancelCallback$1 = Scheduler.b, shouldYield = Scheduler.f, requestPaint = Scheduler.d, now = Scheduler.a, getCurrentPriorityLevel = Scheduler.c, rendererID = null, injectedHook = null;
 	function setIsStrictModeForDevtools(newIsStrictMode) {
 		if (injectedHook && "function" === typeof injectedHook.setStrictMode) try {
 			injectedHook.setStrictMode(rendererID, newIsStrictMode);
@@ -1510,7 +1537,7 @@ function requireReactDomClient_production() {
 		if (isInsideEventHandler) return fn(a, void 0);
 		isInsideEventHandler = true;
 		try {
-			var __unused_5559 = fn(a);
+			var __unused_009F = fn(a);
 			return;
 		} finally {
 			if (isInsideEventHandler = false, null !== restoreTarget || null !== restoreQueue) {
@@ -1808,7 +1835,7 @@ function requireReactDomClient_production() {
 		}
 	}
 	function getFallbackBeforeInputChars(domEventName, nativeEvent) {
-		if (isComposing) return "compositionend" === domEventName || !canUseCompositionEvent && isFallbackCompositionEnd(domEventName, nativeEvent) ? (domEventName = getData(), fallbackText = (startText = root = null, null), isComposing = false, domEventName) : null;
+		if (isComposing) return "compositionend" === domEventName || !canUseCompositionEvent && isFallbackCompositionEnd(domEventName, nativeEvent) ? (domEventName = getData(), fallbackText = startText = root = null, isComposing = false, domEventName) : null;
 		switch (domEventName) {
 			case "paste": return null;
 			case "keypress":
@@ -2019,7 +2046,7 @@ function requireReactDomClient_production() {
 		console.error(error);
 	}, concurrentQueues = [], concurrentQueuesIndex = 0, concurrentlyUpdatedLanes = 0;
 	function finishQueueingConcurrentUpdates() {
-		for (var endIndex = concurrentQueuesIndex, i = (concurrentlyUpdatedLanes = concurrentQueuesIndex = 0, 0); i < endIndex;) {
+		for (var endIndex = concurrentQueuesIndex, i = concurrentlyUpdatedLanes = concurrentQueuesIndex = 0; i < endIndex;) {
 			var fiber = concurrentQueues[i];
 			concurrentQueues[i++] = null;
 			var queue = concurrentQueues[i];
@@ -2070,11 +2097,11 @@ function requireReactDomClient_production() {
 	function FiberNode(tag, pendingProps, key, mode) {
 		this.tag = tag;
 		this.key = key;
-		this.sibling = (this.child = (this.return = (this.stateNode = (this.type = this.elementType = null, null), null), null), null);
+		this.sibling = this.child = this.return = this.stateNode = this.type = this.elementType = null;
 		this.index = 0;
 		this.refCleanup = this.ref = null;
 		this.pendingProps = pendingProps;
-		this.dependencies = (this.memoizedState = (this.updateQueue = this.memoizedProps = null, null), null);
+		this.dependencies = this.memoizedState = this.updateQueue = this.memoizedProps = null;
 		this.mode = mode;
 		this.subtreeFlags = this.flags = 0;
 		this.deletions = null;
@@ -2347,7 +2374,7 @@ function requireReactDomClient_production() {
 		null === hydrationErrors ? hydrationErrors = [error] : hydrationErrors.push(error);
 	}
 	var valueCursor = createCursor(null), currentlyRenderingFiber$1 = null, lastContextDependency = null;
-	function pushProvider(__unused_4187, context, nextValue) {
+	function pushProvider(__unused_BDFB, context, nextValue) {
 		push(valueCursor, context._currentValue);
 		context._currentValue = nextValue;
 	}
@@ -2476,7 +2503,7 @@ function requireReactDomClient_production() {
 	var AbortControllerLocal = "undefined" !== typeof AbortController ? AbortController : function() {
 		var listeners = [], signal = this.signal = {
 			aborted: false,
-			addEventListener: function(__unused_7CE5, listener) {
+			addEventListener: function(__unused_6BD9, listener) {
 				listeners.push(listener);
 			}
 		};
@@ -2486,7 +2513,7 @@ function requireReactDomClient_production() {
 				return listener();
 			});
 		};
-	}, scheduleCallback$2 = Scheduler.n, CacheContext = {
+	}, scheduleCallback$2 = Scheduler.e, CacheContext = {
 		$$typeof: REACT_CONTEXT_TYPE,
 		Consumer: null,
 		Provider: null,
@@ -2508,7 +2535,7 @@ function requireReactDomClient_production() {
 		});
 	}
 	var currentEntangledListeners = null, currentEntangledPendingCount = 0, currentEntangledLane = 0, currentEntangledActionThenable = null;
-	function entangleAsyncAction(__unused_22B5, thenable) {
+	function entangleAsyncAction(__unused_74EF, thenable) {
 		if (null === currentEntangledListeners) {
 			var entangledListeners = currentEntangledListeners = [];
 			currentEntangledPendingCount = 0;
@@ -2566,7 +2593,7 @@ function requireReactDomClient_production() {
 		var cacheResumedFromPreviousRender = resumedCache.current;
 		return null !== cacheResumedFromPreviousRender ? cacheResumedFromPreviousRender : workInProgressRoot.pooledCache;
 	}
-	function pushTransition(__unused_2CCA, prevCachePool) {
+	function pushTransition(__unused_C650, prevCachePool) {
 		null === prevCachePool ? push(resumedCache, resumedCache.current) : push(resumedCache, prevCachePool.pool);
 	}
 	function getSuspendedCache() {
@@ -3011,7 +3038,7 @@ function requireReactDomClient_production() {
 		if (null !== firstBaseUpdate) {
 			var newState = queue.baseState;
 			lastBaseUpdate = 0;
-			current = (firstPendingUpdate = lastPendingUpdate = null, null);
+			current = firstPendingUpdate = lastPendingUpdate = null;
 			pendingQueue = firstBaseUpdate;
 			do {
 				var updateLane = pendingQueue.lane & -536870913, isHiddenUpdate = updateLane !== pendingQueue.lane;
@@ -3166,7 +3193,7 @@ function requireReactDomClient_production() {
 		ReactSharedInternals.H = ContextOnlyDispatcher;
 		var didRenderTooFewHooks = null !== currentHook && null !== currentHook.next;
 		renderLanes = 0;
-		workInProgressHook = (currentHook = currentlyRenderingFiber = null, null);
+		workInProgressHook = currentHook = currentlyRenderingFiber = null;
 		didScheduleRenderPhaseUpdate = false;
 		thenableIndexCounter = 0;
 		thenableState = null;
@@ -3222,7 +3249,7 @@ function requireReactDomClient_production() {
 			didScheduleRenderPhaseUpdate = false;
 		}
 		renderLanes = 0;
-		workInProgressHook = (currentHook = currentlyRenderingFiber = null, null);
+		workInProgressHook = currentHook = currentlyRenderingFiber = null;
 		didScheduleRenderPhaseUpdateDuringThisPass = false;
 		thenableIndexCounter = localIdCounter = 0;
 		thenableState = null;
@@ -3478,7 +3505,7 @@ function requireReactDomClient_production() {
 		};
 		return hook;
 	}
-	function updateOptimisticImpl(hook, __unused_E2A4, passthrough, reducer) {
+	function updateOptimisticImpl(hook, __unused_798B, passthrough, reducer) {
 		hook.baseState = passthrough;
 		return updateReducerImpl(hook, currentHook, "function" === typeof reducer ? reducer : basicStateReducer);
 	}
@@ -3555,7 +3582,7 @@ function requireReactDomClient_production() {
 		actionNode = actionNode.listeners;
 		for (var i = 0; i < actionNode.length; i++) (0, actionNode[i])();
 	}
-	function actionStateReducer(__unused_B2F9, newState) {
+	function actionStateReducer(__unused_498C, newState) {
 		return newState;
 	}
 	function mountActionState(action, initialStateProp) {
@@ -5035,7 +5062,7 @@ function requireReactDomClient_production() {
 	function markUpdate(workInProgress) {
 		workInProgress.flags |= 4;
 	}
-	function preloadInstanceAndSuspendIfNeeded(workInProgress, type, __unused_9837, __unused_ED90, renderLanes) {
+	function preloadInstanceAndSuspendIfNeeded(workInProgress, type, __unused_6FA6, __unused_393F, renderLanes) {
 		if (type = 0 !== (workInProgress.mode & 32)) type = false;
 		if (type) {
 			if (workInProgress.flags |= 16777216, (renderLanes & 335544128) === renderLanes) if (workInProgress.stateNode.complete) workInProgress.flags |= 8192;
@@ -5565,7 +5592,7 @@ function requireReactDomClient_production() {
 				start: root.selectionStart,
 				end: root.selectionEnd
 			};
-			else a: {
+			else {
 				JSCompiler_temp = (JSCompiler_temp = root.ownerDocument) && JSCompiler_temp.defaultView || window;
 				var selection = JSCompiler_temp.getSelection && JSCompiler_temp.getSelection();
 				if (selection && 0 !== selection.rangeCount) {
@@ -6337,7 +6364,7 @@ function requireReactDomClient_production() {
 			default: recursivelyTraversePassiveMountEffects(finishedRoot, finishedWork);
 		}
 	}
-	function recursivelyTraverseReconnectPassiveEffects(__unused_E330, parentFiber, __unused_A503, __unused_E58D, includeWorkInProgressEffects) {
+	function recursivelyTraverseReconnectPassiveEffects(__unused_5E52, parentFiber, __unused_495A, __unused_5EDD, includeWorkInProgressEffects) {
 		includeWorkInProgressEffects = includeWorkInProgressEffects && (0 !== (parentFiber.subtreeFlags & 10256) || false);
 		for (parentFiber = parentFiber.child; null !== parentFiber;) {
 			var finishedWork = parentFiber, flags = finishedWork.flags;
@@ -6363,7 +6390,7 @@ function requireReactDomClient_production() {
 			parentFiber = parentFiber.sibling;
 		}
 	}
-	function recursivelyTraverseAtomicPassiveEffects(__unused_E330_0, parentFiber) {
+	function recursivelyTraverseAtomicPassiveEffects(__unused_6901, parentFiber) {
 		if (parentFiber.subtreeFlags & 10256) for (parentFiber = parentFiber.child; null !== parentFiber;) {
 			var finishedWork = parentFiber, flags = finishedWork.flags;
 			switch (finishedWork.tag) {
@@ -6381,10 +6408,10 @@ function requireReactDomClient_production() {
 		}
 	}
 	var suspenseyCommitFlag = 8192;
-	function recursivelyAccumulateSuspenseyCommit(parentFiber, __unused_DD38_1, suspendedState) {
+	function recursivelyAccumulateSuspenseyCommit(parentFiber, __unused_EA0F, suspendedState) {
 		if (parentFiber.subtreeFlags & suspenseyCommitFlag) for (parentFiber = parentFiber.child; null !== parentFiber;) accumulateSuspenseyCommitOnFiber(parentFiber, 0, suspendedState), parentFiber = parentFiber.sibling;
 	}
-	function accumulateSuspenseyCommitOnFiber(fiber, __unused_DD38_2, suspendedState) {
+	function accumulateSuspenseyCommitOnFiber(fiber, __unused_9C5C, suspendedState) {
 		switch (fiber.tag) {
 			case 26:
 				recursivelyAccumulateSuspenseyCommit(fiber, 0, suspendedState);
@@ -6537,7 +6564,7 @@ function requireReactDomClient_production() {
 		null !== lane && (lane.flags |= 32);
 		return workInProgressDeferredLane;
 	}
-	function scheduleUpdateOnFiber(root, __unused_BDE4, lane) {
+	function scheduleUpdateOnFiber(root, __unused_018A, lane) {
 		if (root === workInProgressRoot && (2 === workInProgressSuspendedReason || 9 === workInProgressSuspendedReason) || null !== root.cancelPendingCommit) prepareFreshStack(root, 0), markRootSuspended(root, workInProgressRootRenderLanes, workInProgressDeferredLane, false);
 		markRootUpdated$1(root, lane);
 		if (0 === (executionContext & 2) || root !== workInProgressRoot) root === workInProgressRoot && (0 === (executionContext & 2) && (workInProgressRootInterleavedUpdatedLanes |= lane), 4 === workInProgressRootExitStatus && markRootSuspended(root, workInProgressRootRenderLanes, workInProgressDeferredLane, false)), ensureRootIsScheduled(root);
@@ -6621,7 +6648,7 @@ function requireReactDomClient_production() {
 		} while (1);
 		ensureRootIsScheduled(root$jscomp$0);
 	}
-	function commitRootWhenReady(root, finishedWork, recoverableErrors, transitions, didIncludeRenderPhaseUpdate, lanes, spawnedLane, updatedLanes, suspendedRetryLanes, didSkipSuspendedSiblings, __unused_6C43, suspendedCommitReason) {
+	function commitRootWhenReady(root, finishedWork, recoverableErrors, transitions, didIncludeRenderPhaseUpdate, lanes, spawnedLane, updatedLanes, suspendedRetryLanes, didSkipSuspendedSiblings, __unused_E1E6, suspendedCommitReason) {
 		root.timeoutHandle = -1;
 		suspendedCommitReason = finishedWork.subtreeFlags;
 		if (suspendedCommitReason & 8192 || 16785408 === (suspendedCommitReason & 16785408)) {
@@ -6713,7 +6740,7 @@ function requireReactDomClient_production() {
 		workInProgressRootDidSkipSuspendedSiblings = false;
 		workInProgressRootIsPrerendering = checkIfRootIsPrerendering(root, lanes);
 		workInProgressRootDidAttachPingListener = false;
-		workInProgressSuspendedRetryLanes = (workInProgressDeferredLane = (workInProgressRootPingedLanes = (workInProgressRootInterleavedUpdatedLanes = (workInProgressRootSkippedLanes = workInProgressRootExitStatus = 0, 0), 0), 0), 0);
+		workInProgressSuspendedRetryLanes = workInProgressDeferredLane = workInProgressRootPingedLanes = workInProgressRootInterleavedUpdatedLanes = workInProgressRootSkippedLanes = workInProgressRootExitStatus = 0;
 		workInProgressRootRecoverableErrors = workInProgressRootConcurrentErrors = null;
 		workInProgressRootDidIncludeRecursiveRenderUpdate = false;
 		0 !== (lanes & 8) && (lanes |= lanes & 32);
@@ -7247,7 +7274,7 @@ function requireReactDomClient_production() {
 		null !== retryCache && retryCache.delete(wakeable);
 		retryTimedOutBoundary(boundaryFiber, retryLane);
 	}
-	function scheduleCallback$1(__unused_2146, callback) {
+	function scheduleCallback$1(__unused_8D02, callback) {
 		return scheduleCallback$3(3, callback);
 	}
 	var firstScheduledRoot = null, lastScheduledRoot = null, didScheduleMicrotask = false, mightHavePendingSyncWork = false, isFlushingWork = false, currentEventTransitionLane = 0;
@@ -7717,7 +7744,7 @@ function requireReactDomClient_production() {
 						if (isTextInputElement(handleEventFunc) || "true" === handleEventFunc.contentEditable) activeElement = handleEventFunc, activeElementInst = targetInst, lastSelection = null;
 						break;
 					case "focusout":
-						lastSelection = (activeElementInst = activeElement = null, null);
+						lastSelection = activeElementInst = activeElement = null;
 						break;
 					case "mousedown":
 						mouseDown = true;
@@ -8062,7 +8089,7 @@ function requireReactDomClient_production() {
 				return;
 			case "input":
 				listenToNonDelegatedEvent("invalid", domElement);
-				var defaultValue = (propKey = (propValue = hasSrcSet = null, null), null), checked = null, defaultChecked = null;
+				var defaultValue = propKey = propValue = hasSrcSet = null, checked = null, defaultChecked = null;
 				for (hasSrc in props) if (props.hasOwnProperty(hasSrc)) {
 					var propValue$184 = props[hasSrc];
 					if (null != propValue$184) switch (hasSrc) {
@@ -8095,7 +8122,7 @@ function requireReactDomClient_production() {
 				return;
 			case "select":
 				listenToNonDelegatedEvent("invalid", domElement);
-				hasSrc = (propValue = propKey = null, null);
+				hasSrc = propValue = propKey = null;
 				for (hasSrcSet in props) if (props.hasOwnProperty(hasSrcSet) && (defaultValue = props[hasSrcSet], null != defaultValue)) switch (hasSrcSet) {
 					case "value":
 						propKey = defaultValue;
@@ -8113,7 +8140,7 @@ function requireReactDomClient_production() {
 				return;
 			case "textarea":
 				listenToNonDelegatedEvent("invalid", domElement);
-				propKey = (hasSrcSet = hasSrc = null, null);
+				propKey = hasSrcSet = hasSrc = null;
 				for (propValue in props) if (props.hasOwnProperty(propValue) && (defaultValue = props[propValue], null != defaultValue)) switch (propValue) {
 					case "value":
 						hasSrc = defaultValue;
@@ -8240,7 +8267,7 @@ function requireReactDomClient_production() {
 				updateInput(domElement, value, defaultValue, lastDefaultValue, checked, defaultChecked, type, name);
 				return;
 			case "select":
-				propKey = (value = (defaultValue = propKey$201 = null, null), null);
+				propKey = value = defaultValue = propKey$201 = null;
 				for (type in lastProps) if (lastDefaultValue = lastProps[type], lastProps.hasOwnProperty(type) && null != lastDefaultValue) switch (type) {
 					case "value": break;
 					case "multiple": propKey = lastDefaultValue;
@@ -8592,13 +8619,13 @@ function requireReactDomClient_production() {
 		for (var attributes = instance.attributes; attributes.length;) instance.removeAttributeNode(attributes[0]);
 		detachDeletedInstance(instance);
 	}
-	var preloadPropsMap = new Map(), __unused_5B68 = new Set();
+	var preloadPropsMap = new Map();
 	function getHoistableRoot(container) {
 		return "function" === typeof container.getRootNode ? container.getRootNode() : 9 === container.nodeType ? container : container.ownerDocument;
 	}
 	ReactDOMSharedInternals.b = { a: flushSyncWork };
 	function flushSyncWork() {
-		var __unused_0697 = flushSyncWork$1();
+		flushSyncWork$1();
 		return;
 	}
 	function getResource(type, currentProps, pendingProps, currentResource) {
@@ -8908,15 +8935,15 @@ function requireReactDomClient_production() {
 		_currentValue2: sharedNotPendingObject,
 		_threadCount: 0
 	};
-	function FiberRootNode(containerInfo, __unused_FCC2, __unused_659A, __unused_0B9F, onUncaughtError, onCaughtError, onRecoverableError) {
+	function FiberRootNode(containerInfo, __unused_1B0F, __unused_535F, __unused_1E7C, onUncaughtError, onCaughtError, onRecoverableError) {
 		this.tag = 1;
 		this.containerInfo = containerInfo;
 		this.pingCache = this.pendingChildren = null;
 		this.timeoutHandle = -1;
-		this.callbackNode = (this.next = (this.pendingContext = (this.context = this.cancelPendingCommit = null, null), null), null);
+		this.callbackNode = this.next = this.pendingContext = this.context = this.cancelPendingCommit = null;
 		this.callbackPriority = 0;
 		this.expirationTimes = createLaneMap(-1);
-		this.entangledLanes = (this.shellSuspendCounter = (this.errorRecoveryDisabledLanes = (this.expiredLanes = (this.warmLanes = (this.pingedLanes = (this.suspendedLanes = this.pendingLanes = 0, 0), 0), 0), 0), 0), 0);
+		this.entangledLanes = this.shellSuspendCounter = this.errorRecoveryDisabledLanes = this.expiredLanes = this.warmLanes = this.pingedLanes = this.suspendedLanes = this.pendingLanes = 0;
 		this.entanglements = createLaneMap(0);
 		this.hiddenUpdates = createLaneMap(null);
 		this.identifierPrefix = "";
@@ -8927,7 +8954,7 @@ function requireReactDomClient_production() {
 		this.formState = null;
 		this.incompleteTransitions = new Map();
 	}
-	function createFiberRoot(containerInfo, tag, __unused_659A_0, __unused_947B, __unused_796C, isStrictMode, __unused_0B9F_0, __unused_EFCE, onUncaughtError, onCaughtError, onRecoverableError) {
+	function createFiberRoot(containerInfo, tag, __unused_4E3F, __unused_8AA6, __unused_0557, isStrictMode, __unused_D41D, __unused_AACF, onUncaughtError, onCaughtError, onRecoverableError) {
 		containerInfo = new FiberRootNode(containerInfo, 0, 0, 0, onUncaughtError, onCaughtError, onRecoverableError);
 		isStrictMode = createFiberImplClass(3, null, null, 1);
 		containerInfo.current = isStrictMode;
@@ -9224,11 +9251,11 @@ function requireReactDomClient_production() {
 		queuedPointerCaptures.forEach(attemptReplayContinuousQueuedEventInMap);
 	}
 	function scheduleCallbackIfUnblocked(queuedEvent, unblocked) {
-		queuedEvent.blockedOn === unblocked && (queuedEvent.blockedOn = null, hasScheduledReplayAttempt || (hasScheduledReplayAttempt = true, Scheduler.n(3, replayUnblockedEvents)));
+		queuedEvent.blockedOn === unblocked && (queuedEvent.blockedOn = null, hasScheduledReplayAttempt || (hasScheduledReplayAttempt = true, Scheduler.e(3, replayUnblockedEvents)));
 	}
 	var lastScheduledReplayQueue = null;
 	function scheduleReplayQueueIfNeeded(formReplayingQueue) {
-		lastScheduledReplayQueue !== formReplayingQueue && (lastScheduledReplayQueue = formReplayingQueue, Scheduler.n(3, function() {
+		lastScheduledReplayQueue !== formReplayingQueue && (lastScheduledReplayQueue = formReplayingQueue, Scheduler.e(3, function() {
 			lastScheduledReplayQueue === formReplayingQueue && (lastScheduledReplayQueue = null);
 			for (var i = 0; i < formReplayingQueue.length; i += 3) {
 				var form = formReplayingQueue[i], submitterOrAction = formReplayingQueue[i + 1], formData = formReplayingQueue[i + 2];
@@ -9443,8 +9470,8 @@ function requireReactIs_production_min() {
 			}
 		}
 	}
-	reactIs_production_min.d = l;
-	reactIs_production_min.u = function(a) {
+	reactIs_production_min.a = l;
+	reactIs_production_min.b = function(a) {
 		return v(a) === p;
 	};
 	return reactIs_production_min;
@@ -9511,13 +9538,13 @@ const supportRef = (nodeOrComponent) => {
 	if (isReactElement(nodeOrComponent) && ReactMajorVersion >= 19) {
 		return true;
 	}
-	const type = reactIsExports.u(nodeOrComponent) ? nodeOrComponent.type.type : nodeOrComponent.type;
+	const type = reactIsExports.b(nodeOrComponent) ? nodeOrComponent.type.type : nodeOrComponent.type;
 	// Function component node
-	if (typeof type === "function" && !type.prototype?.render && type.$$typeof !== reactIsExports.d) {
+	if (typeof type === "function" && !type.prototype?.render && type.$$typeof !== reactIsExports.a) {
 		return false;
 	}
 	// Class component
-	if (typeof nodeOrComponent === "function" && !nodeOrComponent.prototype?.render && nodeOrComponent.$$typeof !== reactIsExports.d) {
+	if (typeof nodeOrComponent === "function" && !nodeOrComponent.prototype?.render && nodeOrComponent.$$typeof !== reactIsExports.a) {
 		return false;
 	}
 	return true;
@@ -9549,7 +9576,7 @@ function get(entity, path) {
 	}
 	return current;
 }
-function internalSet(entity, paths, value, removeIfUndefined) {
+function internalSet(entity, paths, value) {
 	if (!paths.length) {
 		return value;
 	}
@@ -9563,19 +9590,13 @@ function internalSet(entity, paths, value, removeIfUndefined) {
 		clone = { ...entity };
 	}
 	// Delete prop if `removeIfUndefined` and value is undefined
-	if (removeIfUndefined && value === void 0 && restPath.length === 1) {
-		delete clone[path][restPath[0]];
-	} else {
-		clone[path] = internalSet(clone[path], restPath, value, removeIfUndefined);
+	{
+		clone[path] = internalSet(clone[path], restPath, value);
 	}
 	return clone;
 }
-function set(entity, paths, value, removeIfUndefined = false) {
-	// Do nothing if `removeIfUndefined` and parent object not exist
-	if (paths.length && removeIfUndefined && value === void 0 && !get(entity, paths.slice(0, -1))) {
-		return entity;
-	}
-	return internalSet(entity, paths, value, removeIfUndefined);
+function set(entity, paths, value) {
+	return internalSet(entity, paths, value);
 }
 function isObject(obj) {
 	return typeof obj === "object" && obj !== null && Object.getPrototypeOf(obj) === Object.prototype;
@@ -9592,9 +9613,8 @@ const keys = Reflect.ownKeys;
 * It will return empty [] by default.
 * So when match array, it will auto be override with next array in sources.
 */
-function mergeWith(sources, config = {}) {
-	const { prepareArray } = config;
-	const finalPrepareArray = prepareArray || (() => []);
+function mergeWith(sources) {
+	const finalPrepareArray = () => [];
 	let clone = createEmpty(sources[0]);
 	sources.forEach((src) => {
 		function internalMerge(path, parentLoopSet) {
@@ -9608,7 +9628,7 @@ function mergeWith(sources, config = {}) {
 					const originValue = get(clone, path);
 					if (isArr) {
 						// Array will always be override
-						clone = set(clone, path, finalPrepareArray(originValue, value));
+						clone = set(clone, path, finalPrepareArray());
 					} else if (!originValue || typeof originValue !== "object") {
 						// Init container if not exist
 						clone = set(clone, path, createEmpty(value));
@@ -9636,7 +9656,7 @@ function merge$1(...sources) {
 }
 /* eslint-disable no-console */
 let warned = {};
-function call(__unused_49C5, valid, message) {
+function call(__unused_FC48, valid, message) {
 	if (!valid && !warned[message]) {
 		warned[message] = true;
 	}
@@ -9656,7 +9676,7 @@ function omit(obj, fields) {
 }
 function toArray$3(children, option = {}) {
 	let ret = [];
-	React.Children.forEach(children, (child) => {
+	React__default.Children.forEach(children, (child) => {
 		if ((child === void 0 || child === null) && !option.keepEmpty) {
 			return;
 		}
@@ -9670,7 +9690,6 @@ function toArray$3(children, option = {}) {
 	});
 	return ret;
 }
-const WarningContext = reactExports.createContext({});
 function isDOM(node) {
 	// https://developer.mozilla.org/en-US/docs/Web/API/Element
 	// Since XULElement is also subclass of Element, we only need HTMLElement and SVGElement
@@ -9687,33 +9706,6 @@ function getDOM(node) {
 		return node;
 	}
 	return null;
-}
-const CollectionContext = reactExports.createContext(null);
-/**
-* Collect all the resize event from children ResizeObserver
-*/
-function Collection({ children, onBatchResize }) {
-	const resizeIdRef = reactExports.useRef(0);
-	const resizeInfosRef = reactExports.useRef([]);
-	const onCollectionResize = reactExports.useContext(CollectionContext);
-	const onResize = reactExports.useCallback((size, element, data) => {
-		resizeIdRef.current += 1;
-		const currentId = resizeIdRef.current;
-		resizeInfosRef.current.push({
-			size,
-			element,
-			data
-		});
-		Promise.resolve().then(() => {
-			if (currentId === resizeIdRef.current) {
-				onBatchResize?.(resizeInfosRef.current);
-				resizeInfosRef.current = [];
-			}
-		});
-		// Continue bubbling if parent exist
-		onCollectionResize?.(size, element, data);
-	}, [onBatchResize, onCollectionResize]);
-	return reactExports.createElement(CollectionContext.Provider, { value: onResize }, children);
 }
 // =============================== Const ===============================
 const elementListeners = new Map();
@@ -9748,7 +9740,7 @@ function unobserve(element, callback) {
 		}
 	}
 }
-function useResizeObserver(enabled, getTarget, onDelayResize, onSyncResize) {
+function useResizeObserver(enabled, getTarget, onDelayResize) {
 	// ============================= Size =============================
 	const sizeRef = reactExports.useRef({
 		width: -1,
@@ -9784,9 +9776,6 @@ function useResizeObserver(enabled, getTarget, onDelayResize, onSyncResize) {
 				offsetWidth: mergedOffsetWidth,
 				offsetHeight: mergedOffsetHeight
 			};
-			// Call the callback immediately, let the caller decide whether to defer
-			// onResize(sizeInfo, target);
-			onSyncResize?.(sizeInfo, target);
 			// defer the callback but not defer to next frame
 			Promise.resolve().then(() => {
 				onDelayResize?.(sizeInfo, target);
@@ -9808,9 +9797,8 @@ function useResizeObserver(enabled, getTarget, onDelayResize, onSyncResize) {
 	}, [enabled, isFuncTarget ? 0 : getTarget]);
 }
 function SingleObserver(props, ref) {
-	const { children, disabled, onResize, data } = props;
+	const { children, disabled, onResize } = props;
 	const elementRef = reactExports.useRef(null);
-	const onCollectionResize = reactExports.useContext(CollectionContext);
 	// =========================== Children ===========================
 	const isRenderProps = typeof children === "function";
 	const mergedChildren = isRenderProps ? children(elementRef) : children;
@@ -9823,9 +9811,7 @@ function SingleObserver(props, ref) {
 	};
 	reactExports.useImperativeHandle(ref, () => getDomElement());
 	// =========================== Observe ============================
-	useResizeObserver(!disabled, getDomElement, onResize, (sizeInfo, target) => {
-		onCollectionResize?.(sizeInfo, target, data);
-	});
+	useResizeObserver(!disabled, getDomElement, onResize);
 	// ============================ Render ============================
 	return canRef ? reactExports.cloneElement(mergedChildren, { ref: mergedRef }) : mergedChildren;
 }
@@ -9837,7 +9823,7 @@ function _extends$x() {
 const INTERNAL_PREFIX_KEY = "rc-observer-key";
 function ResizeObserver$1(props, ref) {
 	const { children } = props;
-	const childNodes = typeof children === "function" ? [children] : toArray$3(children);
+	const childNodes = toArray$3(children);
 	return childNodes.map((child, index) => {
 		const key = child?.key || `${INTERNAL_PREFIX_KEY}-${index}`;
 		return reactExports.createElement(RefSingleObserver, _extends$x({}, props, {
@@ -9847,7 +9833,6 @@ function ResizeObserver$1(props, ref) {
 	});
 }
 const RefResizeObserver = reactExports.forwardRef(ResizeObserver$1);
-RefResizeObserver.Collection = Collection;
 function r(e) {
 	var t, f, n = "";
 	if ("string" == typeof e || "number" == typeof e) n += e;
@@ -9928,17 +9913,14 @@ const Variants = [
 	"filled",
 	"underlined"
 ];
-const defaultGetPrefixCls = (suffixCls, customizePrefixCls) => {
+const defaultGetPrefixCls = (__unused_7AA6, customizePrefixCls) => {
 	if (customizePrefixCls) {
 		return customizePrefixCls;
 	}
-	return suffixCls ? `${"ant"}-${suffixCls}` : "ant";
+	return "ant-btn";
 };
 // zombieJ: 🚨 Do not pass `defaultRenderEmpty` here since it will cause circular dependency.
-const ConfigContext = reactExports.createContext({
-	getPrefixCls: defaultGetPrefixCls,
-	iconPrefixCls: "anticon"
-});
+const ConfigContext = reactExports.createContext({ a: defaultGetPrefixCls });
 const EMPTY_OBJECT = {};
 /**
 * Get ConfigProvider configured component props.
@@ -9948,16 +9930,14 @@ const EMPTY_OBJECT = {};
 * NOTE: not refactor this with `useMemo` since memo will cost another memory space,
 * which will waste both compare calculation & memory.
 */
-function useComponentConfig(propName) {
+function useComponentConfig() {
 	const context = reactExports.useContext(ConfigContext);
-	const { getPrefixCls, direction } = context;
-	const propValue = context[propName];
+	const { a: getPrefixCls } = context;
 	return {
-		classNames: EMPTY_OBJECT,
-		styles: EMPTY_OBJECT,
-		...propValue,
-		getPrefixCls,
-		direction
+		a: EMPTY_OBJECT,
+		b: EMPTY_OBJECT,
+		...void 0,
+		c: getPrefixCls
 	};
 }
 /* eslint-disable */
@@ -10027,7 +10007,7 @@ function getOrder(prepend) {
 	if (prepend === "queue") {
 		return "prependQueue";
 	}
-	return prepend ? "prepend" : "append";
+	return "prepend";
 }
 /**
 * Find style which inject by rc-util
@@ -10053,27 +10033,27 @@ function injectCSS(css, option) {
 	styleNode.innerHTML = css;
 	const container = getContainer(option);
 	const { firstChild } = container;
-	if (prepend) {
-		// If is queue `prepend`, it will prepend first style and then append rest style
-		if (isPrependQueue) {
-			const existStyle = (option.styles || findStyles(container)).filter((node) => {
-				// Ignore style which not injected by rc-util with prepend
-				if (!["prepend", "prependQueue"].includes(node.getAttribute(APPEND_ORDER))) {
-					return false;
+	{
+		{
+			// If is queue `prepend`, it will prepend first style and then append rest style
+			if (isPrependQueue) {
+				const existStyle = (option.styles || findStyles(container)).filter((node) => {
+					// Ignore style which not injected by rc-util with prepend
+					if (!["prepend", "prependQueue"].includes(node.getAttribute(APPEND_ORDER))) {
+						return false;
+					}
+					// Ignore style which priority less then new style
+					const nodePriority = Number(node.getAttribute(APPEND_PRIORITY) || 0);
+					return priority >= nodePriority;
+				});
+				if (existStyle.length) {
+					container.insertBefore(styleNode, existStyle[existStyle.length - 1].nextSibling);
+					return styleNode;
 				}
-				// Ignore style which priority less then new style
-				const nodePriority = Number(node.getAttribute(APPEND_PRIORITY) || 0);
-				return priority >= nodePriority;
-			});
-			if (existStyle.length) {
-				container.insertBefore(styleNode, existStyle[existStyle.length - 1].nextSibling);
-				return styleNode;
 			}
+			// Use `insertBefore` as `prepend`
+			container.insertBefore(styleNode, firstChild);
 		}
-		// Use `insertBefore` as `prepend`
-		container.insertBefore(styleNode, firstChild);
-	} else {
-		container.appendChild(styleNode);
 	}
 	return styleNode;
 }
@@ -10102,7 +10082,7 @@ function syncRealContainer(container, option) {
 		container.removeChild(placeholderStyle);
 	}
 }
-function updateCSS(css, key, originOption = {}) {
+function updateCSS(css, key, originOption) {
 	const container = getContainer(originOption);
 	const styles = findStyles(container);
 	const option = {
@@ -10125,53 +10105,6 @@ function updateCSS(css, key, originOption = {}) {
 	newNode.setAttribute(getMark(option), key);
 	return newNode;
 }
-/**
-* Deeply compares two object literals.
-* @param obj1 object 1
-* @param obj2 object 2
-* @param shallow shallow compare
-* @returns
-*/
-function isEqual(obj1, obj2, shallow = false) {
-	// https://github.com/mapbox/mapbox-gl-js/pull/5979/files#diff-fde7145050c47cc3a306856efd5f9c3016e86e859de9afbd02c879be5067e58f
-	const refSet = new Set();
-	function deepEqual(a, b, level = 1) {
-		const circular = refSet.has(a);
-		warningOnce(!circular, "Warning: There may be circular references");
-		if (circular) {
-			return false;
-		}
-		if (a === b) {
-			return true;
-		}
-		if (shallow && level > 1) {
-			return false;
-		}
-		refSet.add(a);
-		const newLevel = level + 1;
-		if (Array.isArray(a)) {
-			if (!Array.isArray(b) || a.length !== b.length) {
-				return false;
-			}
-			for (let i = 0; i < a.length; i++) {
-				if (!deepEqual(a[i], b[i], newLevel)) {
-					return false;
-				}
-			}
-			return true;
-		}
-		if (a && b && typeof a === "object" && typeof b === "object") {
-			const keys = Object.keys(a);
-			if (keys.length !== Object.keys(b).length) {
-				return false;
-			}
-			return keys.every((key) => deepEqual(a[key], b[key], newLevel));
-		}
-		// other
-		return false;
-	}
-	return deepEqual(obj1, obj2);
-}
 /** Connect key with `SPLIT` */
 function pathKey(keys) {
 	return keys.join("%");
@@ -10180,33 +10113,27 @@ function pathKey(keys) {
 let updateId = 0;
 class Entity {
 	constructor(instanceId) {
-		this.instanceId = instanceId;
+		this.a = instanceId;
 	}
 	/** @private Internal cache map. Do not access this directly */
-	cache = new Map();
+	b = new Map();
 	/** @private Record update times for each key */
-	updateTimes = new Map();
-	extracted = new Set();
-	get(keys) {
-		return this.opGet(pathKey(keys));
+	c = new Map();
+	d = new Set();
+	/** A fast get cache with `get` concat. */
+	e(keyPathStr) {
+		return this.b.get(keyPathStr) || null;
 	}
 	/** A fast get cache with `get` concat. */
-	opGet(keyPathStr) {
-		return this.cache.get(keyPathStr) || null;
-	}
-	update(keys, valueFn) {
-		return this.opUpdate(pathKey(keys), valueFn);
-	}
-	/** A fast get cache with `get` concat. */
-	opUpdate(keyPathStr, valueFn) {
-		const prevValue = this.cache.get(keyPathStr);
+	f(keyPathStr, valueFn) {
+		const prevValue = this.b.get(keyPathStr);
 		const nextValue = valueFn(prevValue);
 		if (nextValue === null) {
-			this.cache.delete(keyPathStr);
-			this.updateTimes.delete(keyPathStr);
+			this.b.delete(keyPathStr);
+			this.c.delete(keyPathStr);
 		} else {
-			this.cache.set(keyPathStr, nextValue);
-			this.updateTimes.set(keyPathStr, updateId);
+			this.b.set(keyPathStr, nextValue);
+			this.c.set(keyPathStr, updateId);
 			updateId += 1;
 		}
 	}
@@ -10244,35 +10171,15 @@ function createCache() {
 	}
 	return new Entity(cssinjsInstanceId);
 }
-const StyleContext = reactExports.createContext({
-	hashPriority: "low",
-	cache: createCache(),
-	defaultCache: true,
-	autoPrefix: false
-});
-// ================================== Cache ==================================
-function sameDerivativeOption(left, right) {
-	if (left.length !== right.length) {
-		return false;
-	}
-	for (let i = 0; i < left.length; i++) {
-		if (left[i] !== right[i]) {
-			return false;
-		}
-	}
-	return true;
-}
+const StyleContext = reactExports.createContext({ a: createCache() });
 class ThemeCache {
 	constructor() {
-		this.cache = new Map();
-		this.keys = [];
-		this.cacheCallTimes = 0;
+		this.a = new Map();
+		this.b = [];
+		this.c = 0;
 	}
-	size() {
-		return this.keys.length;
-	}
-	internalGet(derivativeOption, updateCallTimes = false) {
-		let cache = { map: this.cache };
+	d(derivativeOption, updateCallTimes = false) {
+		let cache = { map: this.a };
 		derivativeOption.forEach((derivative) => {
 			if (!cache) {
 				cache = void 0;
@@ -10281,35 +10188,25 @@ class ThemeCache {
 			}
 		});
 		if (cache?.value && updateCallTimes) {
-			cache.value[1] = this.cacheCallTimes++;
+			cache.value[1] = this.c++;
 		}
 		return cache?.value;
 	}
-	get(derivativeOption) {
-		return this.internalGet(derivativeOption, true)?.[0];
+	e(derivativeOption) {
+		return this.d(derivativeOption, true)?.[0];
 	}
-	has(derivativeOption) {
-		return !!this.internalGet(derivativeOption);
+	f(derivativeOption) {
+		return !!this.d(derivativeOption);
 	}
-	set(derivativeOption, value) {
+	g(derivativeOption, value) {
 		// New cache
-		if (!this.has(derivativeOption)) {
-			if (this.size() + 1 > 25) {
-				const [targetKey] = this.keys.reduce((result, key) => {
-					const [, callTimes] = result;
-					if (this.internalGet(key)[1] < callTimes) {
-						return [key, this.internalGet(key)[1]];
-					}
-					return result;
-				}, [this.keys[0], this.cacheCallTimes]);
-				this.delete(targetKey);
-			}
-			this.keys.push(derivativeOption);
+		if (!this.f(derivativeOption)) {
+			this.b.push(derivativeOption);
 		}
-		let cache = this.cache;
+		let cache = this.a;
 		derivativeOption.forEach((derivative, index) => {
 			if (index === derivativeOption.length - 1) {
-				cache.set(derivative, { value: [value, this.cacheCallTimes++] });
+				cache.set(derivative, { value: [value, this.c++] });
 			} else {
 				const cacheValue = cache.get(derivative);
 				if (!cacheValue) {
@@ -10320,30 +10217,6 @@ class ThemeCache {
 				cache = cache.get(derivative).map;
 			}
 		});
-	}
-	deleteByPath(currentCache, derivatives) {
-		const cache = currentCache.get(derivatives[0]);
-		if (derivatives.length === 1) {
-			if (!cache.map) {
-				currentCache.delete(derivatives[0]);
-			} else {
-				currentCache.set(derivatives[0], { map: cache.map });
-			}
-			return cache.value?.[0];
-		}
-		const result = this.deleteByPath(cache.map, derivatives.slice(1));
-		if ((!cache.map || cache.map.size === 0) && !cache.value) {
-			currentCache.delete(derivatives[0]);
-		}
-		return result;
-	}
-	delete(derivativeOption) {
-		// If cache exists
-		if (this.has(derivativeOption)) {
-			this.keys = this.keys.filter((item) => !sameDerivativeOption(item, derivativeOption));
-			return this.deleteByPath(this.cache, derivativeOption);
-		}
-		return void 0;
 	}
 }
 let uuid$2 = 0;
@@ -10370,11 +10243,11 @@ const cacheThemes = new ThemeCache();
 function createTheme(derivatives) {
 	const derivativeArr = Array.isArray(derivatives) ? derivatives : [derivatives];
 	// Create new theme if not exist
-	if (!cacheThemes.has(derivativeArr)) {
-		cacheThemes.set(derivativeArr, new Theme(derivativeArr));
+	if (!cacheThemes.f(derivativeArr)) {
+		cacheThemes.g(derivativeArr, new Theme(derivativeArr));
 	}
 	// Get theme from cache and return
-	return cacheThemes.get(derivativeArr);
+	return cacheThemes.e(derivativeArr);
 }
 // Create a cache for memo concat
 const resultCache = new WeakMap();
@@ -10448,17 +10321,17 @@ const token2CSSVar = (token, prefix = "") => {
 	return `--${prefix ? `${prefix}-` : ""}${token}`.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z]+)([A-Z][a-z0-9]+)/g, "$1-$2").replace(/([a-z])([A-Z0-9])/g, "$1-$2").toLowerCase();
 };
 const serializeCSSVar = (cssVars, hashId, options) => {
-	const { a: hashCls, b: hashPriority = "low" } = options;
+	const { a: hashCls } = options;
 	if (!Object.keys(cssVars).length) {
 		return "";
 	}
 	return `${where({
 		a: hashCls,
-		b: hashPriority
-	})}.${hashId}${options.c ? `.${options.c}` : ""}{${Object.entries(cssVars).map(([key, value]) => `${key}:${value};`).join("")}}`;
+		b: "low"
+	})}.${hashId}${options.b ? `.${options.b}` : ""}{${Object.entries(cssVars).map(([key, value]) => `${key}:${value};`).join("")}}`;
 };
 const transformToken = (token, themeKey, config) => {
-	const { a: hashCls, b: hashPriority = "low", c: prefix, d: unitless, e: ignore, f: preserve } = config;
+	const { a: hashCls, b: prefix, c: unitless, d: ignore, e: preserve } = config;
 	const cssVars = {};
 	const result = {};
 	Object.entries(token).forEach(([key, value]) => {
@@ -10471,18 +10344,17 @@ const transformToken = (token, themeKey, config) => {
 		}
 	});
 	return [result, serializeCSSVar(cssVars, themeKey, {
-		c: config.f,
-		a: hashCls,
-		b: hashPriority
+		b: config.e,
+		a: hashCls
 	})];
 };
 const effectMap = new Map();
 function useGlobalCache(prefix, keyPath, cacheFn, onCacheRemove, onCacheEffect) {
-	const { cache: globalCache } = reactExports.useContext(StyleContext);
+	const { a: globalCache } = reactExports.useContext(StyleContext);
 	const fullPath = [prefix, ...keyPath];
 	const fullPathStr = pathKey(fullPath);
 	const buildCache = (updater) => {
-		globalCache.opUpdate(fullPathStr, (prevCache) => {
+		globalCache.f(fullPathStr, (prevCache) => {
 			const [times = 0, cache] = prevCache || [void 0, void 0];
 			// HMR should always ignore cache since developer may change it
 			let tmpCache = cache;
@@ -10500,7 +10372,7 @@ function useGlobalCache(prefix, keyPath, cacheFn, onCacheRemove, onCacheEffect) 
 		[fullPathStr]
 		/* eslint-enable */
 	);
-	let cacheEntity = globalCache.opGet(fullPathStr);
+	let cacheEntity = globalCache.e(fullPathStr);
 	const cacheContent = cacheEntity[1];
 	// Remove if no need anymore
 	reactExports.useInsertionEffect(() => {
@@ -10514,7 +10386,7 @@ function useGlobalCache(prefix, keyPath, cacheFn, onCacheRemove, onCacheEffect) 
 			});
 		}
 		return () => {
-			globalCache.opUpdate(fullPathStr, (prevCache) => {
+			globalCache.f(fullPathStr, (prevCache) => {
 				const [times = 0, cache] = prevCache || [];
 				const nextCount = times - 1;
 				if (nextCount === 0) {
@@ -10528,7 +10400,6 @@ function useGlobalCache(prefix, keyPath, cacheFn, onCacheRemove, onCacheEffect) 
 	}, [fullPathStr]);
 	return cacheContent;
 }
-const EMPTY_OVERRIDE = {};
 const tokenKeys = new Map();
 function recordCleanToken(tokenKey) {
 	tokenKeys.set(tokenKey, (tokenKeys.get(tokenKey) || 0) + 1);
@@ -10566,15 +10437,15 @@ function cleanTokenStyle(tokenKey, instanceId) {
 * @returns Call Theme.getDerivativeToken(tokenObject) to get token
 */
 function useCacheToken(theme, tokens, option) {
-	const { cache: { instanceId }, container, hashPriority } = reactExports.useContext(StyleContext);
-	const { a: salt, b: override = EMPTY_OVERRIDE, c: compute, d: cssVar } = option;
+	const { a: { a: instanceId } } = reactExports.useContext(StyleContext);
+	const { a: override, b: compute, c: cssVar } = option;
 	// Basic - We do basic cache here
 	const mergedToken = memoResult(() => Object.assign({}, ...tokens), tokens);
 	const tokenStr = flattenToken(mergedToken);
 	const overrideTokenStr = flattenToken(override);
 	const cssVarStr = flattenToken(cssVar);
 	const cachedToken = useGlobalCache("token", [
-		salt,
+		"6.2.3-true",
 		theme.id,
 		tokenStr,
 		overrideTokenStr,
@@ -10583,17 +10454,16 @@ function useCacheToken(theme, tokens, option) {
 		const mergedDerivativeToken = compute(mergedToken, override, theme);
 		const actualToken = { ...mergedDerivativeToken };
 		// Optimize for `useStyleRegister` performance
-		const mergedSalt = `${salt}_${cssVar.prefix}`;
+		const mergedSalt = `${"6.2.3-true"}_${cssVar.prefix}`;
 		const hashId = murmur2(mergedSalt);
 		const hashCls = `${"css"}-${hashId}`;
 		actualToken._tokenKey = token2key(actualToken, mergedSalt);
 		// Replace token value with css variables
 		const [tokenWithCssVar, cssVarsStr] = transformToken(mergedDerivativeToken, cssVar.key, {
-			c: cssVar.prefix,
-			e: cssVar.ignore,
-			d: cssVar.unitless,
-			f: cssVar.preserve,
-			b: hashPriority,
+			b: cssVar.prefix,
+			d: cssVar.ignore,
+			c: cssVar.unitless,
+			e: cssVar.preserve,
 			a: cssVar.hashed ? hashCls : void 0
 		});
 		tokenWithCssVar._hashId = hashId;
@@ -10615,7 +10485,7 @@ function useCacheToken(theme, tokens, option) {
 		const style = updateCSS(cssVarsStr, murmur2(`css-var-${themeKey}`), {
 			mark: ATTR_MARK,
 			prepend: "queue",
-			attachTo: container,
+			attachTo: void 0,
 			priority: -999
 		});
 		style[CSS_IN_JS_INSTANCE] = instanceId;
@@ -10683,32 +10553,11 @@ var abs = Math.abs;
 */
 var from = String.fromCharCode;
 /**
-* @param {object}
-* @return {object}
-*/
-var assign = Object.assign;
-/**
-* @param {string} value
-* @param {number} length
-* @return {number}
-*/
-function hash(value, length) {
-	return charat(value, 0) ^ 45 ? (((length << 2 ^ charat(value, 0)) << 2 ^ charat(value, 1)) << 2 ^ charat(value, 2)) << 2 ^ charat(value, 3) : 0;
-}
-/**
 * @param {string} value
 * @return {string}
 */
 function trim(value) {
 	return value.trim();
-}
-/**
-* @param {string} value
-* @param {RegExp} pattern
-* @return {string?}
-*/
-function match$1(value, pattern) {
-	return (value = pattern.exec(value)) ? value[0] : value;
 }
 /**
 * @param {string} value
@@ -10725,8 +10574,8 @@ function replace(value, pattern, replacement) {
 * @param {number} position
 * @return {number}
 */
-function indexof(value, search, position) {
-	return value.indexOf(search, position);
+function indexof(value, __unused_2D0D, position) {
+	return value.indexOf("&\f", position);
 }
 /**
 * @param {string} value
@@ -10767,24 +10616,6 @@ function sizeof(value) {
 function append(value, array) {
 	return array.push(value), value;
 }
-/**
-* @param {string[]} array
-* @param {function} callback
-* @return {string}
-*/
-function combine(array, callback) {
-	return array.map(callback).join("");
-}
-/**
-* @param {string[]} array
-* @param {RegExp} pattern
-* @return {string[]}
-*/
-function filter(array, pattern) {
-	return array.filter(function(value) {
-		return !match$1(value, pattern);
-	});
-}
 var line = 1;
 var column = 1;
 var length = 0;
@@ -10815,21 +10646,6 @@ function node(value, root, parent, type, props, children, length, siblings) {
 		return: "",
 		siblings
 	};
-}
-/**
-* @param {object} root
-* @param {object} props
-* @return {object}
-*/
-function copy(root, props) {
-	return assign(node("", null, null, "", null, null, 0, root.siblings), root, { length: -root.length }, props);
-}
-/**
-* @param {object} root
-*/
-function lift(root) {
-	while (root.root) root = copy(root.root, { children: [root] });
-	append(root, root.siblings);
 }
 /**
 * @return {number}
@@ -11022,7 +10838,7 @@ function parse(value, root, parent, rule, rules, rulesets, pseudo, points, decla
 	var characters = "";
 	while (scanning) switch (previous = character, character = next()) {
 		case 40: if (previous != 108 && charat(characters, length - 1) == 58) {
-			if (indexof(characters += replace(delimit(character), "&", "&\f"), "&\f", abs(index ? points[index - 1] : 0)) != -1) ampersand = -1;
+			if (indexof(characters += replace(delimit(character), "&", "&\f"), 0, abs(index ? points[index - 1] : 0)) != -1) ampersand = -1;
 			break;
 		}
 		case 34:
@@ -11077,7 +10893,7 @@ function parse(value, root, parent, rule, rules, rulesets, pseudo, points, decla
 						else parse(characters, reference, reference, reference, [""], children, 0, points, children);
 					}
 			}
-			index = (offset = property = 0, 0), variable = ampersand = 1, type = characters = "", length = pseudo;
+			index = offset = property = 0, variable = ampersand = 1, type = characters = "", length = pseudo;
 			break;
 		case 58: length = 1 + strlen(characters), property = previous;
 		default:
@@ -11146,130 +10962,6 @@ function declaration(value, root, parent, length, siblings) {
 	return node(value, root, parent, "decl", substr(value, 0, length), substr(value, length + 1, -1), length, siblings);
 }
 /**
-* @param {string} value
-* @param {number} length
-* @param {object[]} children
-* @return {string}
-*/
-function prefix(value, length, children) {
-	switch (hash(value, length)) {
-		case 5103: return "-webkit-" + "print-" + value + value;
-		case 5737:
-		case 4201:
-		case 3177:
-		case 3433:
-		case 1641:
-		case 4457:
-		case 2921:
-		case 5572:
-		case 6356:
-		case 5844:
-		case 3191:
-		case 6645:
-		case 3005:
-		case 4215:
-		case 6389:
-		case 5109:
-		case 5365:
-		case 5621:
-		case 3829:
-		case 6391:
-		case 5879:
-		case 5623:
-		case 6135:
-		case 4599: return "-webkit-" + value + value;
-		case 4855: return "-webkit-" + value.replace("add", "source-over").replace("substract", "source-out").replace("intersect", "source-in").replace("exclude", "xor") + value;
-		case 4789: return "-moz-" + value + value;
-		case 5349:
-		case 4246:
-		case 4810:
-		case 6968:
-		case 2756: return "-webkit-" + value + "-moz-" + value + "-ms-" + value + value;
-		case 5936: switch (charat(value, length + 11)) {
-			case 114: return "-webkit-" + value + "-ms-" + replace(value, /[svh]\w+-[tblr]{2}/, "tb") + value;
-			case 108: return "-webkit-" + value + "-ms-" + replace(value, /[svh]\w+-[tblr]{2}/, "tb-rl") + value;
-			case 45: return "-webkit-" + value + "-ms-" + replace(value, /[svh]\w+-[tblr]{2}/, "lr") + value;
-		}
-		case 6828:
-		case 4268:
-		case 2903: return "-webkit-" + value + "-ms-" + value + value;
-		case 6165: return "-webkit-" + value + "-ms-" + "flex-" + value + value;
-		case 5187: return "-webkit-" + value + replace(value, /(\w+).+(:[^]+)/, "-webkit-" + "box-$1$2" + "-ms-" + "flex-$1$2") + value;
-		case 5443: return "-webkit-" + value + "-ms-" + "flex-item-" + replace(value, /flex-|-self/g, "") + (!match$1(value, /flex-|baseline/) ? "-ms-" + "grid-row-" + replace(value, /flex-|-self/g, "") : "") + value;
-		case 4675: return "-webkit-" + value + "-ms-" + "flex-line-pack" + replace(value, /align-content|flex-|-self/g, "") + value;
-		case 5548: return "-webkit-" + value + "-ms-" + replace(value, "shrink", "negative") + value;
-		case 5292: return "-webkit-" + value + "-ms-" + replace(value, "basis", "preferred-size") + value;
-		case 6060: return "-webkit-box-" + replace(value, "-grow", "") + "-webkit-" + value + "-ms-" + replace(value, "grow", "positive") + value;
-		case 4554: return "-webkit-" + replace(value, /([^-])(transform)/g, "$1-webkit-$2") + value;
-		case 6187: return replace(replace(replace(value, /(zoom-|grab)/, "-webkit-$1"), /(image-set)/, "-webkit-$1"), value, "") + value;
-		case 5495:
-		case 3959: return replace(value, /(image-set\([^]*)/, "-webkit-$1" + "$`$1");
-		case 4968: return replace(replace(value, /(.+:)(flex-)?(.*)/, "-webkit-" + "box-pack:$3" + "-ms-" + "flex-pack:$3"), /space-between/, "justify") + "-webkit-" + value + value;
-		case 4200:
-			if (!match$1(value, /flex-|baseline/)) return "-ms-" + "grid-column-align" + substr(value, length) + value;
-			break;
-		case 2592:
-		case 3360: return "-ms-" + replace(value, "template-", "") + value;
-		case 4384:
-		case 3616:
-			if (children && children.some(function(element, index) {
-				return length = index, match$1(element.props, /grid-\w+-end/);
-			})) {
-				return ~indexof(value + (children = children[length].value), "span", 0) ? value : "-ms-" + replace(value, "-start", "") + value + "-ms-" + "grid-row-span:" + (~indexof(children, "span", 0) ? match$1(children, /\d+/) : +match$1(children, /\d+/) - +match$1(value, /\d+/)) + ";";
-			}
-			return "-ms-" + replace(value, "-start", "") + value;
-		case 4896:
-		case 4128: return children && children.some(function(element) {
-			return match$1(element.props, /grid-\w+-start/);
-		}) ? value : "-ms-" + replace(replace(value, "-end", "-span"), "span ", "") + value;
-		case 4095:
-		case 3583:
-		case 4068:
-		case 2532: return replace(value, /(.+)-inline(.+)/, "-webkit-$1$2") + value;
-		case 8116:
-		case 7059:
-		case 5753:
-		case 5535:
-		case 5445:
-		case 5701:
-		case 4933:
-		case 4677:
-		case 5533:
-		case 5789:
-		case 5021:
-		case 4765:
-			// stretch, max-content, min-content, fill-available
-			if (strlen(value) - 1 - length > 6) switch (charat(value, length + 1)) {
-				case 109:
- // -
-				if (charat(value, length + 4) !== 45) break;
-				case 102: return replace(value, /(.+:)(.+)-([^]+)/, "$1-webkit-" + "$2-$3" + "$1" + "-moz-" + (charat(value, length + 3) == 108 ? "$3" : "$2-$3")) + value;
-				case 115: return ~indexof(value, "stretch", 0) ? prefix(replace(value, "stretch", "fill-available"), length, children) + value : value;
-			}
-			break;
-		case 5152:
-		case 5920: return replace(value, /(.+?):(\d+)(\s*\/\s*(span)?\s*(\d+))?(.*)/, function(__unused_0FCF, a, b, c, d, e, f) {
-			return "-ms-" + a + ":" + b + f + (c ? "-ms-" + a + "-span:" + (d ? e : +e - +b) + f : "") + value;
-		});
-		case 4949:
-			// stick(y)?
-			if (charat(value, length + 6) === 121) return replace(value, ":", ":-webkit-") + value;
-			break;
-		case 6444:
-			switch (charat(value, charat(value, 14) === 45 ? 18 : 11)) {
-				case 120: return replace(value, /(.+:)([^;\s!]+)(;|(\s+)?!.+)?/, "$1-webkit-" + (charat(value, 14) === 45 ? "inline-" : "") + "box$3" + "$1" + "-webkit-" + "$2$3" + "$1" + "-ms-" + "$2box$3") + value;
-				case 100: return replace(value, ":", ":-ms-") + value;
-			}
-			break;
-		case 5719:
-		case 2647:
-		case 2135:
-		case 3927:
-		case 2391: return replace(value, "scroll-", "scroll-snap-") + value;
-	}
-	return value;
-}
-/**
 * @param {object[]} children
 * @param {function} callback
 * @return {string}
@@ -11286,7 +10978,7 @@ function serialize(children, callback) {
 * @param {function} callback
 * @return {string}
 */
-function stringify$1(element, __unused_D143, children, callback) {
+function stringify$1(element, __unused_20DF, children, callback) {
 	switch (element.type) {
 		case "@layer": if (element.children.length) break;
 		case "@import":
@@ -11297,51 +10989,6 @@ function stringify$1(element, __unused_D143, children, callback) {
 		case "rule": if (!strlen(element.value = element.props.join(","))) return "";
 	}
 	return strlen(children = serialize(element.children, callback)) ? element.return = element.value + "{" + children + "}" : "";
-}
-/**
-* @param {function[]} collection
-* @return {function}
-*/
-function middleware(collection) {
-	return function(element, index, children, callback) {
-		var output = "";
-		for (var i = 0; i < 2; i++) output += collection[i](element, index, children, callback) || "";
-		return output;
-	};
-}
-/**
-* @param {object} element
-* @param {number} index
-* @param {object[]} children
-* @param {function} callback
-*/
-function prefixer(element, __unused_D143_0, children, callback) {
-	if (element.length > -1) {
-		if (!element.return) switch (element.type) {
-			case "decl":
-				element.return = prefix(element.value, element.length, children);
-				return;
-			case "@keyframes": return serialize([copy(element, { value: replace(element.value, "@", "@-webkit-") })], callback);
-			case "rule": if (element.length) return combine(children = element.props, function(value) {
-				switch (match$1(value, callback = /(::plac\w+|:read-\w+)/)) {
-					case ":read-only":
-					case ":read-write":
-						lift(copy(element, { props: [replace(value, /:(read-\w+)/, ":-moz-$1")] }));
-						lift(copy(element, { props: [value] }));
-						assign(element, { props: filter(children, callback) });
-						break;
-					case "::placeholder":
-						lift(copy(element, { props: [replace(value, /:(plac\w+)/, ":-webkit-" + "input-$1")] }));
-						lift(copy(element, { props: [replace(value, /:(plac\w+)/, ":-moz-$1")] }));
-						lift(copy(element, { props: [replace(value, /:(plac\w+)/, "-ms-input-$1")] }));
-						lift(copy(element, { props: [value] }));
-						assign(element, { props: filter(children, callback) });
-						break;
-				}
-				return "";
-			});
-		}
-	}
 }
 const ATTR_CACHE_MAP = "data-ant-cssinjs-cache-path";
 /**
@@ -11405,8 +11052,8 @@ const MULTI_VALUE = "_multi_value_";
 // ==                                 Parser                                 ==
 // ============================================================================
 // Preprocessor style content to browser support one
-function normalizeStyle(styleStr, autoPrefix) {
-	const serialized = autoPrefix ? serialize(compile(styleStr), middleware([prefixer, stringify$1])) : serialize(compile(styleStr), stringify$1);
+function normalizeStyle(styleStr) {
+	const serialized = serialize(compile(styleStr), stringify$1);
 	return serialized.replace(/\{%%%\:[^;];}/g, ";");
 }
 function isCompoundCSSProperty(value) {
@@ -11565,12 +11212,9 @@ function uniqueHash(path, styleStr) {
 * Register a style to the global style sheet.
 */
 function useStyleRegister(info, styleFn) {
-	const { path, hashId, layer, nonce, clientOnly, order = 0 } = info;
-	const { hashPriority, container, transformers, linters, cache, layer: enableLayer, autoPrefix } = reactExports.useContext(StyleContext);
+	const { path, hashId, nonce, clientOnly, order = 0 } = info;
+	const { a: cache } = reactExports.useContext(StyleContext);
 	const fullPath = [hashId || ""];
-	if (enableLayer) {
-		fullPath.push("layer");
-	}
 	fullPath.push(...path);
 	// Check if need insert style
 	let isMergedClientSide = isClientSide;
@@ -11597,13 +11241,12 @@ function useStyleRegister(info, styleFn) {
 			const styleObj = styleFn();
 			const [parsedStyle, effectStyle] = parseStyle(styleObj, {
 				hashId,
-				hashPriority,
-				layer: enableLayer ? layer : void 0,
+				hashPriority: "low",
+				layer: void 0,
 				path: path.join("-"),
-				transformers,
-				linters
+				transformers: void 0
 			});
-			const styleStr = normalizeStyle(parsedStyle, autoPrefix || false);
+			const styleStr = normalizeStyle(parsedStyle);
 			const styleId = uniqueHash(fullPath, styleStr);
 			return [
 				styleStr,
@@ -11621,8 +11264,8 @@ function useStyleRegister(info, styleFn) {
 			if (isMergedClientSide && styleStr !== CSS_FILE_STYLE) {
 				const mergedCSSConfig = {
 					mark: ATTR_MARK,
-					prepend: enableLayer ? false : "queue",
-					attachTo: container,
+					prepend: "queue",
+					attachTo: void 0,
 					priority
 				};
 				const nonceStr = typeof nonce === "function" ? nonce() : nonce;
@@ -11643,7 +11286,7 @@ function useStyleRegister(info, styleFn) {
 				// ================= Inject Layer Style =================
 				// Inject layer style
 				effectLayerKeys.forEach((effectKey) => {
-					updateCSS(normalizeStyle(effectStyle[effectKey], autoPrefix || false), `_layer-${effectKey}`, {
+					updateCSS(normalizeStyle(effectStyle[effectKey]), `_layer-${effectKey}`, {
 						...mergedCSSConfig,
 						prepend: true
 					});
@@ -11651,34 +11294,33 @@ function useStyleRegister(info, styleFn) {
 				// ==================== Inject Style ====================
 				// Inject style
 				const style = updateCSS(styleStr, styleId, mergedCSSConfig);
-				style[CSS_IN_JS_INSTANCE] = cache.instanceId;
+				style[CSS_IN_JS_INSTANCE] = cache.a;
 				// ================ Inject Effect Style =================
 				// Inject client side effect style
 				effectRestKeys.forEach((effectKey) => {
-					updateCSS(normalizeStyle(effectStyle[effectKey], autoPrefix || false), `_effect-${effectKey}`, mergedCSSConfig);
+					updateCSS(normalizeStyle(effectStyle[effectKey]), `_effect-${effectKey}`, mergedCSSConfig);
 				});
 			}
 		}
 	);
 }
 const useCSSVarRegister = (config, fn) => {
-	const { a: key, b: prefix, c: unitless, d: ignore, e: token, f: scope = "" } = config;
-	const { cache: { instanceId }, container, hashPriority } = reactExports.useContext(StyleContext);
+	const { a: unitless, b: ignore, c: token, d: scope = "" } = config;
+	const { a: { a: instanceId } } = reactExports.useContext(StyleContext);
 	const { _tokenKey: tokenKey } = token;
 	const stylePath = [
-		...config.g,
-		key,
+		...config.e,
+		"css-var-root",
 		scope,
 		tokenKey
 	];
-	const __unused_403A = useGlobalCache("cssVar", stylePath, () => {
+	useGlobalCache("cssVar", stylePath, () => {
 		const originToken = fn();
-		const [mergedToken, cssVarsStr] = transformToken(originToken, key, {
-			c: prefix,
-			d: unitless,
-			e: ignore,
-			f: scope,
-			b: hashPriority,
+		const [mergedToken, cssVarsStr] = transformToken(originToken, "css-var-root", {
+			b: "ant",
+			c: unitless,
+			d: ignore,
+			e: scope,
 			a: void 0
 		});
 		const styleId = uniqueHash(stylePath, cssVarsStr);
@@ -11686,13 +11328,13 @@ const useCSSVarRegister = (config, fn) => {
 			mergedToken,
 			cssVarsStr,
 			styleId,
-			key
+			"css-var-root"
 		];
 	}, ([, , styleId]) => {
 		if (isClientSide) {
 			removeCSS(styleId, {
 				mark: ATTR_MARK,
-				attachTo: container
+				attachTo: void 0
 			});
 		}
 	}, ([, cssVarsStr, styleId]) => {
@@ -11702,12 +11344,12 @@ const useCSSVarRegister = (config, fn) => {
 		const style = updateCSS(cssVarsStr, styleId, {
 			mark: ATTR_MARK,
 			prepend: "queue",
-			attachTo: container,
+			attachTo: void 0,
 			priority: -999
 		});
 		style[CSS_IN_JS_INSTANCE] = instanceId;
 		// Used for `useCacheToken` to remove on batch when token removed
-		style.setAttribute(ATTR_TOKEN, key);
+		style.setAttribute(ATTR_TOKEN, "css-var-root");
 	});
 	return;
 };
@@ -11974,7 +11616,7 @@ var CSSCalculator = function(_AbstractCalculator) {
 	]);
 	return CSSCalculator;
 }(AbstractCalculator$1);
-var __unused_76FD = function(_AbstractCalculator) {
+(function(_AbstractCalculator) {
 	_inherits(NumCalculator, _AbstractCalculator);
 	var _super = _createSuper(NumCalculator);
 	function NumCalculator(num) {
@@ -12042,8 +11684,8 @@ var __unused_76FD = function(_AbstractCalculator) {
 		}
 	]);
 	return;
-}(AbstractCalculator$1);
-var genCalc = function(__unused_F7FC, unitlessCssVar) {
+})(AbstractCalculator$1);
+var genCalc = function(__unused_3CD5, unitlessCssVar) {
 	var Calculator = CSSCalculator;
 	return function(num) {
 		return new Calculator(num, unitlessCssVar);
@@ -12255,7 +11897,7 @@ var uniqueMap = new ArrayKeyMap();
 * Like `useMemo`, but this hook result will be shared across all instances.
 */
 function useUniqueMemo(memoFn, deps) {
-	return React.useMemo(function() {
+	return React__default.useMemo(function() {
 		var cachedValue = uniqueMap.get(deps);
 		if (cachedValue) {
 			return cachedValue;
@@ -12267,7 +11909,7 @@ function useUniqueMemo(memoFn, deps) {
 }
 function genStyleUtils(config) {
 	// Dependency inversion for preparing basic config.
-	var _config$useCSP = config.a, useCSP = _config$useCSP, useToken = config.b, usePrefix = config.c, getResetStyles = config.d, getCommonStyle = config.e, getCompUnitless = config.f;
+	var useToken = config.a, getResetStyles = config.b, getCommonStyle = config.c, getCompUnitless = config.d;
 	function genStyleHooks(component, styleFn, getDefaultToken, options) {
 		var componentName = Array.isArray(component) ? component[0] : component;
 		function prefixToken(key) {
@@ -12300,13 +11942,11 @@ function genStyleUtils(config) {
 		return function(rootCls) {
 			var _useToken = useToken(), cssVar = _useToken.a, realToken = _useToken.b;
 			useCSSVarRegister({
-				g: [component],
-				b: cssVar.prefix,
-				a: cssVar.key,
-				c: compUnitless,
-				d: ignore,
-				e: realToken,
-				f: rootCls
+				e: [component],
+				a: compUnitless,
+				b: ignore,
+				c: realToken,
+				d: rootCls
 			}, function() {
 				var defaultToken = getDefaultComponentToken(component, realToken, getDefaultToken);
 				var componentToken = getComponentToken(component, realToken, defaultToken, { deprecatedTokens: options === null || options === void 0 ? void 0 : options.deprecatedTokens });
@@ -12330,16 +11970,7 @@ function genStyleUtils(config) {
 		// Return new style hook
 		return function(prefixCls) {
 			var rootCls = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : prefixCls;
-			var _useToken2 = useToken(), theme = _useToken2.c, realToken = _useToken2.b, hashId = _useToken2.d, token = _useToken2.e, cssVar = _useToken2.a, zeroRuntime = _useToken2.f;
-			// Update of `disabledRuntimeStyle` would cause React hook error, so memoized it and never update.
-			var memoizedZeroRuntime = reactExports.useMemo(function() {
-				return zeroRuntime;
-			}, []);
-			if (memoizedZeroRuntime) {
-				return hashId;
-			}
-			var _usePrefix = usePrefix(), rootPrefixCls = _usePrefix.a, iconPrefixCls = _usePrefix.b;
-			var csp = useCSP();
+			var _useToken2 = useToken(), theme = _useToken2.c, realToken = _useToken2.b, hashId = _useToken2.d, token = _useToken2.e, cssVar = _useToken2.a;
 			// Use unique memo to share the result across all instances
 			var calc = useUniqueMemo(function() {
 				var unitlessCssVar = new Set();
@@ -12362,7 +11993,7 @@ function genStyleUtils(config) {
 				token,
 				hashId,
 				nonce: function() {
-					return csp.nonce;
+					return void 0;
 				},
 				clientOnly: options.clientOnly,
 				layer: mergedLayer,
@@ -12374,16 +12005,16 @@ function genStyleUtils(config) {
 					// Generate style for all need reset tags.
 					useStyleRegister(_objectSpread2(_objectSpread2({}, sharedConfig), {}, {
 						clientOnly: false,
-						path: ["Shared", rootPrefixCls]
+						path: ["Shared", "ant"]
 					}), function() {
-						return getResetStyles(token, { a: { a: iconPrefixCls } });
+						return getResetStyles(token);
 					});
 				}
 			}
 			useStyleRegister(_objectSpread2(_objectSpread2({}, sharedConfig), {}, { path: [
 				concatComponent,
 				prefixCls,
-				iconPrefixCls
+				"anticon"
 			] }), function() {
 				if (options.injectStyle === false) {
 					return [];
@@ -12400,8 +12031,8 @@ function genStyleUtils(config) {
 				var mergedToken = merge(proxyToken, {
 					componentCls,
 					prefixCls,
-					iconCls: ".".concat(iconPrefixCls),
-					antCls: ".".concat(rootPrefixCls),
+					iconCls: ".".concat("anticon"),
+					antCls: ".".concat("ant"),
 					calc,
 					max,
 					min
@@ -12409,8 +12040,8 @@ function genStyleUtils(config) {
 				var styleInterpolation = styleFn(mergedToken, {
 					hashId,
 					prefixCls,
-					rootPrefixCls,
-					iconPrefixCls
+					rootPrefixCls: "ant",
+					iconPrefixCls: "anticon"
 				});
 				flush(component, componentToken);
 				var commonStyle = getCommonStyle(mergedToken, prefixCls, rootCls, options.resetFont);
@@ -12426,7 +12057,7 @@ function genStyleUtils(config) {
 			order: -998
 		}, options));
 		var StyledComponent = function(_ref) {
-			var prefixCls = _ref.prefixCls, _ref$rootCls = _ref.rootCls, rootCls = _ref$rootCls === void 0 ? prefixCls : _ref$rootCls;
+			var prefixCls = _ref.a, rootCls = prefixCls;
 			useStyle(prefixCls, rootCls);
 			return null;
 		};
@@ -12458,7 +12089,7 @@ function getLineHeight(fontSize) {
 }
 // https://zhuanlan.zhihu.com/p/32746810
 function getFontSizes(base) {
-	const fontSizes = Array.from({ length: 10 }).map((__unused_8C62, index) => {
+	const fontSizes = Array.from({ length: 10 }).map((__unused_235D, index) => {
 		const i = index - 1;
 		const baseSize = base * Math.E ** (i / 5);
 		const intSize = index > 1 ? Math.floor(baseSize) : Math.ceil(baseSize);
@@ -12699,7 +12330,7 @@ function splitColorStr(str, parseNum) {
 	}
 	return numList;
 }
-const parseHSVorHSL = (num, __unused_387B, index) => index === 0 ? num : num / 100;
+const parseHSVorHSL = (num, __unused_74A6, index) => index === 0 ? num : num / 100;
 /** round and limit number to integer between 0-255 */
 function limitRange(value, max) {
 	const mergedMax = max || 255;
@@ -13713,7 +13344,7 @@ function derivative(token) {
 	presetPalettes.pink = presetPalettes.magenta;
 	const colorPalettes = Object.keys(defaultPresetColors).map((colorKey) => {
 		const colors = token[colorKey] === presetPrimaryColors[colorKey] ? presetPalettes[colorKey] : generate$1(token[colorKey]);
-		return Array.from({ length: 10 }, () => 1).reduce((prev, __unused_1561, i) => {
+		return Array.from({ length: 10 }, () => 1).reduce((prev, __unused_36C5, i) => {
 			prev[`${colorKey}-${i + 1}`] = colors[i];
 			prev[`${colorKey}${i + 1}`] = colors[i];
 			return prev;
@@ -13742,11 +13373,10 @@ const defaultTheme = createTheme(derivative);
 // ================================ Context =================================
 // To ensure snapshot stable. We disable hashed in test env.
 const defaultConfig = {
-	token: seedToken,
-	override: { override: seedToken },
-	hashed: true
+	a: seedToken,
+	b: { override: seedToken }
 };
-const DesignTokenContext = React.createContext(defaultConfig);
+const DesignTokenContext = React__default.createContext(defaultConfig);
 function isStableColor(color) {
 	return color >= 0 && color <= 255;
 }
@@ -13970,18 +13600,16 @@ const getComputedToken = (originToken, overrideToken, theme) => {
 };
 // ================================== Hook ==================================
 function useToken() {
-	const { token: rootDesignToken, hashed, theme, override, cssVar: ctxCssVar, zeroRuntime } = React.useContext(DesignTokenContext);
+	const { a: rootDesignToken, b: override } = React__default.useContext(DesignTokenContext);
 	const cssVar = {
-		prefix: ctxCssVar?.prefix ?? "ant",
-		key: ctxCssVar?.key ?? "css-var-root"
+		prefix: "ant",
+		key: "css-var-root"
 	};
-	const salt = `${"6.2.3"}-${hashed || ""}`;
-	const mergedTheme = theme || defaultTheme;
+	const mergedTheme = defaultTheme;
 	const [token, hashId, realToken] = useCacheToken(mergedTheme, [seedToken, rootDesignToken], {
-		a: salt,
-		b: override,
-		c: getComputedToken,
-		d: {
+		a: override,
+		b: getComputedToken,
+		c: {
 			...cssVar,
 			unitless,
 			ignore,
@@ -13991,10 +13619,10 @@ function useToken() {
 	return [
 		mergedTheme,
 		realToken,
-		hashed ? hashId : "",
+		hashId,
 		token,
 		cssVar,
-		!!zeroRuntime
+		,
 	];
 }
 const textEllipsis = {
@@ -14087,44 +13715,31 @@ const genFocusOutline = (token) => ({
 	transition: "outline-offset 0s, outline 0s"
 });
 const genFocusStyle = (token) => ({ "&:focus-visible": genFocusOutline(token) });
-const genIconStyle = (iconPrefixCls) => ({ [`.${iconPrefixCls}`]: {
+const genIconStyle = () => ({ [`.${"anticon"}`]: {
 	...resetIcon(),
-	[`.${iconPrefixCls} .${iconPrefixCls}-icon`]: { display: "block" }
+	[`.${"anticon"} .${"anticon"}-icon`]: { display: "block" }
 } });
 const { a: genStyleHooks, c: genComponentStyleHook, b: genSubStyleComponent } = genStyleUtils({
-	c: () => {
-		const { getPrefixCls, iconPrefixCls } = reactExports.useContext(ConfigContext);
-		const rootPrefixCls = getPrefixCls();
-		return {
-			a: rootPrefixCls,
-			b: iconPrefixCls
-		};
-	},
-	b: () => {
-		const [theme, realToken, hashId, token, cssVar, zeroRuntime] = useToken();
+	a: () => {
+		const [theme, realToken, hashId, token, cssVar, ,] = useToken();
 		return {
 			c: theme,
 			b: realToken,
 			d: hashId,
 			e: token,
-			a: cssVar,
-			f: zeroRuntime
+			a: cssVar
 		};
 	},
-	a: () => {
-		const { csp } = reactExports.useContext(ConfigContext);
-		return csp ?? {};
-	},
-	d: (token, config) => {
+	b: (token) => {
 		const linkStyle = genLinkStyle(token);
 		return [
 			linkStyle,
 			{ "&": linkStyle },
-			genIconStyle(config.a.a ?? "anticon")
+			genIconStyle()
 		];
 	},
-	e: genCommonStyle,
-	f: () => unitless
+	c: genCommonStyle,
+	d: () => unitless
 });
 const genCssVar = (antCls, component) => {
 	const cssPrefix = `--${antCls.replace(/\./g, "")}-${component}-`;
@@ -14136,17 +13751,6 @@ const genCssVar = (antCls, component) => {
 	};
 	return [varName, varRef];
 };
-const useResetIconStyle = (iconPrefixCls, csp) => {
-	useToken();
-	// Generate style for icons
-	return useStyleRegister({
-		hashId: "",
-		path: ["ant-design-icons", iconPrefixCls],
-		nonce: () => csp?.nonce,
-		layer: { name: "antd" }
-	}, () => genIconStyle(iconPrefixCls));
-};
-const IconContext = reactExports.createContext({});
 function getRoot(ele) {
 	return ele?.getRootNode?.();
 }
@@ -14163,7 +13767,7 @@ function getShadowRoot(ele) {
 	return inShadow(ele) ? getRoot(ele) : null;
 }
 function camelCase(input) {
-	return input.replace(/-(.)/g, (__unused_359B, g) => g.toUpperCase());
+	return input.replace(/-(.)/g, (__unused_7238, g) => g.toUpperCase());
 }
 function warning$1(valid, message) {
 	warningOnce(valid, `[@ant-design/icons] ${message}`);
@@ -14188,12 +13792,12 @@ function normalizeAttrs(attrs = {}) {
 }
 function generate(node, key, rootProps) {
 	if (!rootProps) {
-		return React.createElement(node.tag, {
+		return React__default.createElement(node.tag, {
 			key,
 			...normalizeAttrs(node.attrs)
 		}, (node.children || []).map((child, index) => generate(child, `${key}-${node.tag}-${index}`)));
 	}
-	return React.createElement(node.tag, {
+	return React__default.createElement(node.tag, {
 		key,
 		...normalizeAttrs(node.attrs),
 		...rootProps
@@ -14211,34 +13815,20 @@ function normalizeTwoToneColors(twoToneColor) {
 }
 const iconStyles = "\n.anticon {\n  display: inline-flex;\n  align-items: center;\n  color: inherit;\n  font-style: normal;\n  line-height: 0;\n  text-align: center;\n  text-transform: none;\n  vertical-align: -0.125em;\n  text-rendering: optimizeLegibility;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\n.anticon > * {\n  line-height: 1;\n}\n\n.anticon svg {\n  display: inline-block;\n  vertical-align: inherit;\n}\n\n.anticon::before {\n  display: none;\n}\n\n.anticon .anticon-icon {\n  display: block;\n}\n\n.anticon[tabindex] {\n  cursor: pointer;\n}\n\n.anticon-spin::before,\n.anticon-spin {\n  display: inline-block;\n  -webkit-animation: loadingCircle 1s infinite linear;\n  animation: loadingCircle 1s infinite linear;\n}\n\n@-webkit-keyframes loadingCircle {\n  100% {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n\n@keyframes loadingCircle {\n  100% {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n";
 const useInsertStyles = (eleRef) => {
-	const { csp, prefixCls, layer } = reactExports.useContext(IconContext);
 	let mergedStyleStr = iconStyles;
-	if (prefixCls) {
-		mergedStyleStr = mergedStyleStr.replace(/anticon/g, prefixCls);
-	}
-	if (layer) {
-		mergedStyleStr = `@layer ${layer} {
-${mergedStyleStr}
-}`;
-	}
 	reactExports.useEffect(() => {
 		const ele = eleRef.current;
 		const shadowRoot = getShadowRoot(ele);
 		updateCSS(mergedStyleStr, "@ant-design-icons", {
-			prepend: !layer,
-			csp,
+			prepend: true,
 			attachTo: shadowRoot
 		});
 	}, []);
 };
 const twoToneColorPalette = {};
-function setTwoToneColors({ primaryColor, secondaryColor }) {
-	twoToneColorPalette.primaryColor = primaryColor;
-	twoToneColorPalette.secondaryColor = secondaryColor || getSecondaryColor(primaryColor);
-	twoToneColorPalette.calculated = !!secondaryColor;
-}
-function getTwoToneColors() {
-	return { ...twoToneColorPalette };
+function setTwoToneColors({ a: primaryColor, b: secondaryColor }) {
+	twoToneColorPalette.a = primaryColor;
+	twoToneColorPalette.b = secondaryColor || getSecondaryColor(primaryColor);
 }
 const IconBase = (props) => {
 	const { icon, className, onClick, style, primaryColor, secondaryColor, ...restProps } = props;
@@ -14246,8 +13836,8 @@ const IconBase = (props) => {
 	let colors = twoToneColorPalette;
 	if (primaryColor) {
 		colors = {
-			primaryColor,
-			secondaryColor: secondaryColor || getSecondaryColor(primaryColor)
+			a: primaryColor,
+			b: secondaryColor || getSecondaryColor(primaryColor)
 		};
 	}
 	useInsertStyles(svgRef);
@@ -14259,12 +13849,12 @@ const IconBase = (props) => {
 	if (target && typeof target.icon === "function") {
 		target = {
 			...target,
-			icon: target.icon(colors.primaryColor, colors.secondaryColor)
+			icon: target.icon(colors.a, colors.b)
 		};
 	}
 	return generate(target.icon, `svg-${target.name}`, {
-		className,
-		onClick,
+		className: void 0,
+		onClick: void 0,
 		style,
 		"data-icon": target.name,
 		width: "1em",
@@ -14275,22 +13865,13 @@ const IconBase = (props) => {
 		ref: svgRef
 	});
 };
-IconBase.displayName = "IconReact";
-IconBase.getTwoToneColors = getTwoToneColors;
-IconBase.setTwoToneColors = setTwoToneColors;
+IconBase.c = setTwoToneColors;
 function setTwoToneColor(twoToneColor) {
 	const [primaryColor, secondaryColor] = normalizeTwoToneColors(twoToneColor);
-	return IconBase.setTwoToneColors({
-		primaryColor,
-		secondaryColor
+	return IconBase.c({
+		a: primaryColor,
+		b: secondaryColor
 	});
-}
-function getTwoToneColor() {
-	const colors = IconBase.getTwoToneColors();
-	if (!colors.calculated) {
-		return colors.primaryColor;
-	}
-	return [colors.primaryColor, colors.secondaryColor];
 }
 function _extends$w() {
 	_extends$w = Object.assign.bind();
@@ -14302,10 +13883,9 @@ setTwoToneColor(blue.primary);
 // https://github.com/DefinitelyTyped/DefinitelyTyped/issues/34757#issuecomment-488848720
 const Icon$1 = reactExports.forwardRef((props, ref) => {
 	const { className, icon, spin, rotate, tabIndex, onClick, twoToneColor, ...restProps } = props;
-	const { prefixCls = "anticon", rootClassName } = reactExports.useContext(IconContext);
-	const classString = clsx(rootClassName, prefixCls, {
-		[`${prefixCls}-${icon.name}`]: !!icon.name,
-		[`${prefixCls}-spin`]: !!spin || icon.name === "loading"
+	const classString = clsx(void 0, "anticon", {
+		[`${"anticon"}-${icon.name}`]: !!icon.name,
+		[`${"anticon"}-spin`]: !!spin || icon.name === "loading"
 	}, className);
 	let iconTabIndex = tabIndex;
 	if (iconTabIndex === void 0 && onClick) {
@@ -14331,8 +13911,6 @@ const Icon$1 = reactExports.forwardRef((props, ref) => {
 		style: svgStyle
 	}));
 });
-Icon$1.getTwoToneColor = getTwoToneColor;
-Icon$1.setTwoToneColor = setTwoToneColor;
 // This icon file is generated automatically.
 var CloseCircleFilled$1 = {
 	"icon": {
@@ -14389,10 +13967,6 @@ const CloseOutlined = (props, ref) => reactExports.createElement(Icon$1, _extend
 }));
 /**![close](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIGZpbGwtcnVsZT0iZXZlbm9kZCIgdmlld0JveD0iNjQgNjQgODk2IDg5NiIgZm9jdXNhYmxlPSJmYWxzZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNNzk5Ljg2IDE2Ni4zMWMuMDIgMCAuMDQuMDIuMDguMDZsNTcuNjkgNTcuN2MuMDQuMDMuMDUuMDUuMDYuMDhhLjEyLjEyIDAgMDEwIC4wNmMwIC4wMy0uMDIuMDUtLjA2LjA5TDU2OS45MyA1MTJsMjg3LjcgMjg3LjdjLjA0LjA0LjA1LjA2LjA2LjA5YS4xMi4xMiAwIDAxMCAuMDdjMCAuMDItLjAyLjA0LS4wNi4wOGwtNTcuNyA1Ny42OWMtLjAzLjA0LS4wNS4wNS0uMDcuMDZhLjEyLjEyIDAgMDEtLjA3IDBjLS4wMyAwLS4wNS0uMDItLjA5LS4wNkw1MTIgNTY5LjkzbC0yODcuNyAyODcuN2MtLjA0LjA0LS4wNi4wNS0uMDkuMDZhLjEyLjEyIDAgMDEtLjA3IDBjLS4wMiAwLS4wNC0uMDItLjA4LS4wNmwtNTcuNjktNTcuN2MtLjA0LS4wMy0uMDUtLjA1LS4wNi0uMDdhLjEyLjEyIDAgMDEwLS4wN2MwLS4wMy4wMi0uMDUuMDYtLjA5TDQ1NC4wNyA1MTJsLTI4Ny43LTI4Ny43Yy0uMDQtLjA0LS4wNS0uMDYtLjA2LS4wOWEuMTIuMTIgMCAwMTAtLjA3YzAtLjAyLjAyLS4wNC4wNi0uMDhsNTcuNy01Ny42OWMuMDMtLjA0LjA1LS4wNS4wNy0uMDZhLjEyLjEyIDAgMDEuMDcgMGMuMDMgMCAuMDUuMDIuMDkuMDZMNTEyIDQ1NC4wN2wyODcuNy0yODcuN2MuMDQtLjA0LjA2LS4wNS4wOS0uMDZhLjEyLjEyIDAgMDEuMDcgMHoiIC8+PC9zdmc+) */
 const RefIcon$7 = reactExports.forwardRef(CloseOutlined);
-const Context$1 = reactExports.createContext({});
-function MotionProvider({ children, ...props }) {
-	return reactExports.createElement(Context$1.Provider, { value: props }, children);
-}
 /**
 * Same as React.useState but will always get latest state.
 * This is useful when React merge multiple state updates into one.
@@ -14765,13 +14339,12 @@ function useStatus(supportMotion, visible, getElement, { motionEnter = true, mot
 */
 function genCSSMotion(config) {
 	let transitionSupport = config;
-	function isSupportTransition(props, contextMotion) {
-		return !!(props.motionName && transitionSupport && contextMotion !== false);
+	function isSupportTransition(props) {
+		return !!(props.motionName && transitionSupport && true);
 	}
 	const CSSMotion = reactExports.forwardRef((props, ref) => {
 		const { visible = true, removeOnLeave = true, forceRender, children, motionName, leavedClassName, eventProps } = props;
-		const { motion: contextMotion } = reactExports.useContext(Context$1);
-		const supportMotion = isSupportTransition(props, contextMotion);
+		const supportMotion = isSupportTransition(props);
 		// Ref to the react node, it may be a HTMLElement
 		const nodeRef = reactExports.useRef();
 		function getDomElement() {
@@ -14862,7 +14435,6 @@ function genCSSMotion(config) {
 		}
 		return motionChildren;
 	});
-	CSSMotion.displayName = "CSSMotion";
 	return CSSMotion;
 }
 var CSSMotion = genCSSMotion(supportTransition);
@@ -15002,111 +14574,20 @@ const locale = {
 	},
 	timePickerLocale: { ...locale$1 }
 };
-const typeTemplate$1 = "${label} is not a valid ${type}";
-const localeValues = {
-	a: {
-		okText: "OK",
-		cancelText: "Cancel",
-		justOkText: "OK"
-	},
-	b: { a: {
-		default: "Field validation error for ${label}",
-		required: "Please enter ${label}",
-		enum: "${label} must be one of [${enum}]",
-		whitespace: "${label} cannot be a blank character",
-		date: {
-			format: "${label} date format is invalid",
-			parse: "${label} cannot be converted to a date",
-			invalid: "${label} is an invalid date"
-		},
-		types: {
-			string: typeTemplate$1,
-			method: typeTemplate$1,
-			array: typeTemplate$1,
-			object: typeTemplate$1,
-			number: typeTemplate$1,
-			date: typeTemplate$1,
-			boolean: typeTemplate$1,
-			integer: typeTemplate$1,
-			float: typeTemplate$1,
-			regexp: typeTemplate$1,
-			email: typeTemplate$1,
-			url: typeTemplate$1,
-			hex: typeTemplate$1
-		},
-		string: {
-			len: "${label} must be ${len} characters",
-			min: "${label} must be at least ${min} characters",
-			max: "${label} must be up to ${max} characters",
-			range: "${label} must be between ${min}-${max} characters"
-		},
-		number: {
-			len: "${label} must be equal to ${len}",
-			min: "${label} must be minimum ${min}",
-			max: "${label} must be maximum ${max}",
-			range: "${label} must be between ${min}-${max}"
-		},
-		array: {
-			len: "Must be ${len} ${label}",
-			min: "At least ${min} ${label}",
-			max: "At most ${max} ${label}",
-			range: "The amount of ${label} must be between ${min}-${max}"
-		},
-		pattern: { mismatch: "${label} does not match the pattern ${pattern}" }
-	} }
-};
-let localeList = [];
-const generateLocale = () => localeList.reduce((merged, locale) => ({
-	...merged,
-	...locale
-}), localeValues.a);
-function changeConfirmLocale(newLocale) {
-	if (newLocale) {
-		const cloneLocale = { ...newLocale };
-		localeList.push(cloneLocale);
-		generateLocale();
-		return () => {
-			localeList = localeList.filter((locale) => locale !== cloneLocale);
-			generateLocale();
-		};
-	}
-}
-const LocaleContext = reactExports.createContext(void 0);
-const useLocale$1 = (componentName, defaultLocale) => {
-	const fullLocale = reactExports.useContext(LocaleContext);
+const useLocale$1 = (__unused_5EBF, defaultLocale) => {
 	const getLocale = reactExports.useMemo(() => {
 		const locale = defaultLocale;
-		const localeFromContext = fullLocale?.[componentName] ?? {};
+		const localeFromContext = {};
 		return {
 			...locale,
-			...localeFromContext || {}
+			...localeFromContext
 		};
 	}, [
-		componentName,
-		defaultLocale,
-		fullLocale
+		,
+		,
+		,
 	]);
-	const __unused_997B = reactExports.useMemo(() => {
-		const localeCode = fullLocale?.locale;
-		// Had use LocaleProvide but didn't set locale
-		if (fullLocale?.exist && !localeCode) {
-			return "en";
-		}
-		return localeCode;
-	}, [fullLocale]);
 	return [getLocale, ,];
-};
-const LocaleProvider = (props) => {
-	const { locale = {}, children } = props;
-	reactExports.useEffect(() => {
-		const clearLocale = changeConfirmLocale(locale.Modal);
-		return clearLocale;
-	}, [locale]);
-	const getMemoizedContextValue = reactExports.useMemo(() => ({
-		...locale,
-		exist: true
-	}), [locale]);
-	return reactExports.createElement(LocaleContext.Provider, { value: getMemoizedContextValue }, children);
 };
 // \b([A-Za-z_$][\w$]*)\s*!==\s*(?:undefined\s*&&\s*\1\s*!==\s*null|null\s*&&\s*\1\s*!==\s*undefined)\b
 // \b([A-Za-z_$][\w$\.]*)\s*===\s*(?:undefined|null)\s*\|\|\s*\1\s*===\s*(?:undefined|null)\b
@@ -15194,34 +14675,13 @@ const useMergeSemantic = (classNamesList, stylesList, info, schema) => {
 		schema
 	]);
 };
-const zIndexContext = React.createContext(void 0);
-const containerBaseZIndexOffset = {
-	Modal: 100,
-	Drawer: 100,
-	Popover: 100,
-	Popconfirm: 100,
-	Tooltip: 100,
-	Tour: 100,
-	FloatButton: 100
-};
-const isContainerType = () => {
-	return "DatePicker" in containerBaseZIndexOffset;
-};
-const useZIndex = (__unused_A188, customZIndex) => {
-	const [, token] = useToken();
-	const parentZIndex = React.useContext(zIndexContext);
-	const isContainer = isContainerType();
+const useZIndex = (__unused_9503, customZIndex) => {
+	useToken();
 	let result;
 	if (customZIndex !== void 0) {
 		result = [customZIndex, ,];
 	} else {
-		let zIndex = parentZIndex ?? 0;
-		if (isContainer) {
-			zIndex += (parentZIndex ? 0 : token.zIndexPopupBase) + containerBaseZIndexOffset["DatePicker"];
-		} else {
-			zIndex += 50;
-		}
-		result = [parentZIndex === void 0 ? customZIndex : zIndex, ,];
+		result = [customZIndex, ,];
 	}
 	return result;
 };
@@ -15230,11 +14690,7 @@ const useZIndex = (__unused_A188, customZIndex) => {
 * If root ClassName is needed, this hook could be refactored with `-root`
 * @param prefixCls
 */
-const useCSSVarCls = (prefixCls) => `${prefixCls}-css-var`;
-// ZombieJ: We export single file here since
-// ConfigProvider use this which will make loop deps
-// to import whole `rc-component/form`
-var ValidateMessagesContext = reactExports.createContext(void 0);
+const useCSSVarCls = () => `${"ant-picker"}-css-var`;
 var reactDomExports = requireReactDom();
 const OrderContext = reactExports.createContext(null);
 const EMPTY_LIST$1 = [];
@@ -15291,93 +14747,27 @@ function useDom(render) {
 	}, [queue]);
 	return [ele, mergedQueueCreate];
 }
-/* eslint-disable no-param-reassign */
-function measureScrollbarSize(ele) {
-	const randomId = `rc-scrollbar-measure-${Math.random().toString(36).substring(7)}`;
-	const measureEle = document.createElement("div");
-	measureEle.id = randomId;
-	// Create Style
-	const measureStyle = measureEle.style;
-	measureStyle.position = "absolute";
-	measureStyle.left = "0";
-	measureStyle.top = "0";
-	measureStyle.width = "100px";
-	measureStyle.height = "100px";
-	measureStyle.overflow = "scroll";
-	// Clone Style if needed
-	let fallbackWidth;
-	if (ele) {
-		const targetStyle = getComputedStyle(ele);
-		measureStyle.scrollbarColor = targetStyle.scrollbarColor;
-		measureStyle.scrollbarWidth = targetStyle.scrollbarWidth;
-		// Set Webkit style
-		const webkitScrollbarStyle = getComputedStyle(ele, "::-webkit-scrollbar");
-		const width = parseInt(webkitScrollbarStyle.width, 10);
-		const height = parseInt(webkitScrollbarStyle.height, 10);
-		// Try wrap to handle CSP case
-		try {
-			const widthStyle = width ? `width: ${webkitScrollbarStyle.width};` : "";
-			const heightStyle = height ? `height: ${webkitScrollbarStyle.height};` : "";
-			updateCSS(`
-#${randomId}::-webkit-scrollbar {
-${widthStyle}
-${heightStyle}
-}`, randomId);
-		} catch (e) {
-			// Can't wrap, just log error
-			console.error(e);
-			// Get from style directly
-			fallbackWidth = width;
-		}
-	}
-	document.body.appendChild(measureEle);
-	// Measure. Get fallback style if provided
-	const scrollWidth = ele && fallbackWidth && !isNaN(fallbackWidth) ? fallbackWidth : measureEle.offsetWidth - measureEle.clientWidth;
-	// Clean up
-	document.body.removeChild(measureEle);
-	removeCSS(randomId);
-	return { a: scrollWidth };
-}
-function getTargetScrollBarSize(target) {
-	if (typeof document === "undefined" || !target || !(target instanceof Element)) {
-		return { a: 0 };
-	}
-	return measureScrollbarSize(target);
-}
-/**
-* Test usage export. Do not use in your production
-*/
-function isBodyOverflowing() {
-	return document.body.scrollHeight > (window.innerHeight || document.documentElement.clientHeight) && window.innerWidth > document.body.offsetWidth;
-}
 const UNIQUE_ID = `rc-util-locker-${Date.now()}`;
 let uuid$1 = 0;
-function useScrollLocker(lock) {
-	const mergedLock = !!lock;
+function useScrollLocker() {
 	const [id] = reactExports.useState(() => {
 		uuid$1 += 1;
 		return `${UNIQUE_ID}_${uuid$1}`;
 	});
 	useLayoutEffect(() => {
-		if (mergedLock) {
-			const scrollbarSize = getTargetScrollBarSize(document.body).a;
-			const isOverflow = isBodyOverflowing();
-			updateCSS(`
-html body {
-  overflow-y: hidden;
-  ${isOverflow ? `width: calc(100% - ${scrollbarSize}px);` : ""}
-}`, id);
-		} else {
-			removeCSS(id);
+		{
+			{
+				removeCSS(id);
+			}
 		}
 		return () => {
 			removeCSS(id);
 		};
-	}, [mergedLock, id]);
+	}, [false, id]);
 }
 function getUseId() {
 	// We need fully clone React function here to avoid webpack warning React 17 do not export `useId`
-	const fullClone = { ...React$1 };
+	const fullClone = { ...React };
 	return fullClone.useId;
 }
 let uuid = 0;
@@ -15477,15 +14867,15 @@ const getPortalContainer = (getContainer) => {
 	return getContainer;
 };
 const Portal = reactExports.forwardRef((props, ref) => {
-	const { open, autoLock, getContainer, autoDestroy = true, children, onEsc } = props;
+	const { a: open, b: getContainer, children, c: onEsc } = props;
 	const [shouldRender, setShouldRender] = reactExports.useState(open);
 	const mergedRender = shouldRender || open;
 	// ====================== Should Render ======================
 	reactExports.useEffect(() => {
-		if (autoDestroy || open) {
+		if (open) {
 			setShouldRender(open);
 		}
-	}, [open, autoDestroy]);
+	}, [open, false]);
 	// ======================== Container ========================
 	const [innerContainer, setInnerContainer] = reactExports.useState(() => getPortalContainer(getContainer));
 	reactExports.useEffect(() => {
@@ -15496,12 +14886,12 @@ const Portal = reactExports.forwardRef((props, ref) => {
 	const [defaultContainer, queueCreate] = useDom(mergedRender && !innerContainer);
 	const mergedContainer = innerContainer ?? defaultContainer;
 	// ========================= Locker ==========================
-	useScrollLocker(autoLock && open && canUseDom() && (mergedContainer === defaultContainer || mergedContainer === document.body));
+	useScrollLocker();
 	// ========================= Esc Keydown ==========================
 	useEscKeyDown(open, onEsc);
 	// =========================== Ref ===========================
 	let childRef = null;
-	if (children && supportRef(children) && ref) {
+	if (supportRef(children) && ref) {
 		childRef = getNodeRef(children);
 	}
 	const mergedRef = useComposeRef(childRef, ref);
@@ -15519,78 +14909,23 @@ const Portal = reactExports.forwardRef((props, ref) => {
 	}
 	return reactExports.createElement(OrderContext.Provider, { value: queueCreate }, renderInline ? reffedChildren : reactDomExports.b(reffedChildren, mergedContainer));
 });
-function Arrow(props) {
-	const { prefixCls, align, arrow, arrowPos } = props;
-	const { className, content, style } = arrow || {};
-	const { x = 0, y = 0 } = arrowPos;
-	const arrowRef = reactExports.useRef(null);
-	// Skip if no align
-	if (!align || !align.points) {
-		return null;
-	}
-	const alignStyle = { position: "absolute" };
-	// Skip if no need to align
-	if (align.autoArrow !== false) {
-		const popupPoints = align.points[0];
-		const targetPoints = align.points[1];
-		const popupTB = popupPoints[0];
-		const popupLR = popupPoints[1];
-		const targetTB = targetPoints[0];
-		const targetLR = targetPoints[1];
-		// Top & Bottom
-		if (popupTB === targetTB || !["t", "b"].includes(popupTB)) {
-			alignStyle.top = y;
-		} else if (popupTB === "t") {
-			alignStyle.top = 0;
-		} else {
-			alignStyle.bottom = 0;
-		}
-		// Left & Right
-		if (popupLR === targetLR || !["l", "r"].includes(popupLR)) {
-			alignStyle.left = x;
-		} else if (popupLR === "l") {
-			alignStyle.left = 0;
-		} else {
-			alignStyle.right = 0;
+function Mask() {
+	{
+		{
+			return null;
 		}
 	}
-	return reactExports.createElement("div", {
-		ref: arrowRef,
-		className: clsx(`${prefixCls}-arrow`, className),
-		style: {
-			...alignStyle,
-			...style
-		}
-	}, content);
 }
-function _extends$t() {
-	_extends$t = Object.assign.bind();
-	return _extends$t.apply(this, arguments);
-}
-function Mask(props) {
-	const { prefixCls, open, zIndex, mask, motion, mobile } = props;
-	if (!mask) {
-		return null;
-	}
-	return reactExports.createElement(CSSMotion, _extends$t({}, motion, {
-		motionAppear: true,
-		visible: open,
-		removeOnLeave: true
-	}), ({ className }) => reactExports.createElement("div", {
-		style: { zIndex },
-		className: clsx(`${prefixCls}-mask`, mobile && `${prefixCls}-mobile-mask`, className)
-	}));
-}
-const PopupContent = reactExports.memo(({ children }) => children, (__unused_578F, next) => next.cache);
-function useOffsetStyle(isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY) {
-	const offsetStyle = isMobile ? {} : {
+const PopupContent = reactExports.memo(({ children }) => children);
+function useOffsetStyle(__unused_2DAA, ready, open, align, offsetR, offsetB, offsetX, offsetY) {
+	const offsetStyle = {
 		left: "-1000vw",
 		top: "-1000vh",
 		right: "auto",
 		bottom: "auto"
 	};
 	// Set align style
-	if (!isMobile && (ready || !open)) {
+	if (ready || !open) {
 		const { points } = align;
 		const dynamicInset = align.dynamicInset || align._experimental?.dynamicInset;
 		const alignRight = dynamicInset && points[0][1] === "r";
@@ -15617,30 +14952,21 @@ function _extends$s() {
 	return _extends$s.apply(this, arguments);
 }
 const Popup$1 = reactExports.forwardRef((props, ref) => {
-	const { onEsc, popup, className, prefixCls, style, target, onVisibleChanged, open, keepDom, fresh, onClick, mask, arrow, arrowPos, align, motion, maskMotion, mobile, forceRender, getPopupContainer, autoDestroy, portal: Portal, children, zIndex, onMouseEnter, onMouseLeave, onPointerEnter, onPointerDownCapture, ready, offsetX, offsetY, offsetR, offsetB, onAlign, onPrepare, onResize, stretch, targetWidth, targetHeight } = props;
+	const { a: onEsc, b: popup, c: className, d: prefixCls, e: style, f: target, g: onVisibleChanged, h: open, i: keepDom, j: arrowPos, k: align, l: motion, m: getPopupContainer, n: Portal, children, o: onMouseEnter, p: onMouseLeave, q: onPointerEnter, r: onPointerDownCapture, s: ready, t: offsetX, u: offsetY, v: offsetR, w: offsetB, x: onAlign, y: onPrepare, z: targetWidth, A: targetHeight } = props;
 	const popupContent = typeof popup === "function" ? popup() : popup;
 	// We can not remove holder only when motion finished.
 	const isNodeVisible = open || keepDom;
-	// ========================= Mobile =========================
-	const isMobile = !!mobile;
 	// ========================== Mask ==========================
-	const [mergedMask, mergedMaskMotion, mergedPopupMotion] = reactExports.useMemo(() => {
-		if (mobile) {
-			return [
-				mobile.mask,
-				mobile.maskMotion,
-				mobile.motion
-			];
-		}
+	const [, , mergedPopupMotion] = reactExports.useMemo(() => {
 		return [
-			mask,
-			maskMotion,
+			,
+			,
 			motion
 		];
 	}, [
-		mobile,
-		mask,
-		maskMotion,
+		,
+		,
+		,
 		motion
 	]);
 	// ======================= Container ========================
@@ -15657,46 +14983,39 @@ const Popup$1 = reactExports.forwardRef((props, ref) => {
 		target
 	]);
 	// ========================= Resize =========================
-	const onInternalResize = useEvent((size, ele) => {
-		onResize?.(size, ele);
+	const onInternalResize = useEvent(() => {
 		onAlign();
 	});
 	// ========================= Styles =========================
-	const offsetStyle = useOffsetStyle(isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY);
+	const offsetStyle = useOffsetStyle(0, ready, open, align, offsetR, offsetB, offsetX, offsetY);
 	// ========================= Render =========================
 	if (!show) {
 		return null;
 	}
 	// >>>>> Misc
 	const miscStyle = {};
-	if (stretch) {
-		if (stretch.includes("height") && targetHeight) {
-			miscStyle.height = targetHeight;
-		} else if (stretch.includes("minHeight") && targetHeight) {
-			miscStyle.minHeight = targetHeight;
-		}
-		if (stretch.includes("width") && targetWidth) {
-			miscStyle.width = targetWidth;
-		} else if (stretch.includes("minWidth") && targetWidth) {
-			miscStyle.minWidth = targetWidth;
+	{
+		{
+			if ("minWidth".includes("height") && targetHeight) {
+				miscStyle.height = targetHeight;
+			} else if ("minWidth".includes("minHeight") && targetHeight) {
+				miscStyle.minHeight = targetHeight;
+			}
+			if ("minWidth".includes("width") && targetWidth) {
+				miscStyle.width = targetWidth;
+			} else if ("minWidth".includes("minWidth") && targetWidth) {
+				miscStyle.minWidth = targetWidth;
+			}
 		}
 	}
 	if (!open) {
 		miscStyle.pointerEvents = "none";
 	}
 	return reactExports.createElement(Portal, {
-		open: forceRender || isNodeVisible,
-		getContainer: getPopupContainer && (() => getPopupContainer(target)),
-		autoDestroy,
-		onEsc
-	}, reactExports.createElement(Mask, {
-		prefixCls,
-		open,
-		zIndex,
-		mask: mergedMask,
-		motion: mergedMaskMotion,
-		mobile: isMobile
-	}), reactExports.createElement(RefResizeObserver, {
+		a: isNodeVisible,
+		b: getPopupContainer && (() => getPopupContainer(target)),
+		c: onEsc
+	}, reactExports.createElement(Mask), reactExports.createElement(RefResizeObserver, {
 		onResize: onInternalResize,
 		disabled: !open
 	}, (resizeObserverRef) => {
@@ -15705,56 +15024,49 @@ const Popup$1 = reactExports.forwardRef((props, ref) => {
 			motionEnter: true,
 			motionLeave: true,
 			removeOnLeave: false,
-			forceRender,
+			forceRender: void 0,
 			leavedClassName: `${prefixCls}-hidden`
 		}, mergedPopupMotion, {
 			onAppearPrepare: onPrepare,
 			onEnterPrepare: onPrepare,
 			visible: open,
 			onVisibleChanged: (nextVisible) => {
-				motion?.onVisibleChanged?.(nextVisible);
-				onVisibleChanged(nextVisible);
+				motion.onVisibleChanged?.(nextVisible);
+				onVisibleChanged();
 			}
 		}), ({ className: motionClassName, style: motionStyle }, motionRef) => {
-			const cls = clsx(prefixCls, motionClassName, className, { [`${prefixCls}-mobile`]: isMobile });
+			const cls = clsx(prefixCls, motionClassName, className, { [`${prefixCls}-mobile`]: false });
 			return reactExports.createElement("div", {
 				ref: composeRef(resizeObserverRef, ref, motionRef),
 				className: cls,
 				style: {
-					"--arrow-x": `${arrowPos.x || 0}px`,
-					"--arrow-y": `${arrowPos.y || 0}px`,
+					"--arrow-x": `${arrowPos.a || 0}px`,
+					"--arrow-y": `${arrowPos.b || 0}px`,
 					...offsetStyle,
 					...miscStyle,
 					...motionStyle,
 					boxSizing: "border-box",
-					zIndex,
+					zIndex: void 0,
 					...style
 				},
 				onMouseEnter,
 				onMouseLeave,
 				onPointerEnter,
-				onClick,
+				onClick: void 0,
 				onPointerDownCapture
-			}, arrow && reactExports.createElement(Arrow, {
-				prefixCls,
-				arrow,
-				arrowPos,
-				align
-			}), reactExports.createElement(PopupContent, { cache: !open && !fresh }, popupContent));
+			}, null, reactExports.createElement(PopupContent, {}, popupContent));
 		});
 	}), children);
 });
 // ===================== Nest =====================
 const TriggerContext = reactExports.createContext(null);
-// ==================== Unique ====================
-const UniqueContext = reactExports.createContext(null);
 function toArray$2(val) {
-	return val ? Array.isArray(val) ? val : [val] : [];
+	return Array.isArray(val) ? val : [val];
 }
-function useAction(action, showAction, hideAction) {
+function useAction(__unused_5A6C, showAction, hideAction) {
 	return reactExports.useMemo(() => {
-		const mergedShowAction = toArray$2(showAction ?? action);
-		const mergedHideAction = toArray$2(hideAction ?? action);
+		const mergedShowAction = toArray$2(showAction);
+		const mergedHideAction = toArray$2(hideAction);
 		const showActionSet = new Set(mergedShowAction);
 		const hideActionSet = new Set(mergedHideAction);
 		if (showActionSet.has("hover") && !showActionSet.has("click")) {
@@ -15765,7 +15077,7 @@ function useAction(action, showAction, hideAction) {
 		}
 		return [showActionSet, hideActionSet];
 	}, [
-		action,
+		,
 		showAction,
 		hideAction
 	]);
@@ -15793,19 +15105,16 @@ var isVisible = (element) => {
 	}
 	return false;
 };
-function isPointsEq(a1 = [], a2 = [], isAlignPoint) {
+function isPointsEq(a1 = [], a2 = []) {
 	const getVal = (a, index) => a[index] || "";
-	if (isAlignPoint) {
-		return getVal(a1, 0) === getVal(a2, 0);
-	}
 	return getVal(a1, 0) === getVal(a2, 0) && getVal(a1, 1) === getVal(a2, 1);
 }
-function getAlignPopupClassName(builtinPlacements, prefixCls, align, isAlignPoint) {
+function getAlignPopupClassName(builtinPlacements, prefixCls, align) {
 	const { points } = align;
 	const placements = Object.keys(builtinPlacements);
 	for (let i = 0; i < placements.length; i += 1) {
 		const placement = placements[i];
-		if (isPointsEq(builtinPlacements[placement]?.points, points, isAlignPoint)) {
+		if (isPointsEq(builtinPlacements[placement]?.points, points)) {
 			return `${prefixCls}-placement-${placement}`;
 		}
 	}
@@ -15871,7 +15180,7 @@ function getPxValue(val) {
 */
 function getVisibleArea(initArea, scrollerList) {
 	const visibleArea = { ...initArea };
-	(scrollerList || []).forEach((ele) => {
+	scrollerList.forEach((ele) => {
 		if (ele instanceof HTMLBodyElement || ele instanceof HTMLHtmlElement) {
 			return;
 		}
@@ -15968,7 +15277,7 @@ function reversePoints(points, index) {
 function flatPoints(points) {
 	return points.join("");
 }
-function useAlign(open, popupEle, target, placement, builtinPlacements, popupAlign, onPopupAlign, mobile) {
+function useAlign(open, popupEle, target, placement, builtinPlacements, popupAlign) {
 	const [offsetInfo, setOffsetInfo] = reactExports.useState({
 		ready: false,
 		offsetX: 0,
@@ -15983,7 +15292,7 @@ function useAlign(open, popupEle, target, placement, builtinPlacements, popupAli
 	});
 	const alignCountRef = reactExports.useRef(0);
 	const scrollerList = reactExports.useMemo(() => {
-		if (!popupEle || mobile) {
+		if (!popupEle || false) {
 			return [];
 		}
 		return collectScroller(popupEle);
@@ -16000,7 +15309,7 @@ function useAlign(open, popupEle, target, placement, builtinPlacements, popupAli
 	}
 	// ========================= Align =========================
 	const onAlign = useEvent(() => {
-		if (popupEle && target && open && !mobile) {
+		if (popupEle && target && open && true) {
 			const popupElement = popupEle;
 			const doc = popupElement.ownerDocument;
 			const win = getWin(popupElement);
@@ -16305,7 +15614,6 @@ function useAlign(open, popupEle, target, placement, builtinPlacements, popupAli
 			const minBottom = Math.min(popupBottom, targetBottom);
 			const yCenter = (maxTop + minBottom) / 2;
 			const nextArrowY = yCenter - popupTop;
-			onPopupAlign?.(popupEle, nextAlignInfo);
 			// Additional calculate right & bottom position
 			let offsetX4Right = popupMirrorRect.right - popupRect.x - (nextOffsetX + popupRect.width);
 			let offsetY4Bottom = popupMirrorRect.bottom - popupRect.y - (nextOffsetY + popupRect.height);
@@ -16395,7 +15703,7 @@ function useDelay() {
 	}, []);
 	return delayInvoke;
 }
-function useWatch$1(open, target, popup, onAlign, onScroll) {
+function useWatch$1(open, target, popup, onAlign) {
 	useLayoutEffect(() => {
 		if (open && target && popup) {
 			const targetElement = target;
@@ -16410,7 +15718,6 @@ function useWatch$1(open, target, popup, onAlign, onScroll) {
 			]);
 			function notifyScroll() {
 				onAlign();
-				onScroll();
 			}
 			mergedList.forEach((scroller) => {
 				scroller.addEventListener("scroll", notifyScroll, { passive: true });
@@ -16435,13 +15742,13 @@ function useWatch$1(open, target, popup, onAlign, onScroll) {
 * Close if click on the window.
 * Return the function that click on the Popup element.
 */
-function useWinClick(open, clickToHide, targetEle, popupEle, mask, maskClosable, inPopupOrChild, triggerOpen) {
+function useWinClick(open, clickToHide, targetEle, popupEle, __unused_5806, __unused_7D34, inPopupOrChild, triggerOpen) {
 	const openRef = reactExports.useRef(open);
 	openRef.current = open;
 	const popupPointerDownRef = reactExports.useRef(false);
 	// Click to hide is special action since click popup element should not hide
 	reactExports.useEffect(() => {
-		if (clickToHide && popupEle && (!mask || maskClosable)) {
+		if (clickToHide && popupEle && true) {
 			const onPointerDown = () => {
 				popupPointerDownRef.current = false;
 			};
@@ -16474,280 +15781,21 @@ function useWinClick(open, clickToHide, targetEle, popupEle, mask, maskClosable,
 		clickToHide,
 		targetEle,
 		popupEle,
-		mask,
-		maskClosable
+		void 0,
+		true
 	]);
 	function onPopupPointerDown() {
 		popupPointerDownRef.current = true;
 	}
 	return onPopupPointerDown;
 }
-/**
-* Control the state of popup bind target:
-* 1. When set `target`. Do show the popup.
-* 2. When `target` is removed. Do hide the popup.
-* 3. When `target` change to another one:
-*  a. We wait motion finish of previous popup.
-*  b. Then we set new target and show the popup.
-* 4. During appear/enter animation, cache new options and apply after animation completes.
-*/
-function useTargetState() {
-	const [options, setOptions] = React.useState(null);
-	const [open, setOpen] = React.useState(false);
-	const [isAnimating, setIsAnimating] = React.useState(false);
-	const pendingOptionsRef = React.useRef(null);
-	const trigger = useEvent((nextOptions) => {
-		if (nextOptions === false) {
-			// Clear pending options when hiding
-			pendingOptionsRef.current = null;
-			setOpen(false);
-		} else {
-			if (isAnimating && open) {
-				// If animating (appear or enter), cache new options
-				pendingOptionsRef.current = nextOptions;
-			} else {
-				setOpen(true);
-				// Set new options
-				setOptions(nextOptions);
-				pendingOptionsRef.current = null;
-				// Only mark as animating when transitioning from closed to open
-				if (!open) {
-					setIsAnimating(true);
-				}
-			}
-		}
-	});
-	const onVisibleChanged = useEvent((visible) => {
-		if (visible) {
-			// Animation enter completed, check if there are pending options
-			setIsAnimating(false);
-			if (pendingOptionsRef.current) {
-				// Apply pending options
-				setOptions(pendingOptionsRef.current);
-				pendingOptionsRef.current = null;
-			}
-		} else {
-			// Animation leave completed
-			setIsAnimating(false);
-			pendingOptionsRef.current = null;
-		}
-	});
-	return [
-		trigger,
-		open,
-		options,
-		onVisibleChanged
-	];
-}
-function _extends$r() {
-	_extends$r = Object.assign.bind();
-	return _extends$r.apply(this, arguments);
-}
-const UniqueContainer = (props) => {
-	const { prefixCls, isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY, arrowPos, popupSize, motion, uniqueContainerClassName, uniqueContainerStyle } = props;
-	const containerCls = `${prefixCls}-unique-container`;
-	const [motionVisible, setMotionVisible] = React.useState(false);
-	// ========================= Styles =========================
-	const offsetStyle = useOffsetStyle(isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY);
-	// Cache for offsetStyle when ready is true
-	const cachedOffsetStyleRef = React.useRef(offsetStyle);
-	// Update cached offset style when ready is true
-	if (ready) {
-		cachedOffsetStyleRef.current = offsetStyle;
-	}
-	// Apply popup size if available
-	const sizeStyle = {};
-	if (popupSize) {
-		sizeStyle.width = popupSize.width;
-		sizeStyle.height = popupSize.height;
-	}
-	// ========================= Render =========================
-	return React.createElement(CSSMotion, _extends$r({
-		motionAppear: true,
-		motionEnter: true,
-		motionLeave: true,
-		removeOnLeave: false,
-		leavedClassName: `${containerCls}-hidden`
-	}, motion, {
-		visible: open,
-		onVisibleChanged: (nextVisible) => {
-			setMotionVisible(nextVisible);
-		}
-	}), ({ className: motionClassName, style: motionStyle }) => {
-		const cls = clsx(containerCls, motionClassName, uniqueContainerClassName, { [`${containerCls}-visible`]: motionVisible });
-		return React.createElement("div", {
-			className: cls,
-			style: {
-				"--arrow-x": `${arrowPos?.x || 0}px`,
-				"--arrow-y": `${arrowPos?.y || 0}px`,
-				...cachedOffsetStyleRef.current,
-				...sizeStyle,
-				...motionStyle,
-				...uniqueContainerStyle
-			}
-		});
-	});
-};
-const UniqueProvider$1 = ({ children, postTriggerProps }) => {
-	const [trigger, open, options, onTargetVisibleChanged] = useTargetState();
-	// ========================== Options ===========================
-	const mergedOptions = reactExports.useMemo(() => {
-		if (!options || !postTriggerProps) {
-			return options;
-		}
-		return postTriggerProps(options);
-	}, [options, postTriggerProps]);
-	// =========================== Popup ============================
-	const [popupEle, setPopupEle] = reactExports.useState(null);
-	const [popupSize, setPopupSize] = reactExports.useState(null);
-	// Used for forwardRef popup. Not use internal
-	const externalPopupRef = reactExports.useRef(null);
-	const setPopupRef = useEvent((node) => {
-		externalPopupRef.current = node;
-		if (isDOM(node) && popupEle !== node) {
-			setPopupEle(node);
-		}
-	});
-	// ========================== Register ==========================
-	// Store the isOpen function from the latest show call
-	const isOpenRef = reactExports.useRef(null);
-	const delayInvoke = useDelay();
-	const show = useEvent((showOptions, isOpen) => {
-		// Store the isOpen function for later use in hide
-		isOpenRef.current = isOpen;
-		delayInvoke(() => {
-			trigger(showOptions);
-		}, showOptions.delay);
-	});
-	const hide = (delay) => {
-		delayInvoke(() => {
-			// Check if we should still hide by calling the isOpen function
-			// If isOpen returns true, it means another trigger wants to keep it open
-			if (isOpenRef.current?.()) {
-				return;
-			}
-			trigger(false);
-			// Don't clear target, currentNode, options immediately, wait until animation completes
-		}, delay);
-	};
-	// Callback after animation completes
-	const onVisibleChanged = useEvent((visible) => {
-		// Call useTargetState callback to handle animation state
-		onTargetVisibleChanged(visible);
-	});
-	// =========================== Align ============================
-	const [ready, offsetX, offsetY, offsetR, offsetB, arrowX, arrowY, , , alignInfo, onAlign] = useAlign(
-		open,
-		popupEle,
-		mergedOptions?.target,
-		mergedOptions?.popupPlacement,
-		mergedOptions?.builtinPlacements || {},
-		mergedOptions?.popupAlign,
-		0,
-		// onPopupAlign
-		false
-	);
-	const alignedClassName = reactExports.useMemo(() => {
-		if (!mergedOptions) {
-			return "";
-		}
-		const baseClassName = getAlignPopupClassName(mergedOptions.builtinPlacements || {}, mergedOptions.prefixCls || "", alignInfo, false);
-		return clsx(baseClassName, mergedOptions.getPopupClassNameFromAlign?.(alignInfo));
-	}, [
-		alignInfo,
-		mergedOptions?.getPopupClassNameFromAlign,
-		mergedOptions?.builtinPlacements,
-		mergedOptions?.prefixCls
-	]);
-	const contextValue = reactExports.useMemo(() => ({
-		show,
-		hide
-	}), []);
-	// =========================== Align ============================
-	reactExports.useEffect(() => {
-		onAlign();
-	}, [mergedOptions?.target]);
-	// =========================== Motion ===========================
-	const onPrepare = useEvent(() => {
-		onAlign();
-		return Promise.resolve();
-	});
-	// ======================== Trigger Context =====================
-	const subPopupElements = reactExports.useRef({});
-	const parentContext = reactExports.useContext(TriggerContext);
-	const triggerContextValue = reactExports.useMemo(() => ({ registerSubPopup: (id, subPopupEle) => {
-		subPopupElements.current[id] = subPopupEle;
-		parentContext?.registerSubPopup(id, subPopupEle);
-	} }), [parentContext]);
-	// =========================== Render ===========================
-	const prefixCls = mergedOptions?.prefixCls;
-	return reactExports.createElement(UniqueContext.Provider, { value: contextValue }, children, mergedOptions && reactExports.createElement(TriggerContext.Provider, { value: triggerContextValue }, reactExports.createElement(Popup$1, {
-		ref: setPopupRef,
-		portal: Portal,
-		onEsc: mergedOptions.onEsc,
-		prefixCls,
-		popup: mergedOptions.popup,
-		className: clsx(mergedOptions.popupClassName, alignedClassName, `${prefixCls}-unique-controlled`),
-		style: mergedOptions.popupStyle,
-		target: mergedOptions.target,
-		open,
-		keepDom: true,
-		fresh: true,
-		autoDestroy: false,
-		onVisibleChanged,
-		ready,
-		offsetX,
-		offsetY,
-		offsetR,
-		offsetB,
-		onAlign,
-		onPrepare,
-		onResize: (size) => setPopupSize({
-			width: size.offsetWidth,
-			height: size.offsetHeight
-		}),
-		arrowPos: {
-			x: arrowX,
-			y: arrowY
-		},
-		align: alignInfo,
-		zIndex: mergedOptions.zIndex,
-		mask: mergedOptions.mask,
-		arrow: mergedOptions.arrow,
-		motion: mergedOptions.popupMotion,
-		maskMotion: mergedOptions.maskMotion,
-		getPopupContainer: mergedOptions.getPopupContainer
-	}, reactExports.createElement(UniqueContainer, {
-		prefixCls,
-		isMobile: false,
-		ready,
-		open,
-		align: alignInfo,
-		offsetR,
-		offsetB,
-		offsetX,
-		offsetY,
-		arrowPos: {
-			x: arrowX,
-			y: arrowY
-		},
-		popupSize,
-		motion: mergedOptions.popupMotion,
-		uniqueContainerClassName: clsx(mergedOptions.uniqueContainerClassName, alignedClassName),
-		uniqueContainerStyle: mergedOptions.uniqueContainerStyle
-	}))));
-};
 // Removed Props List
 // Seems this can be auto
 // getDocument?: (element?: HTMLElement) => Document;
 // New version will not wrap popup with `rc-trigger-popup-content` when multiple children
-function generateTrigger(PortalComponent = Portal) {
+function generateTrigger(PortalComponent) {
 	const Trigger = reactExports.forwardRef((props, ref) => {
-		const { prefixCls = "rc-trigger-popup", children, action = "hover", showAction, hideAction, popupVisible, defaultPopupVisible, onOpenChange, afterOpenChange, onPopupVisibleChange, afterPopupVisibleChange, mouseEnterDelay, mouseLeaveDelay = .1, focusDelay, blurDelay, mask, maskClosable = true, getPopupContainer, forceRender, autoDestroy, popup, popupClassName, uniqueContainerClassName, uniqueContainerStyle, popupStyle, popupPlacement, builtinPlacements = {}, popupAlign, zIndex, stretch, getPopupClassNameFromAlign, fresh, unique, alignPoint, onPopupClick, onPopupAlign, arrow, popupMotion, maskMotion, mobile, ...restProps } = props;
-		const mergedAutoDestroy = autoDestroy || false;
-		const openUncontrolled = popupVisible === void 0;
-		// =========================== Mobile ===========================
-		const isMobile = !!mobile;
+		const { a: prefixCls, children, b: showAction, c: hideAction, d: popupVisible, e: onPopupVisibleChange, _: mouseLeaveDelay = .1, f: getPopupContainer, g: popup, h: popupClassName, i: popupStyle, j: popupPlacement, k: builtinPlacements = {}, l: popupAlign, m: popupMotion } = props;
 		// ========================== Context ===========================
 		const subPopupElements = reactExports.useRef({});
 		const parentContext = reactExports.useContext(TriggerContext);
@@ -16757,8 +15805,6 @@ function generateTrigger(PortalComponent = Portal) {
 				parentContext?.registerSubPopup(id, subPopupEle);
 			} };
 		}, [parentContext]);
-		// ======================== UniqueContext =========================
-		const uniqueContext = reactExports.useContext(UniqueContext);
 		// =========================== Popup ============================
 		const id = useId();
 		const [popupEle, setPopupEle] = reactExports.useState(null);
@@ -16788,63 +15834,52 @@ function generateTrigger(PortalComponent = Portal) {
 			const childDOM = targetEle;
 			return childDOM?.contains(ele) || getShadowRoot(childDOM)?.host === ele || ele === childDOM || popupEle?.contains(ele) || getShadowRoot(popupEle)?.host === ele || ele === popupEle || Object.values(subPopupElements.current).some((subPopupEle) => subPopupEle?.contains(ele) || ele === subPopupEle);
 		});
-		// =========================== Arrow ============================
-		const innerArrow = arrow ? { ...arrow !== true ? arrow : {} } : null;
 		// ============================ Open ============================
-		const [internalOpen, setInternalOpen] = useControlledState(defaultPopupVisible || false, popupVisible);
+		const [internalOpen, setInternalOpen] = useControlledState(false, popupVisible);
 		const mergedOpen = internalOpen || false;
 		// ========================== Children ==========================
 		const child = reactExports.useMemo(() => {
-			const nextChild = typeof children === "function" ? children({ open: mergedOpen }) : children;
+			const nextChild = children;
 			return reactExports.Children.only(nextChild);
 		}, [children, mergedOpen]);
 		const originChildProps = child?.props || {};
 		// Support ref
-		const isOpen = useEvent(() => mergedOpen);
+		useEvent(() => mergedOpen);
 		// Extract common options for UniqueProvider
-		const getUniqueOptions = useEvent((delay = 0) => ({
+		useEvent((delay = 0) => ({
 			popup,
 			target: targetEle,
 			delay,
 			prefixCls,
 			popupClassName,
-			uniqueContainerClassName,
-			uniqueContainerStyle,
+			uniqueContainerClassName: void 0,
+			uniqueContainerStyle: void 0,
 			popupStyle,
 			popupPlacement,
 			builtinPlacements,
 			popupAlign,
-			zIndex,
-			mask,
-			maskClosable,
+			zIndex: void 0,
+			mask: void 0,
+			maskClosable: true,
 			popupMotion,
-			maskMotion,
-			arrow: innerArrow,
+			maskMotion: void 0,
+			arrow: null,
 			getPopupContainer,
-			getPopupClassNameFromAlign,
+			getPopupClassNameFromAlign: void 0,
 			id,
 			onEsc
 		}));
 		// Handle controlled state changes for UniqueProvider
 		// Only sync to UniqueProvider when it's controlled mode
 		// If there is a parentContext, don't call uniqueContext methods
-		useLayoutEffect(() => {
-			if (uniqueContext && unique && targetEle && !openUncontrolled && !parentContext) {
-				if (mergedOpen) {
-					uniqueContext.show(getUniqueOptions(mouseEnterDelay), isOpen);
-				} else {
-					uniqueContext.hide(mouseLeaveDelay);
-				}
-			}
-		}, [mergedOpen, targetEle]);
+		useLayoutEffect(() => {}, [mergedOpen, targetEle]);
 		const openRef = reactExports.useRef(mergedOpen);
 		openRef.current = mergedOpen;
 		const internalTriggerOpen = useEvent((nextOpen) => {
 			reactDomExports.c(() => {
 				if (mergedOpen !== nextOpen) {
 					setInternalOpen(nextOpen);
-					onOpenChange?.(nextOpen);
-					onPopupVisibleChange?.(nextOpen);
+					onPopupVisibleChange(nextOpen);
 				}
 			});
 		});
@@ -16857,16 +15892,6 @@ function generateTrigger(PortalComponent = Portal) {
 				delayInvoke(() => {
 					internalTriggerOpen(nextOpen);
 				}, delay);
-				return;
-			}
-			// If UniqueContext exists and not controlled, pass delay to Provider instead of handling it internally
-			// If there is a parentContext, don't call uniqueContext methods
-			if (uniqueContext && unique && openUncontrolled && !parentContext) {
-				if (nextOpen) {
-					uniqueContext.show(getUniqueOptions(delay), isOpen);
-				} else {
-					uniqueContext.hide(delay);
-				}
 				return;
 			}
 			delayInvoke(() => {
@@ -16891,8 +15916,8 @@ function generateTrigger(PortalComponent = Portal) {
 		const setMousePosByEvent = (event) => {
 			setMousePos([event.clientX, event.clientY]);
 		};
-		const [ready, offsetX, offsetY, offsetR, offsetB, arrowX, arrowY, scaleX, scaleY, alignInfo, onAlign] = useAlign(mergedOpen, popupEle, alignPoint && mousePos !== null ? mousePos : targetEle, popupPlacement, builtinPlacements, popupAlign, onPopupAlign, isMobile);
-		const [showActions, hideActions] = useAction(action, showAction, hideAction);
+		const [ready, offsetX, offsetY, offsetR, offsetB, arrowX, arrowY, scaleX, scaleY, alignInfo, onAlign] = useAlign(mergedOpen, popupEle, targetEle, popupPlacement, builtinPlacements, popupAlign);
+		const [showActions, hideActions] = useAction(0, showAction, hideAction);
 		const clickToShow = showActions.has("click");
 		const clickToHide = hideActions.has("click") || hideActions.has("contextMenu");
 		const triggerAlign = useEvent(() => {
@@ -16900,12 +15925,7 @@ function generateTrigger(PortalComponent = Portal) {
 				onAlign();
 			}
 		});
-		const onScroll = () => {
-			if (openRef.current && alignPoint && clickToHide) {
-				triggerOpen(false);
-			}
-		};
-		useWatch$1(mergedOpen, targetEle, popupEle, triggerAlign, onScroll);
+		useWatch$1(mergedOpen, targetEle, popupEle, triggerAlign);
 		useLayoutEffect(() => {
 			triggerAlign();
 		}, [mousePos, popupPlacement]);
@@ -16916,14 +15936,14 @@ function generateTrigger(PortalComponent = Portal) {
 			}
 		}, [JSON.stringify(popupAlign)]);
 		const alignedClassName = reactExports.useMemo(() => {
-			const baseClassName = getAlignPopupClassName(builtinPlacements, prefixCls, alignInfo, alignPoint);
-			return clsx(baseClassName, getPopupClassNameFromAlign?.(alignInfo));
+			const baseClassName = getAlignPopupClassName(builtinPlacements, prefixCls, alignInfo);
+			return clsx(baseClassName, void 0);
 		}, [
 			alignInfo,
-			getPopupClassNameFromAlign,
+			,
 			builtinPlacements,
 			prefixCls,
-			alignPoint
+			,
 		]);
 		// ============================ Refs ============================
 		reactExports.useImperativeHandle(ref, () => ({
@@ -16935,7 +15955,7 @@ function generateTrigger(PortalComponent = Portal) {
 		const [targetWidth, setTargetWidth] = reactExports.useState(0);
 		const [targetHeight, setTargetHeight] = reactExports.useState(0);
 		const syncTargetSize = () => {
-			if (stretch && targetEle) {
+			if (targetEle) {
 				const rect = targetEle.getBoundingClientRect();
 				setTargetWidth(rect.width);
 				setTargetHeight(rect.height);
@@ -16946,11 +15966,9 @@ function generateTrigger(PortalComponent = Portal) {
 			triggerAlign();
 		};
 		// ========================== Motion ============================
-		const onVisibleChanged = (visible) => {
+		const onVisibleChanged = () => {
 			setInMotion(false);
 			onAlign();
-			afterOpenChange?.(visible);
-			afterPopupVisibleChange?.(visible);
 		};
 		// We will trigger align when motion is in prepare
 		const onPrepare = () => new Promise((resolve) => {
@@ -16973,11 +15991,11 @@ function generateTrigger(PortalComponent = Portal) {
 		* @param callback Callback if current event need additional action
 		* @param ignoreCheck  Ignore current event if check return true
 		*/
-		function wrapperAction(eventName, nextOpen, delay, callback, ignoreCheck) {
+		function wrapperAction(eventName, nextOpen, __unused_7C74, callback, ignoreCheck) {
 			cloneProps[eventName] = (event, ...args) => {
 				if (!ignoreCheck || !ignoreCheck()) {
 					callback?.(event);
-					triggerOpen(nextOpen, delay);
+					triggerOpen(nextOpen, void 0);
 				}
 				// Pass to origin
 				originChildProps[eventName]?.(event, ...args);
@@ -17015,7 +16033,7 @@ function generateTrigger(PortalComponent = Portal) {
 			};
 		}
 		// Click to hide is special action since click popup element should not hide
-		const onPopupPointerDown = useWinClick(mergedOpen, clickToHide || touchToHide, targetEle, popupEle, mask, maskClosable, inPopupOrChild, triggerOpen);
+		const onPopupPointerDown = useWinClick(mergedOpen, clickToHide || touchToHide, targetEle, popupEle, 0, 0, inPopupOrChild, triggerOpen);
 		// ======================= Action: Hover ========================
 		const hoverToShow = showActions.has("hover");
 		const hoverToHide = hideActions.has("hover");
@@ -17029,34 +16047,28 @@ function generateTrigger(PortalComponent = Portal) {
 				setMousePosByEvent(event);
 			};
 			// Compatible with old browser which not support pointer event
-			wrapperAction("onMouseEnter", true, mouseEnterDelay, onMouseEnterCallback, ignoreMouseTrigger);
-			wrapperAction("onPointerEnter", true, mouseEnterDelay, onMouseEnterCallback, ignoreMouseTrigger);
+			wrapperAction("onMouseEnter", true, 0, onMouseEnterCallback, ignoreMouseTrigger);
+			wrapperAction("onPointerEnter", true, 0, onMouseEnterCallback, ignoreMouseTrigger);
 			onPopupMouseEnter = (event) => {
 				// Only trigger re-open when popup is visible
 				if ((mergedOpen || inMotion) && popupEle?.contains(event.target)) {
-					triggerOpen(true, mouseEnterDelay);
+					triggerOpen(true, void 0);
 				}
 			};
-			// Align Point
-			if (alignPoint) {
-				cloneProps.onMouseMove = (event) => {
-					originChildProps.onMouseMove?.(event);
-				};
-			}
 		}
 		if (hoverToHide) {
-			wrapperAction("onMouseLeave", false, mouseLeaveDelay, 0, ignoreMouseTrigger);
-			wrapperAction("onPointerLeave", false, mouseLeaveDelay, 0, ignoreMouseTrigger);
+			wrapperAction("onMouseLeave", 0, 0, 0, ignoreMouseTrigger);
+			wrapperAction("onPointerLeave", 0, 0, 0, ignoreMouseTrigger);
 			onPopupMouseLeave = () => {
 				triggerOpen(false, mouseLeaveDelay);
 			};
 		}
 		// ======================= Action: Focus ========================
 		if (showActions.has("focus")) {
-			wrapperAction("onFocus", true, focusDelay);
+			wrapperAction("onFocus", true);
 		}
 		if (hideActions.has("focus")) {
-			wrapperAction("onBlur", false, blurDelay);
+			wrapperAction("onBlur", false);
 		}
 		// ==================== Action: ContextMenu =====================
 		if (showActions.has("contextMenu")) {
@@ -17074,7 +16086,7 @@ function generateTrigger(PortalComponent = Portal) {
 		}
 		// ============================ Perf ============================
 		const rendedRef = reactExports.useRef(false);
-		rendedRef.current ||= forceRender || mergedOpen || inMotion;
+		rendedRef.current ||= mergedOpen || inMotion;
 		// =========================== Render ===========================
 		const mergedChildrenProps = {
 			...originChildProps,
@@ -17082,27 +16094,9 @@ function generateTrigger(PortalComponent = Portal) {
 		};
 		// Pass props into cloneProps for nest usage
 		const passedProps = {};
-		const passedEventList = [
-			"onContextMenu",
-			"onClick",
-			"onMouseDown",
-			"onTouchStart",
-			"onMouseEnter",
-			"onMouseLeave",
-			"onFocus",
-			"onBlur"
-		];
-		passedEventList.forEach((eventName) => {
-			if (restProps[eventName]) {
-				passedProps[eventName] = (...args) => {
-					mergedChildrenProps[eventName]?.(...args);
-					restProps[eventName](...args);
-				};
-			}
-		});
 		const arrowPos = {
-			x: arrowX,
-			y: arrowY
+			a: arrowX,
+			b: arrowY
 		};
 		// =================== Resize Observer ===================
 		// Use hook to observe target element resize
@@ -17117,434 +16111,52 @@ function generateTrigger(PortalComponent = Portal) {
 			ref: mergedRef
 		});
 		// Render
-		return reactExports.createElement(reactExports.Fragment, null, triggerNode, rendedRef.current && (!uniqueContext || !unique) && reactExports.createElement(TriggerContext.Provider, { value: context }, reactExports.createElement(Popup$1, {
-			portal: PortalComponent,
+		return reactExports.createElement(reactExports.Fragment, null, triggerNode, rendedRef.current && true && reactExports.createElement(TriggerContext.Provider, { value: context }, reactExports.createElement(Popup$1, {
+			n: PortalComponent,
 			ref: setPopupRef,
-			prefixCls,
-			popup,
-			className: clsx(popupClassName, !isMobile && alignedClassName),
-			style: popupStyle,
-			target: targetEle,
-			onMouseEnter: onPopupMouseEnter,
-			onMouseLeave: onPopupMouseLeave,
-			onPointerEnter: onPopupMouseEnter,
-			zIndex,
-			open: mergedOpen,
-			keepDom: inMotion,
-			fresh,
-			onClick: onPopupClick,
-			onPointerDownCapture: onPopupPointerDown,
-			mask,
-			motion: popupMotion,
-			maskMotion,
-			onVisibleChanged,
-			onPrepare,
-			forceRender,
-			autoDestroy: mergedAutoDestroy,
-			getPopupContainer,
-			onEsc,
-			align: alignInfo,
-			arrow: innerArrow,
-			arrowPos,
-			ready,
-			offsetX,
-			offsetY,
-			offsetR,
-			offsetB,
-			onAlign: triggerAlign,
-			stretch,
-			targetWidth: targetWidth / scaleX,
-			targetHeight: targetHeight / scaleY,
-			mobile
+			d: prefixCls,
+			b: popup,
+			c: clsx(popupClassName, alignedClassName),
+			e: popupStyle,
+			f: targetEle,
+			o: onPopupMouseEnter,
+			p: onPopupMouseLeave,
+			q: onPopupMouseEnter,
+			h: mergedOpen,
+			i: inMotion,
+			r: onPopupPointerDown,
+			l: popupMotion,
+			g: onVisibleChanged,
+			y: onPrepare,
+			m: getPopupContainer,
+			a: onEsc,
+			k: alignInfo,
+			j: arrowPos,
+			s: ready,
+			t: offsetX,
+			u: offsetY,
+			v: offsetR,
+			w: offsetB,
+			x: triggerAlign,
+			z: targetWidth / scaleX,
+			A: targetHeight / scaleY
 		})));
 	});
 	return Trigger;
 }
 var Trigger = generateTrigger(Portal);
 function isFragment(child) {
-	return child && React.isValidElement(child) && child.type === React.Fragment;
+	return child && React__default.isValidElement(child) && child.type === React__default.Fragment;
 }
 const replaceElement = (element, replacement, props) => {
-	if (!React.isValidElement(element)) {
+	if (!React__default.isValidElement(element)) {
 		return replacement;
 	}
-	return React.cloneElement(element, typeof props === "function" ? props(element.props || {}) : props);
+	return React__default.cloneElement(element, typeof props === "function" ? props(element.props || {}) : props);
 };
 function cloneElement(element, props) {
 	return replaceElement(element, element, props);
 }
-const MotionContent = ({ children }) => {
-	const { getPrefixCls } = React.useContext(ConfigContext);
-	const rootPrefixCls = getPrefixCls();
-	// This will never reach since we will not render this when no children
-	/* istanbul ignore next */
-	if (!React.isValidElement(children)) {
-		return children;
-	}
-	return React.createElement(CSSMotion, {
-		visible: true,
-		motionName: `${rootPrefixCls}-fade`,
-		motionAppear: true,
-		motionEnter: true,
-		motionLeave: false,
-		removeOnLeave: false
-	}, ({ style: motionStyle, className: motionClassName }) => {
-		return cloneElement(children, (oriProps) => ({
-			className: clsx(oriProps.className, motionClassName),
-			style: {
-				...oriProps.style,
-				...motionStyle
-			}
-		}));
-	});
-};
-const cachedPlacements = [null, null];
-function uniqueBuiltinPlacements(ori) {
-	if (cachedPlacements[0] !== ori) {
-		const target = {};
-		Object.keys(ori).forEach((placement) => {
-			target[placement] = {
-				...ori[placement],
-				dynamicInset: false
-			};
-		});
-		cachedPlacements[0] = ori;
-		cachedPlacements[1] = target;
-	}
-	return cachedPlacements[1];
-}
-const UniqueProvider = ({ children }) => {
-	const renderPopup = (options) => {
-		const { id, builtinPlacements, popup } = options;
-		const popupEle = typeof popup === "function" ? popup() : popup;
-		const parsedPlacements = uniqueBuiltinPlacements(builtinPlacements);
-		return {
-			...options,
-			getPopupContainer: null,
-			arrow: false,
-			popup: React.createElement(MotionContent, { key: id }, popupEle),
-			builtinPlacements: parsedPlacements
-		};
-	};
-	return React.createElement(UniqueProvider$1, { postTriggerProps: renderPopup }, children);
-};
-const DisabledContext = reactExports.createContext(false);
-const DisabledContextProvider = ({ children, disabled }) => {
-	const originDisabled = reactExports.useContext(DisabledContext);
-	return reactExports.createElement(DisabledContext.Provider, { value: disabled ?? originDisabled }, children);
-};
-const SizeContext = reactExports.createContext(void 0);
-const SizeContextProvider = ({ children, size }) => {
-	const originSize = reactExports.useContext(SizeContext);
-	return reactExports.createElement(SizeContext.Provider, { value: size || originSize }, children);
-};
-function useConfig() {
-	const componentDisabled = reactExports.useContext(DisabledContext);
-	const componentSize = reactExports.useContext(SizeContext);
-	return {
-		componentDisabled,
-		componentSize
-	};
-}
-function useTheme(theme, parentTheme, config) {
-	const themeConfig = theme || {};
-	const parentThemeConfig = themeConfig.inherit === false || !parentTheme ? {
-		...defaultConfig,
-		hashed: parentTheme?.hashed ?? defaultConfig.hashed,
-		cssVar: parentTheme?.cssVar
-	} : parentTheme;
-	// Generate a unique key for cssVar
-	const themeKey = reactExports.useId();
-	return useMemo(() => {
-		if (!theme) {
-			return parentTheme;
-		}
-		// Override
-		const mergedComponents = { ...parentThemeConfig.components };
-		Object.keys(theme.components || {}).forEach((componentName) => {
-			mergedComponents[componentName] = {
-				...mergedComponents[componentName],
-				...theme.components[componentName]
-			};
-		});
-		const cssVarKey = `css-var-${themeKey.replace(/:/g, "")}`;
-		const mergedCssVar = {
-			prefix: config.a,
-			...parentThemeConfig.cssVar,
-			...themeConfig.cssVar,
-			key: themeConfig.cssVar?.key || cssVarKey
-		};
-		// Base token
-		return {
-			...parentThemeConfig,
-			...themeConfig,
-			token: {
-				...parentThemeConfig.token,
-				...themeConfig.token
-			},
-			components: mergedComponents,
-			cssVar: mergedCssVar
-		};
-	}, [themeConfig, parentThemeConfig], (prev, next) => prev.some((prevTheme, index) => {
-		const nextTheme = next[index];
-		return !isEqual(prevTheme, nextTheme, true);
-	}));
-}
-const MotionCacheContext = reactExports.createContext(true);
-function MotionWrapper(props) {
-	const parentMotion = reactExports.useContext(MotionCacheContext);
-	const { children } = props;
-	const [, token] = useToken();
-	const { motion } = token;
-	const needWrapMotionProviderRef = reactExports.useRef(false);
-	needWrapMotionProviderRef.current || (needWrapMotionProviderRef.current = parentMotion !== motion);
-	if (needWrapMotionProviderRef.current) {
-		return reactExports.createElement(MotionCacheContext.Provider, { value: motion }, reactExports.createElement(MotionProvider, { motion }, children));
-	}
-	return children;
-}
-var PropWarning = () => null;
-/**
-* This component registers icon styles inside the DesignTokenContext.Provider
-* so that CSS variables use the correct cssVar key from the theme config.
-*/
-const IconStyle = ({ iconPrefixCls, csp }) => {
-	useResetIconStyle(iconPrefixCls, csp);
-	return null;
-};
-// These props is used by `useContext` directly in sub component
-const PASSED_PROPS = [
-	"getTargetContainer",
-	"getPopupContainer",
-	"renderEmpty",
-	"input",
-	"pagination",
-	"form",
-	"select",
-	"button"
-];
-const setGlobalConfig = () => {};
-const ProviderChildren = (props) => {
-	const { children, csp: customCsp, autoInsertSpaceInButton, alert, affix, anchor, form, locale, componentSize, direction, space, splitter, virtual, dropdownMatchSelectWidth, popupMatchSelectWidth, popupOverflow, legacyLocale, parentContext, iconPrefixCls: customIconPrefixCls, theme, componentDisabled, segmented, statistic, spin, calendar, carousel, cascader, collapse, typography, checkbox, descriptions, divider, drawer, skeleton, steps, image, layout, list, mentions, modal, progress, result, slider, breadcrumb, masonry, menu, pagination, input, textArea, otp, empty, badge, radio, rate, ribbon, switch: SWITCH, transfer, avatar, message, tag, table, card, cardMeta, tabs, timeline, timePicker, upload, notification, tree, colorPicker, datePicker, rangePicker, flex, wave, dropdown, warning: warningConfig, tour, tooltip, popover, popconfirm, qrcode, floatButton, floatButtonGroup, variant, inputNumber, treeSelect, watermark } = props;
-	// =================================== Context ===================================
-	const getPrefixCls = reactExports.useCallback((suffixCls, customizePrefixCls) => {
-		const { prefixCls } = props;
-		if (customizePrefixCls) {
-			return customizePrefixCls;
-		}
-		const mergedPrefixCls = prefixCls || parentContext.getPrefixCls("");
-		return suffixCls ? `${mergedPrefixCls}-${suffixCls}` : mergedPrefixCls;
-	}, [parentContext.getPrefixCls, props.prefixCls]);
-	const iconPrefixCls = customIconPrefixCls || parentContext.iconPrefixCls || "anticon";
-	const csp = customCsp || parentContext.csp;
-	const mergedTheme = useTheme(theme, parentContext.theme, { a: getPrefixCls("") });
-	const baseConfig = {
-		csp,
-		autoInsertSpaceInButton,
-		alert,
-		affix,
-		anchor,
-		locale: locale || legacyLocale,
-		direction,
-		space,
-		splitter,
-		virtual,
-		popupMatchSelectWidth: popupMatchSelectWidth ?? dropdownMatchSelectWidth,
-		popupOverflow,
-		getPrefixCls,
-		iconPrefixCls,
-		theme: mergedTheme,
-		segmented,
-		statistic,
-		spin,
-		calendar,
-		carousel,
-		cascader,
-		collapse,
-		typography,
-		checkbox,
-		descriptions,
-		divider,
-		drawer,
-		skeleton,
-		steps,
-		image,
-		input,
-		textArea,
-		otp,
-		layout,
-		list,
-		mentions,
-		modal,
-		progress,
-		result,
-		slider,
-		breadcrumb,
-		masonry,
-		menu,
-		pagination,
-		empty,
-		badge,
-		radio,
-		rate,
-		ribbon,
-		switch: SWITCH,
-		transfer,
-		avatar,
-		message,
-		tag,
-		table,
-		card,
-		cardMeta,
-		tabs,
-		timeline,
-		timePicker,
-		upload,
-		notification,
-		tree,
-		colorPicker,
-		datePicker,
-		rangePicker,
-		flex,
-		wave,
-		dropdown,
-		warning: warningConfig,
-		tour,
-		tooltip,
-		popover,
-		popconfirm,
-		qrcode,
-		floatButton,
-		floatButtonGroup,
-		variant,
-		inputNumber,
-		treeSelect,
-		watermark
-	};
-	const config = { ...parentContext };
-	Object.keys(baseConfig).forEach((key) => {
-		if (baseConfig[key] !== void 0) {
-			config[key] = baseConfig[key];
-		}
-	});
-	// Pass the props used by `useContext` directly with child component.
-	// These props should merged into `config`.
-	PASSED_PROPS.forEach((propName) => {
-		const propValue = props[propName];
-		if (propValue) {
-			config[propName] = propValue;
-		}
-	});
-	if (typeof autoInsertSpaceInButton !== "undefined") {
-		// merge deprecated api
-		config.button = {
-			autoInsertSpace: autoInsertSpaceInButton,
-			...config.button
-		};
-	}
-	// https://github.com/ant-design/ant-design/issues/27617
-	const memoedConfig = useMemo(() => config, config, (prevConfig, currentConfig) => {
-		const prevKeys = Object.keys(prevConfig);
-		const currentKeys = Object.keys(currentConfig);
-		return prevKeys.length !== currentKeys.length || prevKeys.some((key) => prevConfig[key] !== currentConfig[key]);
-	});
-	const { layer } = reactExports.useContext(StyleContext);
-	const memoIconContextValue = reactExports.useMemo(() => ({
-		prefixCls: iconPrefixCls,
-		csp,
-		layer: layer ? "antd" : void 0
-	}), [
-		iconPrefixCls,
-		csp,
-		layer
-	]);
-	let childNode = reactExports.createElement(reactExports.Fragment, null, reactExports.createElement(IconStyle, {
-		iconPrefixCls,
-		csp
-	}), reactExports.createElement(PropWarning, { dropdownMatchSelectWidth }), children);
-	const validateMessages = reactExports.useMemo(() => merge$1(localeValues.b.a, memoedConfig.locale?.Form?.defaultValidateMessages || {}, memoedConfig.form?.validateMessages || {}, form?.validateMessages || {}), [memoedConfig, form?.validateMessages]);
-	if (Object.keys(validateMessages).length > 0) {
-		childNode = reactExports.createElement(ValidateMessagesContext.Provider, { value: validateMessages }, childNode);
-	}
-	if (locale) {
-		childNode = reactExports.createElement(LocaleProvider, {
-			locale,
-			_ANT_MARK__: "internalMark"
-		}, childNode);
-	}
-	{
-		childNode = reactExports.createElement(IconContext.Provider, { value: memoIconContextValue }, childNode);
-	}
-	if (componentSize) {
-		childNode = reactExports.createElement(SizeContextProvider, { size: componentSize }, childNode);
-	}
-	// =================================== Motion ===================================
-	childNode = reactExports.createElement(MotionWrapper, null, childNode);
-	// ================================ Tooltip Unique ===============================
-	if (tooltip?.unique) {
-		childNode = reactExports.createElement(UniqueProvider, null, childNode);
-	}
-	// ================================ Dynamic theme ================================
-	const memoTheme = reactExports.useMemo(() => {
-		const { algorithm, token, components, cssVar, ...rest } = mergedTheme || {};
-		const themeObj = algorithm && (!Array.isArray(algorithm) || algorithm.length > 0) ? createTheme(algorithm) : defaultTheme;
-		const parsedComponents = {};
-		Object.entries(components || {}).forEach(([componentName, componentToken]) => {
-			const parsedToken = { ...componentToken };
-			if ("algorithm" in parsedToken) {
-				if (parsedToken.algorithm === true) {
-					parsedToken.theme = themeObj;
-				} else if (Array.isArray(parsedToken.algorithm) || typeof parsedToken.algorithm === "function") {
-					parsedToken.theme = createTheme(parsedToken.algorithm);
-				}
-				delete parsedToken.algorithm;
-			}
-			parsedComponents[componentName] = parsedToken;
-		});
-		const mergedToken = {
-			...seedToken,
-			...token
-		};
-		return {
-			...rest,
-			theme: themeObj,
-			token: mergedToken,
-			components: parsedComponents,
-			override: {
-				override: mergedToken,
-				...parsedComponents
-			},
-			cssVar
-		};
-	}, [mergedTheme]);
-	if (theme) {
-		childNode = reactExports.createElement(DesignTokenContext.Provider, { value: memoTheme }, childNode);
-	}
-	// ================================== Warning ===================================
-	if (memoedConfig.warning) {
-		childNode = reactExports.createElement(WarningContext.Provider, { value: memoedConfig.warning }, childNode);
-	}
-	// =================================== Render ===================================
-	if (componentDisabled !== void 0) {
-		childNode = reactExports.createElement(DisabledContextProvider, { disabled: componentDisabled }, childNode);
-	}
-	return reactExports.createElement(ConfigContext.Provider, { value: memoedConfig }, childNode);
-};
-const ConfigProvider = (props) => {
-	const context = reactExports.useContext(ConfigContext);
-	const antLocale = reactExports.useContext(LocaleContext);
-	return reactExports.createElement(ProviderChildren, {
-		parentContext: context,
-		legacyLocale: antLocale,
-		...props
-	});
-};
-ConfigProvider.ConfigContext = ConfigContext;
-ConfigProvider.config = setGlobalConfig;
-ConfigProvider.useConfig = useConfig;
-Object.defineProperty(ConfigProvider, "SizeContext", { get: () => {
-	return SizeContext;
-} });
 // This icon file is generated automatically.
 var LoadingOutlined$1 = {
 	"icon": {
@@ -17613,12 +16225,9 @@ const TARGET_CLS = `${"ant"}-wave-target`;
 function isValidWaveColor(color) {
 	return color && typeof color === "string" && color !== "#fff" && color !== "#ffffff" && color !== "rgb(255, 255, 255)" && color !== "rgba(255, 255, 255, 1)" && !/rgba\((?:\d*, ){3}0\)/.test(color) && color !== "transparent" && color !== "canvastext";
 }
-function getTargetWaveColor(node, colorSource = null) {
+function getTargetWaveColor(node) {
 	const style = getComputedStyle(node);
 	const { borderTopColor, borderColor, backgroundColor } = style;
-	if (colorSource && isValidWaveColor(style[colorSource])) {
-		return style[colorSource];
-	}
 	return [
 		borderTopColor,
 		borderColor,
@@ -17629,11 +16238,9 @@ function validateNum(value) {
 	return Number.isNaN(value) ? 0 : value;
 }
 const WaveEffect = (props) => {
-	const { className, target, component, colorSource } = props;
+	const { a: className, b: target } = props;
 	const divRef = reactExports.useRef(null);
-	const { getPrefixCls } = reactExports.useContext(ConfigContext);
-	const rootPrefixCls = getPrefixCls();
-	const [varName] = genCssVar(rootPrefixCls, "wave");
+	const [varName] = genCssVar("ant", "wave");
 	// ===================== Effect =====================
 	const [color, setWaveColor] = reactExports.useState(null);
 	const [borderRadius, setBorderRadius] = reactExports.useState([]);
@@ -17655,7 +16262,7 @@ const WaveEffect = (props) => {
 	function syncPos() {
 		const nodeStyle = getComputedStyle(target);
 		// Get wave color from target
-		setWaveColor(getTargetWaveColor(target, colorSource));
+		setWaveColor(getTargetWaveColor(target));
 		const isStatic = nodeStyle.position === "static";
 		// Rect
 		const { borderLeftWidth, borderTopWidth } = nodeStyle;
@@ -17695,13 +16302,12 @@ const WaveEffect = (props) => {
 	if (!enabled) {
 		return null;
 	}
-	const isSmallComponent = (component === "Checkbox" || component === "Radio") && target?.classList.contains(TARGET_CLS);
 	return reactExports.createElement(CSSMotion, {
 		visible: true,
 		motionAppear: true,
 		motionName: "wave-motion",
 		motionDeadline: 5e3,
-		onAppearEnd: (__unused_8577, event) => {
+		onAppearEnd: (__unused_61C1, event) => {
 			if (event.deadline || event.propertyName === "opacity") {
 				const holder = divRef.current?.parentElement;
 				unmount(holder).then(() => {
@@ -17712,16 +16318,11 @@ const WaveEffect = (props) => {
 		}
 	}, ({ className: motionClassName }, ref) => reactExports.createElement("div", {
 		ref: composeRef(divRef, ref),
-		className: clsx(className, motionClassName, { "wave-quick": isSmallComponent }),
+		className: clsx(className, motionClassName, { "wave-quick": false }),
 		style: waveStyle
 	}));
 };
 const showWaveEffect = (target, info) => {
-	const { component } = info;
-	// Skip for unchecked checkbox
-	if (component === "Checkbox" && !target.querySelector("input")?.checked) {
-		return;
-	}
 	// Create holder
 	const holder = document.createElement("div");
 	holder.style.position = "absolute";
@@ -17730,28 +16331,19 @@ const showWaveEffect = (target, info) => {
 	target?.insertBefore(holder, target?.firstChild);
 	render(reactExports.createElement(WaveEffect, {
 		...info,
-		target
+		b: target
 	}), holder);
 };
-const useWave = (nodeRef, className, component, colorSource) => {
-	const { wave } = reactExports.useContext(ConfigContext);
-	const [, token, hashId] = useToken();
-	const showWave = useEvent((event) => {
+const useWave = (nodeRef, className) => {
+	useToken();
+	const showWave = useEvent(() => {
 		const node = nodeRef.current;
-		if (wave?.disabled || !node) {
+		if (!node) {
 			return;
 		}
 		const targetNode = node.querySelector(`.${TARGET_CLS}`) || node;
-		const { showEffect } = wave || {};
 		// Customize wave effect
-		(showEffect || showWaveEffect)(targetNode, {
-			className,
-			token,
-			component,
-			event,
-			hashId,
-			colorSource
-		});
+		showWaveEffect(targetNode, { a: className });
 	});
 	const rafId = reactExports.useRef(null);
 	// Clean up RAF on unmount to prevent memory leaks and stale callbacks
@@ -17768,16 +16360,13 @@ const useWave = (nodeRef, className, component, colorSource) => {
 	return showDebounceWave;
 };
 const Wave = (props) => {
-	const { children, disabled, component, colorSource } = props;
-	const { getPrefixCls } = reactExports.useContext(ConfigContext);
+	const { children, a: disabled } = props;
 	const containerRef = reactExports.useRef(null);
-	// ============================== Style ===============================
-	const prefixCls = getPrefixCls("wave");
-	const hashId = useStyle$2(prefixCls);
+	const hashId = useStyle$2("ant-wave");
 	// =============================== Wave ===============================
-	const showWave = useWave(containerRef, clsx(prefixCls, hashId), component, colorSource);
+	const showWave = useWave(containerRef, clsx("ant-wave", hashId));
 	// ============================== Effect ==============================
-	React.useEffect(() => {
+	React__default.useEffect(() => {
 		const node = containerRef.current;
 		if (!node || node.nodeType !== window.Node.ELEMENT_NODE || disabled) {
 			return;
@@ -17797,25 +16386,24 @@ const Wave = (props) => {
 		};
 	}, [disabled]);
 	// ============================== Render ==============================
-	if (!React.isValidElement(children)) {
-		return children ?? null;
+	if (!React__default.isValidElement(children)) {
+		return children;
 	}
 	const ref = supportRef(children) ? composeRef(getNodeRef(children), containerRef) : containerRef;
 	return cloneElement(children, { ref });
 };
 const useSize = (customSize) => {
-	const size = React.useContext(SizeContext);
-	const mergedSize = React.useMemo(() => {
+	const mergedSize = React__default.useMemo(() => {
 		{
 			{
-				return customSize(size);
+				return customSize(void 0);
 			}
 		}
-	}, [customSize, size]);
+	}, [customSize, ,]);
 	return mergedSize;
 };
 const SpaceCompactItemContext = reactExports.createContext(null);
-const useCompactItemContext = (prefixCls, direction) => {
+const useCompactItemContext = (prefixCls) => {
 	const compactItemContext = reactExports.useContext(SpaceCompactItemContext);
 	const compactItemClassnames = reactExports.useMemo(() => {
 		if (!compactItemContext) {
@@ -17826,11 +16414,11 @@ const useCompactItemContext = (prefixCls, direction) => {
 		return clsx(`${prefixCls}-compact${separator}item`, {
 			[`${prefixCls}-compact${separator}first-item`]: isFirstItem,
 			[`${prefixCls}-compact${separator}last-item`]: isLastItem,
-			[`${prefixCls}-compact${separator}item-rtl`]: direction === "rtl"
+			[`${prefixCls}-compact${separator}item-rtl`]: false
 		});
 	}, [
 		prefixCls,
-		direction,
+		,
 		compactItemContext
 	]);
 	return {
@@ -17841,28 +16429,6 @@ const useCompactItemContext = (prefixCls, direction) => {
 const NoCompactStyle = (props) => {
 	const { children } = props;
 	return reactExports.createElement(SpaceCompactItemContext.Provider, { value: null }, children);
-};
-const GroupSizeContext = reactExports.createContext(void 0);
-const ButtonGroup = (props) => {
-	const { getPrefixCls, direction } = reactExports.useContext(ConfigContext);
-	const { prefixCls: customizePrefixCls, size, className, ...others } = props;
-	const prefixCls = getPrefixCls("btn-group", customizePrefixCls);
-	const [, , hashId] = useToken();
-	const sizeCls = reactExports.useMemo(() => {
-		switch (size) {
-			case "large": return "lg";
-			case "small": return "sm";
-			default: return "";
-		}
-	}, [size]);
-	const classes = clsx(prefixCls, {
-		[`${prefixCls}-${sizeCls}`]: sizeCls,
-		[`${prefixCls}-rtl`]: direction === "rtl"
-	}, className, hashId);
-	return reactExports.createElement(GroupSizeContext.Provider, { value: size }, reactExports.createElement("div", {
-		...others,
-		className: classes
-	}));
 };
 const rxTwoCNChar = /^[\u4E00-\u9FA5]{2}$/;
 const isTwoCNChar = rxTwoCNChar.test.bind(rxTwoCNChar);
@@ -17893,13 +16459,13 @@ function splitCNCharsBySpace(child, needInserted, style, className) {
 		});
 	}
 	if (isString(child)) {
-		return React.createElement("span", {
+		return React__default.createElement("span", {
 			className,
 			style
 		}, isTwoCNChar(child) ? child.split("").join(SPACE) : child);
 	}
 	if (isFragment(child)) {
-		return React.createElement("span", {
+		return React__default.createElement("span", {
 			className,
 			style
 		}, child);
@@ -17916,7 +16482,7 @@ function splitCNCharsBySpace(child, needInserted, style, className) {
 function spaceChildren(children, needInserted, style, className) {
 	let isPrevChildPure = false;
 	const childList = [];
-	React.Children.forEach(children, (child) => {
+	React__default.Children.forEach(children, (child) => {
 		const type = typeof child;
 		const isCurrentChildPure = type === "string" || type === "number";
 		if (isPrevChildPure && isCurrentChildPure) {
@@ -17928,7 +16494,7 @@ function spaceChildren(children, needInserted, style, className) {
 		}
 		isPrevChildPure = isCurrentChildPure;
 	});
-	return React.Children.map(childList, (child) => splitCNCharsBySpace(child, needInserted, style, className));
+	return React__default.Children.map(childList, (child) => splitCNCharsBySpace(child, needInserted, style, className));
 }
 [
 	"default",
@@ -17936,23 +16502,23 @@ function spaceChildren(children, needInserted, style, className) {
 	"danger"
 ].concat(_toConsumableArray$8(PresetColors));
 const IconWrapper = reactExports.forwardRef((props, ref) => {
-	const { className, style, children, prefixCls } = props;
+	const { a: className, b: style, children, c: prefixCls } = props;
 	const iconWrapperCls = clsx(`${prefixCls}-icon`, className);
-	return React.createElement("span", {
+	return React__default.createElement("span", {
 		ref,
 		className: iconWrapperCls,
 		style
 	}, children);
 });
 const InnerLoadingIcon = reactExports.forwardRef((props, ref) => {
-	const { prefixCls, className, style, iconClassName } = props;
+	const { a: prefixCls, b: className, c: style } = props;
 	const mergedIconCls = clsx(`${prefixCls}-loading-icon`, className);
-	return React.createElement(IconWrapper, {
-		prefixCls,
-		className: mergedIconCls,
-		style,
+	return React__default.createElement(IconWrapper, {
+		c: prefixCls,
+		a: mergedIconCls,
+		b: style,
 		ref
-	}, React.createElement(RefIcon$6, { className: iconClassName }));
+	}, React__default.createElement(RefIcon$6, { className: void 0 }));
 });
 const getCollapsedWidth = () => ({
 	width: 0,
@@ -17965,16 +16531,16 @@ const getRealWidth = (node) => ({
 	transform: "scale(1)"
 });
 const DefaultLoadingIcon = (props) => {
-	const { prefixCls, loading, existIcon, className, style, mount } = props;
+	const { c: prefixCls, d: loading, e: existIcon, a: className, b: style, f: mount } = props;
 	const visible = !!loading;
 	if (existIcon) {
-		return React.createElement(InnerLoadingIcon, {
-			prefixCls,
-			className,
-			style
+		return React__default.createElement(InnerLoadingIcon, {
+			a: prefixCls,
+			b: className,
+			c: style
 		});
 	}
-	return React.createElement(CSSMotion, {
+	return React__default.createElement(CSSMotion, {
 		visible,
 		motionName: `${prefixCls}-loading-icon-motion`,
 		motionAppear: !mount,
@@ -17992,10 +16558,10 @@ const DefaultLoadingIcon = (props) => {
 			...style,
 			...motionStyle
 		};
-		return React.createElement(InnerLoadingIcon, {
-			prefixCls,
-			className: clsx(className, motionCls),
-			style: mergedStyle,
+		return React__default.createElement(InnerLoadingIcon, {
+			a: prefixCls,
+			b: clsx(className, motionCls),
+			c: mergedStyle,
 			ref
 		});
 	});
@@ -18950,13 +17516,13 @@ function getLoadingConfig(loading) {
 		let delay = loading.delay;
 		delay = !Number.isNaN(delay) && typeof delay === "number" ? delay : 0;
 		return {
-			loading: delay <= 0,
-			delay
+			a: delay <= 0,
+			b: delay
 		};
 	}
 	return {
-		loading: !!loading,
-		delay: 0
+		a: !!loading,
+		b: 0
 	};
 }
 const ButtonTypeMap = {
@@ -18966,14 +17532,13 @@ const ButtonTypeMap = {
 	link: ["link", "link"],
 	text: ["default", "text"]
 };
-const InternalCompoundedButton = React.forwardRef((props, ref) => {
+const InternalCompoundedButton = React__default.forwardRef((props, ref) => {
 	const { _skipSemantic, loading = false, prefixCls: customizePrefixCls, color, variant, type, danger = false, shape: customizeShape, size: customizeSize, disabled: customDisabled, className, rootClassName, children, icon, iconPosition, iconPlacement, ghost = false, block = false, htmlType = "button", classNames, styles, style, autoInsertSpace, autoFocus, ...rest } = props;
 	const childNodes = toArray$3(children);
 	// https://github.com/ant-design/ant-design/issues/47605
 	// Compatible with original `type` behavior
 	const mergedType = type || "default";
-	const { button } = React.useContext(ConfigContext);
-	const shape = customizeShape || button?.shape || "default";
+	const shape = customizeShape || void 0 || "default";
 	const [parsedColor, parsedVariant] = reactExports.useMemo(() => {
 		// >>>>> Local
 		// Color & Variant
@@ -18988,18 +17553,14 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 			}
 			return colorVariantPair;
 		}
-		// >>> Context fallback
-		if (button?.color && button?.variant) {
-			return [button.color, button.variant];
-		}
 		return ["default", "outlined"];
 	}, [
 		color,
 		variant,
 		type,
 		danger,
-		button?.color,
-		button?.variant,
+		,
+		,
 		mergedType
 	]);
 	const [mergedColor, mergedVariant] = reactExports.useMemo(() => {
@@ -19014,15 +17575,13 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 	]);
 	const isDanger = mergedColor === "danger";
 	const mergedColorText = isDanger ? "dangerous" : mergedColor;
-	const { getPrefixCls, direction, autoInsertSpace: contextAutoInsertSpace, className: contextClassName, style: contextStyle, classNames: contextClassNames, styles: contextStyles } = useComponentConfig("button");
-	const mergedInsertSpace = autoInsertSpace ?? contextAutoInsertSpace ?? true;
-	const prefixCls = getPrefixCls("btn", customizePrefixCls);
+	const { c: getPrefixCls, a: contextClassNames, b: contextStyles } = useComponentConfig();
+	const mergedInsertSpace = autoInsertSpace ?? void 0 ?? true;
+	const prefixCls = getPrefixCls(0, customizePrefixCls);
 	const [hashId, cssVarCls] = useStyle$1(prefixCls);
-	const disabled = reactExports.useContext(DisabledContext);
-	const mergedDisabled = customDisabled ?? disabled;
-	const groupSize = reactExports.useContext(GroupSizeContext);
+	const mergedDisabled = customDisabled ?? false;
 	const loadingOrDelay = reactExports.useMemo(() => getLoadingConfig(loading), [loading]);
-	const [innerLoading, setLoading] = reactExports.useState(loadingOrDelay.loading);
+	const [innerLoading, setLoading] = reactExports.useState(loadingOrDelay.a);
 	const [hasTwoCNChar, setHasTwoCNChar] = reactExports.useState(false);
 	const buttonRef = reactExports.useRef(null);
 	const mergedRef = useComposeRef(ref, buttonRef);
@@ -19031,7 +17590,7 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 	// Record for mount status.
 	// This will help to no to show the animation of loading on the first mount.
 	const isMountRef = reactExports.useRef(true);
-	React.useEffect(() => {
+	React__default.useEffect(() => {
 		isMountRef.current = false;
 		return () => {
 			isMountRef.current = true;
@@ -19042,13 +17601,13 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 	// https://github.com/ant-design/ant-design/issues/51325
 	useLayoutEffect(() => {
 		let delayTimer = null;
-		if (loadingOrDelay.delay > 0) {
+		if (loadingOrDelay.b > 0) {
 			delayTimer = setTimeout(() => {
 				delayTimer = null;
 				setLoading(true);
-			}, loadingOrDelay.delay);
+			}, loadingOrDelay.b);
 		} else {
-			setLoading(loadingOrDelay.loading);
+			setLoading(loadingOrDelay.a);
 		}
 		function cleanupTimer() {
 			if (delayTimer) {
@@ -19057,7 +17616,7 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 			}
 		}
 		return cleanupTimer;
-	}, [loadingOrDelay.delay, loadingOrDelay.loading]);
+	}, [loadingOrDelay.b, loadingOrDelay.a]);
 	// Two chinese characters check
 	reactExports.useEffect(() => {
 		// FIXME: for HOC usage like <FormatMessage />
@@ -19080,7 +17639,7 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 		}
 	}, []);
 	// ========================= Events =========================
-	const handleClick = React.useCallback((e) => {
+	const handleClick = React__default.useCallback((e) => {
 		// FIXME: https://github.com/ant-design/ant-design/issues/30207
 		if (innerLoading || mergedDisabled) {
 			e.preventDefault();
@@ -19093,13 +17652,13 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 		mergedDisabled
 	]);
 	// ========================== Size ==========================
-	const { a: compactSize, b: compactItemClassnames } = useCompactItemContext(prefixCls, direction);
+	const { a: compactSize, b: compactItemClassnames } = useCompactItemContext(prefixCls);
 	const sizeClassNameMap = {
 		large: "lg",
 		small: "sm",
 		middle: void 0
 	};
-	const sizeFullName = useSize((ctxSize) => customizeSize ?? compactSize ?? groupSize ?? ctxSize);
+	const sizeFullName = useSize((ctxSize) => customizeSize ?? compactSize ?? void 0 ?? ctxSize);
 	const sizeCls = sizeFullName ? sizeClassNameMap[sizeFullName] ?? "" : "";
 	const iconType = innerLoading ? "loading" : icon;
 	const mergedIconPlacement = iconPlacement ?? iconPosition ?? "start";
@@ -19132,31 +17691,31 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 		[`${prefixCls}-loading`]: innerLoading,
 		[`${prefixCls}-two-chinese-chars`]: hasTwoCNChar && mergedInsertSpace && !innerLoading,
 		[`${prefixCls}-block`]: block,
-		[`${prefixCls}-rtl`]: direction === "rtl",
+		[`${prefixCls}-rtl`]: false,
 		[`${prefixCls}-icon-end`]: mergedIconPlacement === "end"
-	}, compactItemClassnames, className, rootClassName, contextClassName, mergedClassNames.root);
+	}, compactItemClassnames, className, rootClassName, void 0, mergedClassNames.root);
 	const fullStyle = {
 		...mergedStyles.root,
-		...contextStyle,
+		...void 0,
 		...style
 	};
 	const iconSharedProps = {
-		className: mergedClassNames.icon,
-		style: mergedStyles.icon
+		a: mergedClassNames.icon,
+		b: mergedStyles.icon
 	};
 	/**
 	* Extract icon node
 	* If there is a custom icon and not in loading state: show custom icon
 	*/
-	const iconWrapperElement = (child) => React.createElement(IconWrapper, {
-		prefixCls,
+	const iconWrapperElement = (child) => React__default.createElement(IconWrapper, {
+		c: prefixCls,
 		...iconSharedProps
 	}, child);
-	const defaultLoadingIconElement = React.createElement(DefaultLoadingIcon, {
-		existIcon: !!icon,
-		prefixCls,
-		loading: innerLoading,
-		mount: isMountRef.current,
+	const defaultLoadingIconElement = React__default.createElement(DefaultLoadingIcon, {
+		e: !!icon,
+		c: prefixCls,
+		d: innerLoading,
+		f: isMountRef.current,
 		...iconSharedProps
 	});
 	/**
@@ -19172,7 +17731,7 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 	}
 	const contentNode = isNonNullable(children) ? spaceChildren(children, needInserted && mergedInsertSpace, mergedStyles.content, mergedClassNames.content) : null;
 	if (linkButtonRestProps.href !== void 0) {
-		return React.createElement("a", {
+		return React__default.createElement("a", {
 			...linkButtonRestProps,
 			className: clsx(classes, { [`${prefixCls}-disabled`]: mergedDisabled }),
 			href: mergedDisabled ? void 0 : linkButtonRestProps.href,
@@ -19183,7 +17742,7 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 			"aria-disabled": mergedDisabled
 		}, iconNode, contentNode);
 	}
-	let buttonNode = React.createElement("button", {
+	let buttonNode = React__default.createElement("button", {
 		...rest,
 		type: htmlType,
 		className: classes,
@@ -19191,67 +17750,13 @@ const InternalCompoundedButton = React.forwardRef((props, ref) => {
 		onClick: handleClick,
 		disabled: mergedDisabled,
 		ref: mergedRef
-	}, iconNode, contentNode, compactItemClassnames && React.createElement(Compact, { prefixCls }));
+	}, iconNode, contentNode, compactItemClassnames && React__default.createElement(Compact, { a: prefixCls }));
 	if (!isUnBorderedButtonVariant(mergedVariant)) {
-		buttonNode = React.createElement(Wave, {
-			component: "Button",
-			disabled: innerLoading
-		}, buttonNode);
+		buttonNode = React__default.createElement(Wave, { a: innerLoading }, buttonNode);
 	}
 	return buttonNode;
 });
 const Button = InternalCompoundedButton;
-Button.Group = ButtonGroup;
-Button.__ANT_BUTTON = true;
-const HOOK_MARK = "RC_FORM_INTERNAL_HOOKS";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const warningFunc = () => {
-	warningOnce(false, "Can not find FormContext. Please make sure you wrap Field under Form.");
-};
-const Context = reactExports.createContext({
-	getFieldValue: warningFunc,
-	getFieldsValue: warningFunc,
-	getFieldError: warningFunc,
-	getFieldWarning: warningFunc,
-	getFieldsError: warningFunc,
-	isFieldsTouched: warningFunc,
-	isFieldTouched: warningFunc,
-	isFieldValidating: warningFunc,
-	isFieldsValidating: warningFunc,
-	resetFields: warningFunc,
-	setFields: warningFunc,
-	setFieldValue: warningFunc,
-	setFieldsValue: warningFunc,
-	validateFields: warningFunc,
-	submit: warningFunc,
-	getInternalHooks: () => {
-		warningFunc();
-		return {
-			dispatch: warningFunc,
-			initEntityValue: warningFunc,
-			registerField: warningFunc,
-			useSubscribe: warningFunc,
-			setInitialValues: warningFunc,
-			destroyForm: warningFunc,
-			setCallbacks: warningFunc,
-			registerWatch: warningFunc,
-			getFields: warningFunc,
-			setValidateMessages: warningFunc,
-			setPreserve: warningFunc,
-			getInitialValue: warningFunc
-		};
-	}
-});
-const ListContext = reactExports.createContext(null);
-function toArray$1(value) {
-	if (value === void 0 || value === null) {
-		return [];
-	}
-	return Array.isArray(value) ? value : [value];
-}
-function isFormInstance(form) {
-	return form && !!form._init;
-}
 function newMessages() {
 	return {
 		default: "Validation error on field %s",
@@ -19553,14 +18058,14 @@ function deepMerge(target, source) {
 	}
 	return target;
 }
-var enumerable$1 = function(rule, value, __unused_CA1B, errors, options) {
+var enumerable$1 = function(rule, value, __unused_21E4, errors, options) {
 	rule["enum"] = Array.isArray(rule["enum"]) ? rule["enum"] : [];
 	if (rule["enum"].indexOf(value) === -1) {
 		errors.push(format(options.messages["enum"], rule.fullField, rule["enum"].join(", ")));
 	}
 };
 var enumRule = enumerable$1;
-var pattern$3 = function(rule, value, __unused_CA1B_0, errors, options) {
+var pattern$3 = function(rule, value, __unused_A73B, errors, options) {
 	if (rule.pattern) {
 		if (rule.pattern instanceof RegExp) {
 			// if a RegExp instance is passed, reset `lastIndex` in case its `global`
@@ -19579,7 +18084,7 @@ var pattern$3 = function(rule, value, __unused_CA1B_0, errors, options) {
 	}
 };
 var pattern$4 = pattern$3;
-var range = function(rule, value, __unused_CA1B_1, errors, options) {
+var range = function(rule, value, __unused_0804, errors, options) {
 	var len = typeof rule.len === "number";
 	var min = typeof rule.min === "number";
 	var max = typeof rule.max === "number";
@@ -19649,10 +18154,6 @@ var getUrlRegex = function() {
 	];
 	var v6Eth0 = "(?:%[0-9a-zA-Z]{1,})?";
 	var v6 = "(?:".concat(v6List.join("|"), ")").concat(v6Eth0);
-	// Pre-compile only the exact regexes because adding a global flag make regexes stateful
-	var __unused_472F = new RegExp("(?:^".concat(v4, "$)|(?:^").concat(v6, "$)"));
-	var __unused_08E8 = new RegExp("^".concat(v4, "$"));
-	var __unused_593A = new RegExp("^".concat(v6, "$"));
 	var ip = function() {};
 	ip.a = function() {
 		return new RegExp("".concat("").concat(v4).concat(""), "g");
@@ -19767,7 +18268,7 @@ var type$3 = type$2;
 *  @param options The validation options.
 *  @param options.messages The validation messages.
 */
-var whitespace = function(rule, value, __unused_CA1B_2, errors, options) {
+var whitespace = function(rule, value, __unused_20F8, errors, options) {
 	if (/^\s+$/.test(value) || value === "") {
 		errors.push(format(options.messages.whitespace, rule.fullField));
 	}
@@ -20322,2125 +18823,18 @@ _defineProperty$s(Schema, "register", function(type, validator) {
 _defineProperty$s(Schema, "warning", warning);
 _defineProperty$s(Schema, "messages", messages);
 _defineProperty$s(Schema, "validators", validators);
-var RawAsyncValidator = Schema;
-const typeTemplate = "'${name}' is not a valid ${type}";
-const defaultValidateMessages = {
-	default: "Validation error on field '${name}'",
-	required: "'${name}' is required",
-	enum: "'${name}' must be one of [${enum}]",
-	whitespace: "'${name}' cannot be empty",
-	date: {
-		format: "'${name}' is invalid for format date",
-		parse: "'${name}' could not be parsed as date",
-		invalid: "'${name}' is invalid date"
-	},
-	types: {
-		string: typeTemplate,
-		method: typeTemplate,
-		array: typeTemplate,
-		object: typeTemplate,
-		number: typeTemplate,
-		date: typeTemplate,
-		boolean: typeTemplate,
-		integer: typeTemplate,
-		float: typeTemplate,
-		regexp: typeTemplate,
-		email: typeTemplate,
-		tel: typeTemplate,
-		url: typeTemplate,
-		hex: typeTemplate
-	},
-	string: {
-		len: "'${name}' must be exactly ${len} characters",
-		min: "'${name}' must be at least ${min} characters",
-		max: "'${name}' cannot be longer than ${max} characters",
-		range: "'${name}' must be between ${min} and ${max} characters"
-	},
-	number: {
-		len: "'${name}' must equal ${len}",
-		min: "'${name}' cannot be less than ${min}",
-		max: "'${name}' cannot be greater than ${max}",
-		range: "'${name}' must be between ${min} and ${max}"
-	},
-	array: {
-		len: "'${name}' must be exactly ${len} in length",
-		min: "'${name}' cannot be less than ${min} in length",
-		max: "'${name}' cannot be greater than ${max} in length",
-		range: "'${name}' must be between ${min} and ${max} in length"
-	},
-	pattern: { mismatch: "'${name}' does not match pattern ${pattern}" }
-};
-// Remove incorrect original ts define
-const AsyncValidator = RawAsyncValidator;
-/**
-* Replace with template.
-*   `I'm ${name}` + { name: 'bamboo' } = I'm bamboo
-*/
-function replaceMessage(template, kv) {
-	return template.replace(/\\?\$\{\w+\}/g, (str) => {
-		if (str.startsWith("\\")) {
-			return str.slice(1);
-		}
-		const key = str.slice(2, -1);
-		return kv[key];
-	});
-}
-const CODE_LOGIC_ERROR = "CODE_LOGIC_ERROR";
-async function validateRule(name, value, rule, options, messageVariables) {
-	const cloneRule = { ...rule };
-	// Bug of `async-validator`
-	// https://github.com/react-component/field-form/issues/316
-	// https://github.com/react-component/field-form/issues/313
-	delete cloneRule.ruleIndex;
-	// https://github.com/ant-design/ant-design/issues/40497#issuecomment-1422282378
-	AsyncValidator.warning = () => void 0;
-	if (cloneRule.validator) {
-		const originValidator = cloneRule.validator;
-		cloneRule.validator = (...args) => {
-			try {
-				return originValidator(...args);
-			} catch (error) {
-				console.error(error);
-				return Promise.reject(CODE_LOGIC_ERROR);
-			}
-		};
-	}
-	// We should special handle array validate
-	let subRuleField = null;
-	if (cloneRule.type === "array" && cloneRule.defaultField) {
-		subRuleField = cloneRule.defaultField;
-		delete cloneRule.defaultField;
-	}
-	const validator = new AsyncValidator({ [name]: [cloneRule] });
-	const messages = merge$1(defaultValidateMessages, options.validateMessages);
-	validator.messages(messages);
-	let result = [];
-	try {
-		await Promise.resolve(validator.validate({ [name]: value }, { ...options }));
-	} catch (errObj) {
-		if (errObj.errors) {
-			result = errObj.errors.map(({ message }, index) => {
-				const mergedMessage = message === CODE_LOGIC_ERROR ? messages.default : message;
-				return reactExports.isValidElement(mergedMessage) ? reactExports.cloneElement(mergedMessage, { key: `error_${index}` }) : mergedMessage;
-			});
-		}
-	}
-	if (!result.length && subRuleField && Array.isArray(value) && value.length > 0) {
-		const subResults = await Promise.all(value.map((subValue, i) => validateRule(`${name}.${i}`, subValue, subRuleField, options, messageVariables)));
-		return subResults.reduce((prev, errors) => [...prev, ...errors], []);
-	}
-	// Replace message with variables
-	const kv = {
-		...rule,
-		name,
-		enum: (rule.enum || []).join(", "),
-		...messageVariables
-	};
-	const fillVariableResult = result.map((error) => {
-		if (typeof error === "string") {
-			return replaceMessage(error, kv);
-		}
-		return error;
-	});
-	return fillVariableResult;
-}
-/**
-* We use `async-validator` to validate the value.
-* But only check one value in a time to avoid namePath validate issue.
-*/
-function validateRules(namePath, value, rules, options, validateFirst, messageVariables) {
-	const name = namePath.join(".");
-	// Fill rule with context
-	const filledRules = rules.map((currentRule, ruleIndex) => {
-		const originValidatorFunc = currentRule.validator;
-		const cloneRule = {
-			...currentRule,
-			ruleIndex
-		};
-		// Replace validator if needed
-		if (originValidatorFunc) {
-			cloneRule.validator = (rule, val, callback) => {
-				let hasPromise = false;
-				// Wrap callback only accept when promise not provided
-				const wrappedCallback = (...args) => {
-					// Wait a tick to make sure return type is a promise
-					Promise.resolve().then(() => {
-						warningOnce(!hasPromise, "Your validator function has already return a promise. `callback` will be ignored.");
-						if (!hasPromise) {
-							callback(...args);
-						}
-					});
-				};
-				// Get promise
-				const promise = originValidatorFunc(rule, val, wrappedCallback);
-				hasPromise = promise && typeof promise.then === "function" && typeof promise.catch === "function";
-				/**
-				* 1. Use promise as the first priority.
-				* 2. If promise not exist, use callback with warning instead
-				*/
-				warningOnce(hasPromise, "`callback` is deprecated. Please return a promise instead.");
-				if (hasPromise) {
-					promise.then(() => {
-						callback();
-					}).catch((err) => {
-						callback(err || " ");
-					});
-				}
-			};
-		}
-		return cloneRule;
-	}).sort(({ warningOnly: w1, ruleIndex: i1 }, { warningOnly: w2, ruleIndex: i2 }) => {
-		if (!!w1 === !!w2) {
-			// Let keep origin order
-			return i1 - i2;
-		}
-		if (w1) {
-			return 1;
-		}
-		return -1;
-	});
-	// Do validate rules
-	let summaryPromise;
-	if (validateFirst === true) {
-		// >>>>> Validate by serialization
-		summaryPromise = new Promise(async (resolve, reject) => {
-			/* eslint-disable no-await-in-loop */
-			for (let i = 0; i < filledRules.length; i += 1) {
-				const rule = filledRules[i];
-				const errors = await validateRule(name, value, rule, options, messageVariables);
-				if (errors.length) {
-					reject([{
-						errors,
-						rule
-					}]);
-					return;
-				}
-			}
-			/* eslint-enable */
-			resolve([]);
-		});
-	} else {
-		// >>>>> Validate by parallel
-		const rulePromises = filledRules.map((rule) => validateRule(name, value, rule, options, messageVariables).then((errors) => ({
-			errors,
-			rule
-		})));
-		summaryPromise = (validateFirst ? finishOnFirstFailed(rulePromises) : finishOnAllFailed(rulePromises)).then((errors) => {
-			// Always change to rejection for Field to catch
-			return Promise.reject(errors);
-		});
-	}
-	// Internal catch error to avoid console error log.
-	summaryPromise.catch((e) => e);
-	return summaryPromise;
-}
-async function finishOnAllFailed(rulePromises) {
-	return Promise.all(rulePromises).then((errorsList) => {
-		const errors = [].concat(...errorsList);
-		return errors;
-	});
-}
-async function finishOnFirstFailed(rulePromises) {
-	let count = 0;
-	return new Promise((resolve) => {
-		rulePromises.forEach((promise) => {
-			promise.then((ruleError) => {
-				if (ruleError.errors.length) {
-					resolve([ruleError]);
-				}
-				count += 1;
-				if (count === rulePromises.length) {
-					resolve([]);
-				}
-			});
-		});
-	});
-}
-/**
-* Convert name to internal supported format.
-* This function should keep since we still thinking if need support like `a.b.c` format.
-* 'a' => ['a']
-* 123 => [123]
-* ['a', 123] => ['a', 123]
-*/
-function getNamePath(path) {
-	return toArray$1(path);
-}
-/**
-* Create a new store object that contains only the values referenced by
-* the provided list of name paths.
-*/
-function cloneByNamePathList(store, namePathList) {
-	let newStore = {};
-	namePathList.forEach((namePath) => {
-		const value = get(store, namePath);
-		newStore = set(newStore, namePath, value);
-	});
-	return newStore;
-}
-/**
-* Check if `namePathList` includes `namePath`.
-* @param namePathList A list of `InternalNamePath[]`
-* @param namePath Compare `InternalNamePath`
-* @param partialMatch True will make `[a, b]` match `[a, b, c]`
-*/
-function containsNamePath(namePathList, namePath, partialMatch = false) {
-	return namePathList && namePathList.some((path) => matchNamePath(namePath, path, partialMatch));
-}
-/**
-* Check if `namePath` is super set or equal of `subNamePath`.
-* @param namePath A list of `InternalNamePath[]`
-* @param subNamePath Compare `InternalNamePath`
-* @param partialMatch Default false. True will make `[a, b]` match `[a, b, c]`
-*/
-function matchNamePath(namePath, subNamePath, partialMatch = false) {
-	if (!namePath || !subNamePath) {
-		return false;
-	}
-	if (!partialMatch && namePath.length !== subNamePath.length) {
-		return false;
-	}
-	return subNamePath.every((nameUnit, i) => namePath[i] === nameUnit);
-}
-// Like `shallowEqual`, but we not check the data which may cause re-render
-function isSimilar(source, target) {
-	if (source === target) {
-		return true;
-	}
-	if (typeof source !== "object" || typeof target !== "object") {
-		return false;
-	}
-	const sourceKeys = Object.keys(source);
-	const targetKeys = Object.keys(target);
-	const keys = new Set([...sourceKeys, ...targetKeys]);
-	return [...keys].every((key) => {
-		const sourceValue = source[key];
-		const targetValue = target[key];
-		if (typeof sourceValue === "function" && typeof targetValue === "function") {
-			return true;
-		}
-		return sourceValue === targetValue;
-	});
-}
-function defaultGetValueFromEvent(valuePropName, ...args) {
-	const event = args[0];
-	if (event && event.target && typeof event.target === "object" && valuePropName in event.target) {
-		return event.target[valuePropName];
-	}
-	return event;
-}
-/**
-* Moves an array item from one position in an array to another.
-*
-* Note: This is a pure function so a new array will be returned, instead
-* of altering the array argument.
-*
-* @param array         Array in which to move an item.         (required)
-* @param moveIndex     The index of the item to move.          (required)
-* @param toIndex       The index to move item at moveIndex to. (required)
-*/
-function move(array, moveIndex, toIndex) {
-	const { length } = array;
-	if (moveIndex < 0 || moveIndex >= length || toIndex < 0 || toIndex >= length) {
-		return array;
-	}
-	const item = array[moveIndex];
-	const diff = moveIndex - toIndex;
-	if (diff > 0) {
-		// move left
-		return [
-			...array.slice(0, toIndex),
-			item,
-			...array.slice(toIndex, moveIndex),
-			...array.slice(moveIndex + 1, length)
-		];
-	}
-	if (diff < 0) {
-		// move right
-		return [
-			...array.slice(0, moveIndex),
-			...array.slice(moveIndex + 1, toIndex + 1),
-			item,
-			...array.slice(toIndex + 1, length)
-		];
-	}
-	return array;
-}
-function _extends$o() {
-	_extends$o = Object.assign.bind();
-	return _extends$o.apply(this, arguments);
-}
-const EMPTY_ERRORS = [];
-const EMPTY_WARNINGS = [];
-function requireUpdate(shouldUpdate, prev, next, prevValue, nextValue, info) {
-	if (typeof shouldUpdate === "function") {
-		return shouldUpdate(prev, next, "source" in info ? { source: info.source } : {});
-	}
-	return prevValue !== nextValue;
-}
-// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
-// We use Class instead of Hooks here since it will cost much code by using Hooks.
-class Field extends reactExports.Component {
-	static contextType = Context;
-	state = { resetCount: 0 };
-	cancelRegisterFunc = null;
-	mounted = false;
-	/**
-	* Follow state should not management in State since it will async update by React.
-	* This makes first render of form can not get correct state value.
-	*/
-	touched = false;
-	/**
-	* Mark when touched & validated. Currently only used for `dependencies`.
-	* Note that we do not think field with `initialValue` is dirty
-	* but this will be by `isFieldDirty` func.
-	*/
-	dirty = false;
-	validatePromise;
-	prevValidating;
-	errors = EMPTY_ERRORS;
-	warnings = EMPTY_WARNINGS;
-	// ============================== Subscriptions ==============================
-	constructor(props) {
-		super(props);
-		// Register on init
-		if (props.fieldContext) {
-			const { getInternalHooks } = props.fieldContext;
-			const { initEntityValue } = getInternalHooks(HOOK_MARK);
-			initEntityValue(this);
-		}
-	}
-	componentDidMount() {
-		const { shouldUpdate, fieldContext } = this.props;
-		this.mounted = true;
-		// Register on init
-		if (fieldContext) {
-			const { getInternalHooks } = fieldContext;
-			const { registerField } = getInternalHooks(HOOK_MARK);
-			this.cancelRegisterFunc = registerField(this);
-		}
-		// One more render for component in case fields not ready
-		if (shouldUpdate === true) {
-			this.reRender();
-		}
-	}
-	componentWillUnmount() {
-		this.cancelRegister();
-		this.triggerMetaEvent(true);
-		this.mounted = false;
-	}
-	cancelRegister = () => {
-		const { preserve, isListField, name } = this.props;
-		if (this.cancelRegisterFunc) {
-			this.cancelRegisterFunc(isListField, preserve, getNamePath(name));
-		}
-		this.cancelRegisterFunc = null;
-	};
-	// ================================== Utils ==================================
-	getNamePath = () => {
-		const { name, fieldContext } = this.props;
-		const { prefixName = [] } = fieldContext;
-		return name !== void 0 ? [...prefixName, ...name] : [];
-	};
-	getRules = () => {
-		const { rules = [], fieldContext } = this.props;
-		return rules.map((rule) => {
-			if (typeof rule === "function") {
-				return rule(fieldContext);
-			}
-			return rule;
-		});
-	};
-	reRender() {
-		if (!this.mounted) return;
-		this.forceUpdate();
-	}
-	refresh = () => {
-		if (!this.mounted) return;
-		/**
-		* Clean up current node.
-		*/
-		this.setState(({ resetCount }) => ({ resetCount: resetCount + 1 }));
-	};
-	// Event should only trigger when meta changed
-	metaCache = null;
-	triggerMetaEvent = (destroy) => {
-		const { onMetaChange } = this.props;
-		if (onMetaChange) {
-			const meta = {
-				...this.getMeta(),
-				destroy
-			};
-			if (!isEqual(this.metaCache, meta)) {
-				onMetaChange(meta);
-			}
-			this.metaCache = meta;
-		} else {
-			this.metaCache = null;
-		}
-	};
-	// ========================= Field Entity Interfaces =========================
-	// Trigger by store update. Check if need update the component
-	onStoreChange = (prevStore, namePathList, info) => {
-		const { shouldUpdate, dependencies = [], onReset } = this.props;
-		const { store } = info;
-		const namePath = this.getNamePath();
-		const prevValue = this.getValue(prevStore);
-		const curValue = this.getValue(store);
-		const namePathMatch = namePathList && containsNamePath(namePathList, namePath);
-		// `setFieldsValue` is a quick access to update related status
-		if (info.type === "valueUpdate" && info.source === "external" && !isEqual(prevValue, curValue)) {
-			this.touched = true;
-			this.dirty = true;
-			this.validatePromise = null;
-			this.errors = EMPTY_ERRORS;
-			this.warnings = EMPTY_WARNINGS;
-			this.triggerMetaEvent();
-		}
-		switch (info.type) {
-			case "reset":
-				if (!namePathList || namePathMatch) {
-					// Clean up state
-					this.touched = false;
-					this.dirty = false;
-					this.validatePromise = void 0;
-					this.errors = EMPTY_ERRORS;
-					this.warnings = EMPTY_WARNINGS;
-					this.triggerMetaEvent();
-					onReset?.();
-					this.refresh();
-					return;
-				}
-				break;
-			case "remove": {
-				if (shouldUpdate && requireUpdate(shouldUpdate, prevStore, store, prevValue, curValue, info)) {
-					this.reRender();
-					return;
-				}
-				break;
-			}
-			case "setField": {
-				const { data } = info;
-				if (namePathMatch) {
-					if ("touched" in data) {
-						this.touched = data.touched;
-					}
-					if ("validating" in data && !("originRCField" in data)) {
-						this.validatePromise = data.validating ? Promise.resolve([]) : null;
-					}
-					if ("errors" in data) {
-						this.errors = data.errors || EMPTY_ERRORS;
-					}
-					if ("warnings" in data) {
-						this.warnings = data.warnings || EMPTY_WARNINGS;
-					}
-					this.dirty = true;
-					this.triggerMetaEvent();
-					this.reRender();
-					return;
-				} else if ("value" in data && containsNamePath(namePathList, namePath, true)) {
-					// Contains path with value should also check
-					this.reRender();
-					return;
-				}
-				// Handle update by `setField` with `shouldUpdate`
-				if (shouldUpdate && !namePath.length && requireUpdate(shouldUpdate, prevStore, store, prevValue, curValue, info)) {
-					this.reRender();
-					return;
-				}
-				break;
-			}
-			case "dependenciesUpdate": {
-				/**
-				* Trigger when marked `dependencies` updated. Related fields will all update
-				*/
-				const dependencyList = dependencies.map(getNamePath);
-				// No need for `namePathMath` check and `shouldUpdate` check, since `valueUpdate` will be
-				// emitted earlier and they will work there
-				// If set it may cause unnecessary twice rerendering
-				if (dependencyList.some((dependency) => containsNamePath(info.relatedFields, dependency))) {
-					this.reRender();
-					return;
-				}
-				break;
-			}
-			default:
-				// 1. If `namePath` exists in `namePathList`, means it's related value and should update
-				//      For example <List name="list"><Field name={['list', 0]}></List>
-				//      If `namePathList` is [['list']] (List value update), Field should be updated
-				//      If `namePathList` is [['list', 0]] (Field value update), List shouldn't be updated
-				// 2.
-				//   2.1 If `dependencies` is set, `name` is not set and `shouldUpdate` is not set,
-				//       don't use `shouldUpdate`. `dependencies` is view as a shortcut if `shouldUpdate`
-				//       is not provided
-				//   2.2 If `shouldUpdate` provided, use customize logic to update the field
-				//       else to check if value changed
-				if (namePathMatch || (!dependencies.length || namePath.length || shouldUpdate) && requireUpdate(shouldUpdate, prevStore, store, prevValue, curValue, info)) {
-					this.reRender();
-					return;
-				}
-				break;
-		}
-		if (shouldUpdate === true) {
-			this.reRender();
-		}
-	};
-	validateRules = (options) => {
-		// We should fixed namePath & value to avoid developer change then by form function
-		const namePath = this.getNamePath();
-		const currentValue = this.getValue();
-		const { triggerName, validateOnly = false } = options || {};
-		// Force change to async to avoid rule OOD under renderProps field
-		const rootPromise = Promise.resolve().then(async () => {
-			if (!this.mounted) {
-				return [];
-			}
-			const { validateFirst = false, messageVariables, validateDebounce } = this.props;
-			// Start validate
-			let filteredRules = this.getRules();
-			if (triggerName) {
-				filteredRules = filteredRules.filter((rule) => rule).filter((rule) => {
-					const { validateTrigger } = rule;
-					if (!validateTrigger) {
-						return true;
-					}
-					const triggerList = toArray$1(validateTrigger);
-					return triggerList.includes(triggerName);
-				});
-			}
-			// Wait for debounce. Skip if no `triggerName` since its from `validateFields / submit`
-			if (validateDebounce && triggerName) {
-				await new Promise((resolve) => {
-					setTimeout(resolve, validateDebounce);
-				});
-				// Skip since out of date
-				if (this.validatePromise !== rootPromise) {
-					return [];
-				}
-			}
-			const promise = validateRules(namePath, currentValue, filteredRules, options, validateFirst, messageVariables);
-			promise.catch((e) => e).then((ruleErrors = EMPTY_ERRORS) => {
-				if (this.validatePromise === rootPromise) {
-					this.validatePromise = null;
-					// Get errors & warnings
-					const nextErrors = [];
-					const nextWarnings = [];
-					ruleErrors.forEach?.(({ rule: { warningOnly }, errors = EMPTY_ERRORS }) => {
-						if (warningOnly) {
-							nextWarnings.push(...errors);
-						} else {
-							nextErrors.push(...errors);
-						}
-					});
-					this.errors = nextErrors;
-					this.warnings = nextWarnings;
-					this.triggerMetaEvent();
-					this.reRender();
-				}
-			});
-			return promise;
-		});
-		if (validateOnly) {
-			return rootPromise;
-		}
-		this.validatePromise = rootPromise;
-		this.dirty = true;
-		this.errors = EMPTY_ERRORS;
-		this.warnings = EMPTY_WARNINGS;
-		this.triggerMetaEvent();
-		// Force trigger re-render since we need sync renderProps with new meta
-		this.reRender();
-		return rootPromise;
-	};
-	isFieldValidating = () => !!this.validatePromise;
-	isFieldTouched = () => this.touched;
-	isFieldDirty = () => {
-		// Touched or validate or has initialValue
-		if (this.dirty || this.props.initialValue !== void 0) {
-			return true;
-		}
-		// Form set initialValue
-		const { fieldContext } = this.props;
-		const { getInitialValue } = fieldContext.getInternalHooks(HOOK_MARK);
-		if (getInitialValue(this.getNamePath()) !== void 0) {
-			return true;
-		}
-		return false;
-	};
-	getErrors = () => this.errors;
-	getWarnings = () => this.warnings;
-	isListField = () => this.props.isListField;
-	isList = () => this.props.isList;
-	isPreserve = () => this.props.preserve;
-	// ============================= Child Component =============================
-	getMeta = () => {
-		// Make error & validating in cache to save perf
-		this.prevValidating = this.isFieldValidating();
-		const meta = {
-			touched: this.isFieldTouched(),
-			validating: this.prevValidating,
-			errors: this.errors,
-			warnings: this.warnings,
-			name: this.getNamePath(),
-			validated: this.validatePromise === null
-		};
-		return meta;
-	};
-	// Only return validate child node. If invalidate, will do nothing about field.
-	getOnlyChild = (children) => {
-		// Support render props
-		if (typeof children === "function") {
-			const meta = this.getMeta();
-			return {
-				...this.getOnlyChild(children(this.getControlled(), meta, this.props.fieldContext)),
-				isFunction: true
-			};
-		}
-		// Filed element only
-		const childList = toArray$3(children);
-		if (childList.length !== 1 || !reactExports.isValidElement(childList[0])) {
-			return {
-				child: childList,
-				isFunction: false
-			};
-		}
-		return {
-			child: childList[0],
-			isFunction: false
-		};
-	};
-	// ============================== Field Control ==============================
-	getValue = (store) => {
-		const { getFieldsValue } = this.props.fieldContext;
-		const namePath = this.getNamePath();
-		return get(store || getFieldsValue(true), namePath);
-	};
-	getControlled = (childProps = {}) => {
-		const { name, trigger = "onChange", validateTrigger, getValueFromEvent, normalize, valuePropName = "value", getValueProps, fieldContext } = this.props;
-		const mergedValidateTrigger = validateTrigger !== void 0 ? validateTrigger : fieldContext.validateTrigger;
-		const namePath = this.getNamePath();
-		const { getInternalHooks, getFieldsValue } = fieldContext;
-		const { dispatch } = getInternalHooks(HOOK_MARK);
-		const value = this.getValue();
-		const mergedGetValueProps = getValueProps || ((val) => ({ [valuePropName]: val }));
-		const originTriggerFunc = childProps[trigger];
-		const valueProps = name !== void 0 ? mergedGetValueProps(value) : {};
-		const control = {
-			...childProps,
-			...valueProps
-		};
-		// Add trigger
-		control[trigger] = (...args) => {
-			// Mark as touched
-			this.touched = true;
-			this.dirty = true;
-			this.triggerMetaEvent();
-			let newValue;
-			if (getValueFromEvent) {
-				newValue = getValueFromEvent(...args);
-			} else {
-				newValue = defaultGetValueFromEvent(valuePropName, ...args);
-			}
-			if (normalize) {
-				newValue = normalize(newValue, value, getFieldsValue(true));
-			}
-			if (newValue !== value) {
-				dispatch({
-					type: "updateValue",
-					namePath,
-					value: newValue
-				});
-			}
-			if (originTriggerFunc) {
-				originTriggerFunc(...args);
-			}
-		};
-		// Add validateTrigger
-		const validateTriggerList = toArray$1(mergedValidateTrigger || []);
-		validateTriggerList.forEach((triggerName) => {
-			// Wrap additional function of component, so that we can get latest value from store
-			const originTrigger = control[triggerName];
-			control[triggerName] = (...args) => {
-				if (originTrigger) {
-					originTrigger(...args);
-				}
-				// Always use latest rules
-				const { rules } = this.props;
-				if (rules && rules.length) {
-					// We dispatch validate to root,
-					// since it will update related data with other field with same name
-					dispatch({
-						type: "validateField",
-						namePath,
-						triggerName
-					});
-				}
-			};
-		});
-		return control;
-	};
-	render() {
-		const { resetCount } = this.state;
-		const { children } = this.props;
-		const { child, isFunction } = this.getOnlyChild(children);
-		// Not need to `cloneElement` since user can handle this in render function self
-		let returnChildNode;
-		if (isFunction) {
-			returnChildNode = child;
-		} else if (reactExports.isValidElement(child)) {
-			returnChildNode = reactExports.cloneElement(child, this.getControlled(child.props));
-		} else {
-			warningOnce(!child, "`children` of Field is not validate ReactElement.");
-			returnChildNode = child;
-		}
-		return reactExports.createElement(reactExports.Fragment, { key: resetCount }, returnChildNode);
-	}
-}
-function WrapperField({ name, ...restProps }) {
-	const fieldContext = reactExports.useContext(Context);
-	const listContext = reactExports.useContext(ListContext);
-	const namePath = name !== void 0 ? getNamePath(name) : void 0;
-	const isMergedListField = restProps.isListField ?? !!listContext;
-	let key = "keep";
-	if (!isMergedListField) {
-		key = `_${(namePath || []).join("_")}`;
-	}
-	return reactExports.createElement(Field, _extends$o({
-		key,
-		name: namePath,
-		isListField: isMergedListField
-	}, restProps, { fieldContext }));
-}
-function List({ name, initialValue, children, rules, validateTrigger, isListField }) {
-	const context = reactExports.useContext(Context);
-	const wrapperListContext = reactExports.useContext(ListContext);
-	const keyRef = reactExports.useRef({
-		keys: [],
-		id: 0
-	});
-	const keyManager = keyRef.current;
-	const prefixName = reactExports.useMemo(() => {
-		const parentPrefixName = getNamePath(context.prefixName) || [];
-		return [...parentPrefixName, ...getNamePath(name)];
-	}, [context.prefixName, name]);
-	const fieldContext = reactExports.useMemo(() => ({
-		...context,
-		prefixName
-	}), [context, prefixName]);
-	// List context
-	const listContext = reactExports.useMemo(() => ({ getKey: (namePath) => {
-		const len = prefixName.length;
-		const pathName = namePath[len];
-		return [keyManager.keys[pathName], namePath.slice(len + 1)];
-	} }), [keyManager, prefixName]);
-	// User should not pass `children` as other type.
-	if (typeof children !== "function") {
-		warningOnce(false, "Form.List only accepts function as children.");
-		return null;
-	}
-	const shouldUpdate = (prevValue, nextValue, { source }) => {
-		if (source === "internal") {
-			return false;
-		}
-		return prevValue !== nextValue;
-	};
-	return reactExports.createElement(ListContext.Provider, { value: listContext }, reactExports.createElement(Context.Provider, { value: fieldContext }, reactExports.createElement(WrapperField, {
-		name: [],
-		shouldUpdate,
-		rules,
-		validateTrigger,
-		initialValue,
-		isList: true,
-		isListField: isListField ?? !!wrapperListContext
-	}, ({ value = [], onChange }, meta) => {
-		const { getFieldValue } = context;
-		const getNewValue = () => {
-			const values = getFieldValue(prefixName || []);
-			return values || [];
-		};
-		/**
-		* Always get latest value in case user update fields by `form` api.
-		*/
-		const operations = {
-			add: (defaultValue, index) => {
-				// Mapping keys
-				const newValue = getNewValue();
-				if (index >= 0 && index <= newValue.length) {
-					keyManager.keys = [
-						...keyManager.keys.slice(0, index),
-						keyManager.id,
-						...keyManager.keys.slice(index)
-					];
-					onChange([
-						...newValue.slice(0, index),
-						defaultValue,
-						...newValue.slice(index)
-					]);
-				} else {
-					keyManager.keys = [...keyManager.keys, keyManager.id];
-					onChange([...newValue, defaultValue]);
-				}
-				keyManager.id += 1;
-			},
-			remove: (index) => {
-				const newValue = getNewValue();
-				const indexSet = new Set(Array.isArray(index) ? index : [index]);
-				if (indexSet.size <= 0) {
-					return;
-				}
-				keyManager.keys = keyManager.keys.filter((__unused_EF54, keysIndex) => !indexSet.has(keysIndex));
-				// Trigger store change
-				onChange(newValue.filter((__unused_17FF, valueIndex) => !indexSet.has(valueIndex)));
-			},
-			move(from, to) {
-				if (from === to) {
-					return;
-				}
-				const newValue = getNewValue();
-				// Do not handle out of range
-				if (from < 0 || from >= newValue.length || to < 0 || to >= newValue.length) {
-					return;
-				}
-				keyManager.keys = move(keyManager.keys, from, to);
-				// Trigger store change
-				onChange(move(newValue, from, to));
-			}
-		};
-		let listValue = value || [];
-		if (!Array.isArray(listValue)) {
-			listValue = [];
-		}
-		return children(listValue.map((__unused_38A6, index) => {
-			let key = keyManager.keys[index];
-			if (key === void 0) {
-				keyManager.keys[index] = keyManager.id;
-				key = keyManager.keys[index];
-				keyManager.id += 1;
-			}
-			return {
-				name: index,
-				key,
-				isListField: true
-			};
-		}), operations, meta);
-	})));
-}
-function allPromiseFinish(promiseList) {
-	let hasError = false;
-	let count = promiseList.length;
-	const results = [];
-	if (!promiseList.length) {
-		return Promise.resolve([]);
-	}
-	return new Promise((resolve, reject) => {
-		promiseList.forEach((promise, index) => {
-			promise.catch((e) => {
-				hasError = true;
-				return e;
-			}).then((result) => {
-				count -= 1;
-				results[index] = result;
-				if (count > 0) {
-					return;
-				}
-				if (hasError) {
-					reject(results);
-				}
-				resolve(results);
-			});
-		});
-	});
-}
-const SPLIT = "__@field_split__";
-/**
-* Convert name path into string to fast the fetch speed of Map.
-*/
-function normalize(namePath) {
-	return namePath.map((cell) => `${typeof cell}:${cell}`).join(SPLIT);
-}
-/**
-* NameMap like a `Map` but accepts `string[]` as key.
-*/
-class NameMap {
-	kvs = new Map();
-	set(key, value) {
-		this.kvs.set(normalize(key), value);
-	}
-	get(key) {
-		return this.kvs.get(normalize(key));
-	}
-	getAsPrefix(key) {
-		const normalizedKey = normalize(key);
-		const normalizedPrefix = normalizedKey + SPLIT;
-		const results = [];
-		const current = this.kvs.get(normalizedKey);
-		if (current !== void 0) {
-			results.push(current);
-		}
-		this.kvs.forEach((value, itemNormalizedKey) => {
-			if (itemNormalizedKey.startsWith(normalizedPrefix)) {
-				results.push(value);
-			}
-		});
-		return results;
-	}
-	update(key, updater) {
-		const origin = this.get(key);
-		const next = updater(origin);
-		if (!next) {
-			this.delete(key);
-		} else {
-			this.set(key, next);
-		}
-	}
-	delete(key) {
-		this.kvs.delete(normalize(key));
-	}
-	// Since we only use this in test, let simply realize this
-	map(callback) {
-		return [...this.kvs.entries()].map(([key, value]) => {
-			const cells = key.split(SPLIT);
-			return callback({
-				key: cells.map((cell) => {
-					const [, type, unit] = cell.match(/^([^:]*):(.*)$/);
-					return type === "number" ? Number(unit) : unit;
-				}),
-				value
-			});
-		});
-	}
-	toJSON() {
-		const json = {};
-		this.map(({ key, value }) => {
-			json[key.join(".")] = value;
-			return null;
-		});
-		return json;
-	}
-}
-/**
-* Call action with delay in macro task.
-*/
-const macroTask = (fn) => {
-	const channel = new MessageChannel();
-	channel.port1.onmessage = fn;
-	channel.port2.postMessage(null);
-};
-class WatcherCenter {
-	a = [];
-	b = 0;
-	c = new Set();
-	constructor(form) {
-		this.d = form;
-	}
-	e(callback) {
-		this.c.add(callback);
-		return () => {
-			this.c.delete(callback);
-		};
-	}
-	g(namePath) {
-		// Insert with deduplication
-		namePath.forEach((path) => {
-			if (this.a.every((exist) => !matchNamePath(exist, path))) {
-				this.a.push(path);
-			}
-		});
-		this.f();
-	}
-	f() {
-		this.b += 1;
-		const currentId = this.b;
-		macroTask(() => {
-			if (currentId === this.b && this.c.size) {
-				const formInst = this.d.a();
-				const values = formInst.getFieldsValue();
-				const allValues = formInst.getFieldsValue(true);
-				this.c.forEach((callback) => {
-					callback(values, allValues, this.a);
-				});
-				this.a = [];
-			}
-		});
-	}
-}
-class FormStore {
-	b = true;
-	c = {};
-	d = [];
-	e = {};
-	f = {};
-	g = null;
-	h = null;
-	i = null;
-	j = new WatcherCenter(this);
-	constructor(forceRootUpdate) {
-		this.k = forceRootUpdate;
-	}
-	a = () => ({
-		getFieldValue: this.l,
-		getFieldsValue: this.m,
-		getFieldError: this.n,
-		getFieldWarning: this.o,
-		getFieldsError: this.p,
-		isFieldsTouched: this.q,
-		isFieldTouched: this.r,
-		isFieldValidating: this.s,
-		isFieldsValidating: this.t,
-		resetFields: this.u,
-		setFields: this.v,
-		setFieldValue: this.w,
-		setFieldsValue: this.x,
-		validateFields: this.y,
-		submit: this.z,
-		_init: true,
-		getInternalHooks: this.A
-	});
-	// ======================== Internal Hooks ========================
-	A = (key) => {
-		if (key === HOOK_MARK) {
-			return {
-				dispatch: this.B,
-				initEntityValue: this.C,
-				registerField: this.D,
-				useSubscribe: this.E,
-				setInitialValues: this.F,
-				destroyForm: this.G,
-				setCallbacks: this.H,
-				setValidateMessages: this.I,
-				getFields: this.J,
-				setPreserve: this.K,
-				getInitialValue: this.L,
-				registerWatch: this.M
-			};
-		}
-		warningOnce(false, "`getInternalHooks` is internal usage. Should not call directly.");
-		return null;
-	};
-	E = (subscribable) => {
-		this.b = subscribable;
-	};
-	/**
-	* Record prev Form unmount fieldEntities which config preserve false.
-	* This need to be refill with initialValues instead of store value.
-	*/
-	N = null;
-	/**
-	* First time `setInitialValues` should update store with initial value
-	*/
-	F = (initialValues, init) => {
-		this.e = initialValues || {};
-		if (init) {
-			let nextStore = merge$1(initialValues, this.c);
-			// We will take consider prev form unmount fields.
-			// When the field is not `preserve`, we need fill this with initialValues instead of store.
-			// eslint-disable-next-line array-callback-return
-			this.N?.map(({ key: namePath }) => {
-				nextStore = set(nextStore, namePath, get(initialValues, namePath));
-			});
-			this.N = null;
-			this.O(nextStore);
-		}
-	};
-	G = (clearOnDestroy) => {
-		if (clearOnDestroy) {
-			// destroy form reset store
-			this.O({});
-		} else {
-			// Fill preserve fields
-			const prevWithoutPreserves = new NameMap();
-			this.P(true).forEach((entity) => {
-				if (!this.Q(entity.isPreserve())) {
-					prevWithoutPreserves.set(entity.getNamePath(), true);
-				}
-			});
-			this.N = prevWithoutPreserves;
-		}
-	};
-	L = (namePath) => {
-		const initValue = get(this.e, namePath);
-		// Not cloneDeep when without `namePath`
-		return namePath.length ? merge$1(initValue) : initValue;
-	};
-	H = (callbacks) => {
-		this.f = callbacks;
-	};
-	I = (validateMessages) => {
-		this.g = validateMessages;
-	};
-	K = (preserve) => {
-		this.h = preserve;
-	};
-	// ============================= Watch ============================
-	M = (callback) => {
-		return this.j.e(callback);
-	};
-	R = (namePath = []) => {
-		this.j.g(namePath);
-	};
-	// ============================ Store =============================
-	O = (nextStore) => {
-		this.c = nextStore;
-	};
-	// ============================ Fields ============================
-	/**
-	* Get registered field entities.
-	* @param pure Only return field which has a `name`. Default: false
-	*/
-	P = (pure = false) => {
-		if (!pure) {
-			return this.d;
-		}
-		return this.d.filter((field) => field.getNamePath().length);
-	};
-	/**
-	* Get a map of registered field entities with their name path as the key.
-	* @param pure Only include fields which have a `name`. Default: false
-	* @returns A NameMap containing field entities indexed by their name paths
-	*/
-	S = () => {
-		const cache = new NameMap();
-		this.P(true).forEach((field) => {
-			const namePath = field.getNamePath();
-			cache.set(namePath, field);
-		});
-		return cache;
-	};
-	/**
-	* Get field entities based on a list of name paths.
-	* @param nameList - Array of name paths to search for. If not provided, returns all field entities with names.
-	* @param includesSubNamePath - Whether to include fields that have the given name path as a prefix.
-	*/
-	T = (nameList, includesSubNamePath = false) => {
-		if (!nameList) {
-			return this.P(true);
-		}
-		const cache = this.S();
-		if (!includesSubNamePath) {
-			return nameList.map((name) => {
-				const namePath = getNamePath(name);
-				return cache.get(namePath) || { INVALIDATE_NAME_PATH: getNamePath(name) };
-			});
-		}
-		return nameList.flatMap((name) => {
-			const namePath = getNamePath(name);
-			const fields = cache.getAsPrefix(namePath);
-			if (fields.length) {
-				return fields;
-			}
-			return [{ INVALIDATE_NAME_PATH: namePath }];
-		});
-	};
-	m = (nameList, filterFunc) => {
-		// Fill args
-		let mergedNameList;
-		let mergedFilterFunc;
-		if (nameList === true || Array.isArray(nameList)) {
-			mergedNameList = nameList;
-			mergedFilterFunc = filterFunc;
-		} else if (nameList && typeof nameList === "object") {
-			mergedFilterFunc = nameList.filter;
-		}
-		if (mergedNameList === true && !mergedFilterFunc) {
-			return this.c;
-		}
-		const fieldEntities = this.T(Array.isArray(mergedNameList) ? mergedNameList : null, true);
-		const filteredNameList = [];
-		const listNamePaths = [];
-		fieldEntities.forEach((entity) => {
-			const namePath = entity.INVALIDATE_NAME_PATH || entity.getNamePath();
-			// Ignore when it's a list item and not specific the namePath,
-			// since parent field is already take in count
-			if (entity.isList?.()) {
-				listNamePaths.push(namePath);
-				return;
-			}
-			if (!mergedFilterFunc) {
-				filteredNameList.push(namePath);
-			} else {
-				const meta = "getMeta" in entity ? entity.getMeta() : null;
-				if (mergedFilterFunc(meta)) {
-					filteredNameList.push(namePath);
-				}
-			}
-		});
-		let mergedValues = cloneByNamePathList(this.c, filteredNameList.map(getNamePath));
-		// We need fill the list as [] if Form.List is empty
-		listNamePaths.forEach((namePath) => {
-			if (!get(mergedValues, namePath)) {
-				mergedValues = set(mergedValues, namePath, []);
-			}
-		});
-		return mergedValues;
-	};
-	l = (name) => {
-		const namePath = getNamePath(name);
-		return get(this.c, namePath);
-	};
-	p = (nameList) => {
-		const fieldEntities = this.T(nameList);
-		return fieldEntities.map((entity, index) => {
-			if (entity && !entity.INVALIDATE_NAME_PATH) {
-				return {
-					name: entity.getNamePath(),
-					errors: entity.getErrors(),
-					warnings: entity.getWarnings()
-				};
-			}
-			return {
-				name: getNamePath(nameList[index]),
-				errors: [],
-				warnings: []
-			};
-		});
-	};
-	n = (name) => {
-		const namePath = getNamePath(name);
-		const fieldError = this.p([namePath])[0];
-		return fieldError.errors;
-	};
-	o = (name) => {
-		const namePath = getNamePath(name);
-		const fieldError = this.p([namePath])[0];
-		return fieldError.warnings;
-	};
-	q = (...args) => {
-		const [arg0, arg1] = args;
-		let namePathList;
-		let isAllFieldsTouched = false;
-		if (args.length === 0) {
-			namePathList = null;
-		} else if (args.length === 1) {
-			if (Array.isArray(arg0)) {
-				namePathList = arg0.map(getNamePath);
-				isAllFieldsTouched = false;
-			} else {
-				namePathList = null;
-				isAllFieldsTouched = arg0;
-			}
-		} else {
-			namePathList = arg0.map(getNamePath);
-			isAllFieldsTouched = arg1;
-		}
-		const fieldEntities = this.P(true);
-		const isFieldTouched = (field) => field.isFieldTouched();
-		// ===== Will get fully compare when not config namePathList =====
-		if (!namePathList) {
-			return isAllFieldsTouched ? fieldEntities.every((entity) => isFieldTouched(entity) || entity.isList()) : fieldEntities.some(isFieldTouched);
-		}
-		// Generate a nest tree for validate
-		const map = new NameMap();
-		namePathList.forEach((shortNamePath) => {
-			map.set(shortNamePath, []);
-		});
-		fieldEntities.forEach((field) => {
-			const fieldNamePath = field.getNamePath();
-			// Find matched entity and put into list
-			namePathList.forEach((shortNamePath) => {
-				if (shortNamePath.every((nameUnit, i) => fieldNamePath[i] === nameUnit)) {
-					map.update(shortNamePath, (list) => [...list, field]);
-				}
-			});
-		});
-		// Check if NameMap value is touched
-		const isNamePathListTouched = (entities) => entities.some(isFieldTouched);
-		const namePathListEntities = map.map(({ value }) => value);
-		return isAllFieldsTouched ? namePathListEntities.every(isNamePathListTouched) : namePathListEntities.some(isNamePathListTouched);
-	};
-	r = (name) => {
-		return this.q([name]);
-	};
-	t = (nameList) => {
-		const fieldEntities = this.P();
-		if (!nameList) {
-			return fieldEntities.some((testField) => testField.isFieldValidating());
-		}
-		const namePathList = nameList.map(getNamePath);
-		return fieldEntities.some((testField) => {
-			const fieldNamePath = testField.getNamePath();
-			return containsNamePath(namePathList, fieldNamePath) && testField.isFieldValidating();
-		});
-	};
-	s = (name) => {
-		return this.t([name]);
-	};
-	/**
-	* Reset Field with field `initialValue` prop.
-	* Can pass `entities` or `namePathList` or just nothing.
-	*/
-	U = (info = {}) => {
-		// Create cache
-		const cache = new NameMap();
-		const fieldEntities = this.P(true);
-		fieldEntities.forEach((field) => {
-			const { initialValue } = field.props;
-			const namePath = field.getNamePath();
-			// Record only if has `initialValue`
-			if (initialValue !== void 0) {
-				const records = cache.get(namePath) || new Set();
-				records.add({
-					entity: field,
-					value: initialValue
-				});
-				cache.set(namePath, records);
-			}
-		});
-		// Reset
-		const resetWithFields = (entities) => {
-			entities.forEach((field) => {
-				const { initialValue } = field.props;
-				if (initialValue !== void 0) {
-					const namePath = field.getNamePath();
-					const formInitialValue = this.L(namePath);
-					if (formInitialValue !== void 0) {
-						// Warning if conflict with form initialValues and do not modify value
-						warningOnce(false, `Form already set 'initialValues' with path '${namePath.join(".")}'. Field can not overwrite it.`);
-					} else {
-						const records = cache.get(namePath);
-						if (records && records.size > 1) {
-							// Warning if multiple field set `initialValue`and do not modify value
-							warningOnce(false, `Multiple Field with path '${namePath.join(".")}' set 'initialValue'. Can not decide which one to pick.`);
-						} else if (records) {
-							const originValue = this.l(namePath);
-							const isListField = field.isListField();
-							// Set `initialValue`
-							if (!isListField && (!info.skipExist || originValue === void 0)) {
-								this.O(set(this.c, namePath, [...records][0].value));
-							}
-						}
-					}
-				}
-			});
-		};
-		let requiredFieldEntities;
-		if (info.entities) {
-			requiredFieldEntities = info.entities;
-		} else if (info.namePathList) {
-			requiredFieldEntities = [];
-			info.namePathList.forEach((namePath) => {
-				const records = cache.get(namePath);
-				if (records) {
-					requiredFieldEntities.push(...[...records].map((r) => r.entity));
-				}
-			});
-		} else {
-			requiredFieldEntities = fieldEntities;
-		}
-		resetWithFields(requiredFieldEntities);
-	};
-	u = (nameList) => {
-		const prevStore = this.c;
-		if (!nameList) {
-			this.O(merge$1(this.e));
-			this.U();
-			this.V(prevStore, null, { type: "reset" });
-			this.R();
-			return;
-		}
-		// Reset by `nameList`
-		const namePathList = nameList.map(getNamePath);
-		namePathList.forEach((namePath) => {
-			const initialValue = this.L(namePath);
-			this.O(set(this.c, namePath, initialValue));
-		});
-		this.U({ namePathList });
-		this.V(prevStore, namePathList, { type: "reset" });
-		this.R(namePathList);
-	};
-	v = (fields) => {
-		const prevStore = this.c;
-		const namePathList = [];
-		fields.forEach((fieldData) => {
-			const { name, ...data } = fieldData;
-			const namePath = getNamePath(name);
-			namePathList.push(namePath);
-			// Value
-			if ("value" in data) {
-				this.O(set(this.c, namePath, data.value));
-			}
-			this.V(prevStore, [namePath], {
-				type: "setField",
-				data: fieldData
-			});
-		});
-		this.R(namePathList);
-	};
-	J = () => {
-		const entities = this.P(true);
-		const fields = entities.map((field) => {
-			const namePath = field.getNamePath();
-			const meta = field.getMeta();
-			const fieldData = {
-				...meta,
-				name: namePath,
-				value: this.l(namePath)
-			};
-			Object.defineProperty(fieldData, "originRCField", { value: true });
-			return fieldData;
-		});
-		return fields;
-	};
-	// =========================== Observer ===========================
-	/**
-	* This only trigger when a field is on constructor to avoid we get initialValue too late
-	*/
-	C = (entity) => {
-		const { initialValue } = entity.props;
-		if (initialValue !== void 0) {
-			const namePath = entity.getNamePath();
-			const prevValue = get(this.c, namePath);
-			if (prevValue === void 0) {
-				this.O(set(this.c, namePath, initialValue));
-			}
-		}
-	};
-	Q = (fieldPreserve) => {
-		const mergedPreserve = fieldPreserve !== void 0 ? fieldPreserve : this.h;
-		return mergedPreserve ?? true;
-	};
-	D = (entity) => {
-		this.d.push(entity);
-		const namePath = entity.getNamePath();
-		this.R([namePath]);
-		// Set initial values
-		if (entity.props.initialValue !== void 0) {
-			const prevStore = this.c;
-			this.U({
-				entities: [entity],
-				skipExist: true
-			});
-			this.V(prevStore, [entity.getNamePath()], {
-				type: "valueUpdate",
-				source: "internal"
-			});
-		}
-		// un-register field callback
-		return (isListField, preserve, subNamePath = []) => {
-			this.d = this.d.filter((item) => item !== entity);
-			// Clean up store value if not preserve
-			if (!this.Q(preserve) && (!isListField || subNamePath.length > 1)) {
-				const defaultValue = isListField ? void 0 : this.L(namePath);
-				if (namePath.length && this.l(namePath) !== defaultValue && this.d.every((field) => !matchNamePath(field.getNamePath(), namePath))) {
-					const prevStore = this.c;
-					this.O(set(prevStore, namePath, defaultValue, true));
-					// Notify that field is unmount
-					this.V(prevStore, [namePath], { type: "remove" });
-					// Dependencies update
-					this.W(prevStore, namePath);
-				}
-			}
-			this.R([namePath]);
-		};
-	};
-	B = (action) => {
-		switch (action.type) {
-			case "updateValue": {
-				const { namePath, value } = action;
-				this.X(namePath, value);
-				break;
-			}
-			case "validateField": {
-				const { namePath, triggerName } = action;
-				this.y([namePath], { triggerName });
-				break;
-			}
-		}
-	};
-	V = (prevStore, namePathList, info) => {
-		if (this.b) {
-			const mergedInfo = {
-				...info,
-				store: this.m(true)
-			};
-			this.P().forEach(({ onStoreChange }) => {
-				onStoreChange(prevStore, namePathList, mergedInfo);
-			});
-		} else {
-			this.k();
-		}
-	};
-	/**
-	* Notify dependencies children with parent update
-	* We need delay to trigger validate in case Field is under render props
-	*/
-	W = (prevStore, namePath) => {
-		const childrenFields = this.Y(namePath);
-		if (childrenFields.length) {
-			this.y(childrenFields);
-		}
-		this.V(prevStore, childrenFields, {
-			type: "dependenciesUpdate",
-			relatedFields: [namePath, ...childrenFields]
-		});
-		return childrenFields;
-	};
-	X = (name, value) => {
-		const namePath = getNamePath(name);
-		const prevStore = this.c;
-		this.O(set(this.c, namePath, value));
-		this.V(prevStore, [namePath], {
-			type: "valueUpdate",
-			source: "internal"
-		});
-		this.R([namePath]);
-		// Dependencies update
-		const childrenFields = this.W(prevStore, namePath);
-		// trigger callback function
-		const { onValuesChange } = this.f;
-		if (onValuesChange) {
-			const fieldEntity = this.S().get(namePath);
-			const changedValues = cloneByNamePathList(this.c, [namePath]);
-			const allValues = this.m();
-			// Merge changedValues into allValues to ensure allValues contains the latest changes
-			const mergedAllValues = mergeWith([allValues, changedValues], { prepareArray: (current) => fieldEntity?.isList() ? [] : [...current || []] });
-			onValuesChange(changedValues, mergedAllValues);
-		}
-		this.Z([namePath, ...childrenFields]);
-	};
-	// Let all child Field get update.
-	x = (store) => {
-		const prevStore = this.c;
-		if (store) {
-			const nextStore = merge$1(this.c, store);
-			this.O(nextStore);
-		}
-		this.V(prevStore, null, {
-			type: "valueUpdate",
-			source: "external"
-		});
-		this.R();
-	};
-	w = (name, value) => {
-		this.v([{
-			name,
-			value,
-			errors: [],
-			warnings: [],
-			touched: true
-		}]);
-	};
-	Y = (rootNamePath) => {
-		const children = new Set();
-		const childrenFields = [];
-		const dependencies2fields = new NameMap();
-		/**
-		* Generate maps
-		* Can use cache to save perf if user report performance issue with this
-		*/
-		this.P().forEach((field) => {
-			const { dependencies } = field.props;
-			(dependencies || []).forEach((dependency) => {
-				const dependencyNamePath = getNamePath(dependency);
-				dependencies2fields.update(dependencyNamePath, (fields = new Set()) => {
-					fields.add(field);
-					return fields;
-				});
-			});
-		});
-		const fillChildren = (namePath) => {
-			const fields = dependencies2fields.get(namePath) || new Set();
-			fields.forEach((field) => {
-				if (!children.has(field)) {
-					children.add(field);
-					const fieldNamePath = field.getNamePath();
-					if (field.isFieldDirty() && fieldNamePath.length) {
-						childrenFields.push(fieldNamePath);
-						fillChildren(fieldNamePath);
-					}
-				}
-			});
-		};
-		fillChildren(rootNamePath);
-		return childrenFields;
-	};
-	Z = (namePathList, filedErrors) => {
-		const { onFieldsChange } = this.f;
-		if (onFieldsChange) {
-			const fields = this.J();
-			/**
-			* Fill errors since `fields` may be replaced by controlled fields
-			*/
-			if (filedErrors) {
-				const cache = new NameMap();
-				filedErrors.forEach(({ name, errors }) => {
-					cache.set(name, errors);
-				});
-				fields.forEach((field) => {
-					// eslint-disable-next-line no-param-reassign
-					field.errors = cache.get(field.name) || field.errors;
-				});
-			}
-			const changedFields = fields.filter(({ name: fieldName }) => containsNamePath(namePathList, fieldName));
-			if (changedFields.length) {
-				onFieldsChange(changedFields, fields);
-			}
-		}
-	};
-	// =========================== Validate ===========================
-	y = (arg1, arg2) => {
-		let nameList;
-		let options;
-		if (Array.isArray(arg1) || typeof arg1 === "string" || typeof arg2 === "string") {
-			nameList = arg1;
-			options = arg2;
-		} else {
-			options = arg1;
-		}
-		const provideNameList = !!nameList;
-		const namePathList = provideNameList ? nameList.map(getNamePath) : [];
-		// Same namePathList, but does not include Form.List name
-		const finalValueNamePathList = [...namePathList];
-		// Collect result in promise list
-		const promiseList = [];
-		// We temp save the path which need trigger for `onFieldsChange`
-		const TMP_SPLIT = String(Date.now());
-		const validateNamePathList = new Set();
-		const { recursive, dirty } = options || {};
-		this.P(true).forEach((field) => {
-			const fieldNamePath = field.getNamePath();
-			// Add field if not provide `nameList`
-			if (!provideNameList) {
-				if (!field.isList() || !namePathList.some((name) => matchNamePath(name, fieldNamePath, true))) {
-					finalValueNamePathList.push(fieldNamePath);
-				}
-				namePathList.push(fieldNamePath);
-			}
-			// Skip if without rule
-			if (!field.props.rules || !field.props.rules.length) {
-				return;
-			}
-			// Skip if only validate dirty field
-			if (dirty && !field.isFieldDirty()) {
-				return;
-			}
-			validateNamePathList.add(fieldNamePath.join(TMP_SPLIT));
-			// Add field validate rule in to promise list
-			if (!provideNameList || containsNamePath(namePathList, fieldNamePath, recursive)) {
-				const promise = field.validateRules({
-					validateMessages: {
-						...defaultValidateMessages,
-						...this.g
-					},
-					...options
-				});
-				// Wrap promise with field
-				promiseList.push(promise.then(() => ({
-					name: fieldNamePath,
-					errors: [],
-					warnings: []
-				})).catch((ruleErrors) => {
-					const mergedErrors = [];
-					const mergedWarnings = [];
-					ruleErrors.forEach?.(({ rule: { warningOnly }, errors }) => {
-						if (warningOnly) {
-							mergedWarnings.push(...errors);
-						} else {
-							mergedErrors.push(...errors);
-						}
-					});
-					if (mergedErrors.length) {
-						return Promise.reject({
-							name: fieldNamePath,
-							errors: mergedErrors,
-							warnings: mergedWarnings
-						});
-					}
-					return {
-						name: fieldNamePath,
-						errors: mergedErrors,
-						warnings: mergedWarnings
-					};
-				}));
-			}
-		});
-		const summaryPromise = allPromiseFinish(promiseList);
-		this.i = summaryPromise;
-		// Notify fields with rule that validate has finished and need update
-		summaryPromise.catch((results) => results).then((results) => {
-			const resultNamePathList = results.map(({ name }) => name);
-			this.V(this.c, resultNamePathList, { type: "validateFinish" });
-			this.Z(resultNamePathList, results);
-		});
-		const returnPromise = summaryPromise.then(() => {
-			if (this.i === summaryPromise) {
-				return Promise.resolve(this.m(finalValueNamePathList));
-			}
-			return Promise.reject([]);
-		}).catch((results) => {
-			const errorList = results.filter((result) => result && result.errors.length);
-			const errorMessage = errorList[0]?.errors?.[0];
-			return Promise.reject({
-				message: errorMessage,
-				values: this.m(namePathList),
-				errorFields: errorList,
-				outOfDate: this.i !== summaryPromise
-			});
-		});
-		// Do not throw in console
-		returnPromise.catch((e) => e);
-		// `validating` changed. Trigger `onFieldsChange`
-		const triggerNamePathList = namePathList.filter((namePath) => validateNamePathList.has(namePath.join(TMP_SPLIT)));
-		this.Z(triggerNamePathList);
-		return returnPromise;
-	};
-	// ============================ Submit ============================
-	z = () => {
-		this.y().then((values) => {
-			const { onFinish } = this.f;
-			if (onFinish) {
-				try {
-					onFinish(values);
-				} catch (err) {
-					// Should print error if user `onFinish` callback failed
-					console.error(err);
-				}
-			}
-		}).catch((e) => {
-			const { onFinishFailed } = this.f;
-			if (onFinishFailed) {
-				onFinishFailed(e);
-			}
-		});
-	};
-}
-function useForm(form) {
-	const formRef = reactExports.useRef(null);
-	const [, forceUpdate] = reactExports.useState({});
-	// Create singleton FormStore
-	if (!formRef.current) {
-		if (form) {
-			formRef.current = form;
-		} else {
-			// Create a new FormStore if not provided
-			const forceReRender = () => {
-				forceUpdate({});
-			};
-			const formStore = new FormStore(forceReRender);
-			formRef.current = formStore.a();
-		}
-	}
-	return [formRef.current];
-}
-const FormContext = reactExports.createContext({
-	triggerFormChange: () => {},
-	triggerFormFinish: () => {},
-	registerForm: () => {},
-	unregisterForm: () => {}
-});
-const FormProvider = ({ validateMessages, onFormChange, onFormFinish, children }) => {
-	const formContext = reactExports.useContext(FormContext);
-	const formsRef = reactExports.useRef({});
-	return reactExports.createElement(FormContext.Provider, { value: {
-		...formContext,
-		validateMessages: {
-			...formContext.validateMessages,
-			...validateMessages
-		},
-		triggerFormChange: (name, changedFields) => {
-			if (onFormChange) {
-				onFormChange(name, {
-					changedFields,
-					forms: formsRef.current
-				});
-			}
-			formContext.triggerFormChange(name, changedFields);
-		},
-		triggerFormFinish: (name, values) => {
-			if (onFormFinish) {
-				onFormFinish(name, {
-					values,
-					forms: formsRef.current
-				});
-			}
-			formContext.triggerFormFinish(name, values);
-		},
-		registerForm: (name, form) => {
-			if (name) {
-				formsRef.current = {
-					...formsRef.current,
-					[name]: form
-				};
-			}
-			formContext.registerForm(name, form);
-		},
-		unregisterForm: (name) => {
-			const newForms = { ...formsRef.current };
-			delete newForms[name];
-			formsRef.current = newForms;
-			formContext.unregisterForm(name);
-		}
-	} }, children);
-};
-function _extends$n() {
-	_extends$n = Object.assign.bind();
-	return _extends$n.apply(this, arguments);
-}
-const Form = ({ name, initialValues, fields, form, preserve, children, component: Component = "form", validateMessages, validateTrigger = "onChange", onValuesChange, onFieldsChange, onFinish, onFinishFailed, clearOnDestroy, ...restProps }, ref) => {
-	const nativeElementRef = reactExports.useRef(null);
-	const formContext = reactExports.useContext(FormContext);
-	// We customize handle event since Context will makes all the consumer re-render:
-	// https://reactjs.org/docs/context.html#contextprovider
-	const [formInstance] = useForm(form);
-	const { useSubscribe, setInitialValues, setCallbacks, setValidateMessages, setPreserve, destroyForm } = formInstance.getInternalHooks(HOOK_MARK);
-	// Pass ref with form instance
-	reactExports.useImperativeHandle(ref, () => ({
-		...formInstance,
-		nativeElement: nativeElementRef.current
-	}));
-	// Register form into Context
-	reactExports.useEffect(() => {
-		formContext.registerForm(name, formInstance);
-		return () => {
-			formContext.unregisterForm(name);
-		};
-	}, [
-		formContext,
-		formInstance,
-		name
-	]);
-	// Pass props to store
-	setValidateMessages({
-		...formContext.validateMessages,
-		...validateMessages
-	});
-	setCallbacks({
-		onValuesChange,
-		onFieldsChange: (changedFields, ...rest) => {
-			formContext.triggerFormChange(name, changedFields);
-			if (onFieldsChange) {
-				onFieldsChange(changedFields, ...rest);
-			}
-		},
-		onFinish: (values) => {
-			formContext.triggerFormFinish(name, values);
-			if (onFinish) {
-				onFinish(values);
-			}
-		},
-		onFinishFailed
-	});
-	setPreserve(preserve);
-	// Set initial value, init store value when first mount
-	const mountRef = reactExports.useRef(null);
-	setInitialValues(initialValues, !mountRef.current);
-	if (!mountRef.current) {
-		mountRef.current = true;
-	}
-	// ========================== Unmount ===========================
-	reactExports.useEffect(
-		() => () => destroyForm(clearOnDestroy),
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[]
-	);
-	// Prepare children by `children` type
-	let childrenNode;
-	const childrenRenderProps = typeof children === "function";
-	if (childrenRenderProps) {
-		const values = formInstance.getFieldsValue(true);
-		childrenNode = children(values, formInstance);
-	} else {
-		childrenNode = children;
-	}
-	// Not use subscribe when using render props
-	useSubscribe(!childrenRenderProps);
-	// Listen if fields provided. We use ref to save prev data here to avoid additional render
-	const prevFieldsRef = reactExports.useRef(null);
-	reactExports.useEffect(() => {
-		if (!isSimilar(prevFieldsRef.current || [], fields || [])) {
-			formInstance.setFields(fields || []);
-		}
-		prevFieldsRef.current = fields;
-	}, [fields, formInstance]);
-	// =========================== Render ===========================
-	const formContextValue = reactExports.useMemo(() => ({
-		...formInstance,
-		validateTrigger
-	}), [formInstance, validateTrigger]);
-	const wrapperNode = reactExports.createElement(ListContext.Provider, { value: null }, reactExports.createElement(Context.Provider, { value: formContextValue }, childrenNode));
-	if (Component === false) {
-		return wrapperNode;
-	}
-	return reactExports.createElement(Component, _extends$n({}, restProps, {
-		ref: nativeElementRef,
-		onSubmit: (event) => {
-			event.preventDefault();
-			event.stopPropagation();
-			formInstance.submit();
-		},
-		onReset: (event) => {
-			event.preventDefault();
-			formInstance.resetFields();
-			restProps.onReset?.(event);
-		}
-	}), wrapperNode);
-};
-function stringify(value) {
-	try {
-		return JSON.stringify(value);
-	} catch {
-		return Math.random();
-	}
-}
-// ------- selector type -------
-// ------- selector type end -------
-function useWatch(...args) {
-	const [dependencies, _form = {}] = args;
-	const options = isFormInstance(_form) ? { form: _form } : _form;
-	const form = options.form;
-	const [value, ,] = reactExports.useState(() => typeof dependencies === "function" ? dependencies({}) : void 0);
-	const valueStr = reactExports.useMemo(() => stringify(value), [value]);
-	const valueStrRef = reactExports.useRef(valueStr);
-	valueStrRef.current = valueStr;
-	const fieldContext = reactExports.useContext(Context);
-	const formInstance = form || fieldContext;
-	const isValidForm = formInstance && formInstance._init;
-	// ============================== Form ==============================
-	const { getFieldsValue, getInternalHooks } = formInstance;
-	const { registerWatch } = getInternalHooks(HOOK_MARK);
-	// ============================= Update =============================
-	const triggerUpdate = useEvent((values, allValues) => {
-		const watchValue = options.preserve ? allValues ?? getFieldsValue(true) : values ?? getFieldsValue();
-		const nextValue = typeof dependencies === "function" ? dependencies(watchValue) : get(watchValue, getNamePath(dependencies));
-		{
-			stringify(value), stringify(nextValue);
-		}
-	});
-	// ============================= Effect =============================
-	const flattenDeps = typeof dependencies === "function" ? dependencies : JSON.stringify(dependencies);
-	// Deps changed
-	reactExports.useEffect(() => {
-		// Skip if not exist form instance
-		if (!isValidForm) {
-			return;
-		}
-		triggerUpdate();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isValidForm, flattenDeps]);
-	// Value changed
-	reactExports.useEffect(() => {
-		// Skip if not exist form instance
-		if (!isValidForm) {
-			return;
-		}
-		const cancelRegister = registerWatch((values, allValues) => {
-			triggerUpdate(values, allValues);
-		});
-		return cancelRegister;
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isValidForm]);
-	return value;
-}
-const InternalForm = reactExports.forwardRef(Form);
-const RefForm = InternalForm;
-RefForm.FormProvider = FormProvider;
-RefForm.Field = WrapperField;
-RefForm.List = List;
-RefForm.useForm = useForm;
-RefForm.useWatch = useWatch;
-const FormItemInputContext = reactExports.createContext({});
-const NoFormStyle = ({ children, status, override }) => {
-	const formItemInputContext = reactExports.useContext(FormItemInputContext);
-	const newFormItemInputContext = reactExports.useMemo(() => {
-		const newContext = { ...formItemInputContext };
-		if (override) {
-			delete newContext.isFormItemInput;
-		}
-		if (status) {
-			delete newContext.status;
-			delete newContext.hasFeedback;
-			delete newContext.feedbackIcon;
-		}
-		return newContext;
-	}, [
-		status,
-		override,
-		formItemInputContext
-	]);
-	return reactExports.createElement(FormItemInputContext.Provider, { value: newFormItemInputContext }, children);
-};
-const VariantContext = reactExports.createContext(void 0);
 const ContextIsolator = (props) => {
-	const { space, form, children } = props;
+	const { children } = props;
 	if (!isNonNullable(children)) {
 		return null;
 	}
 	let result = children;
-	if (form) {
-		result = React.createElement(NoFormStyle, {
-			override: true,
-			status: true
-		}, result);
-	}
-	if (space) {
-		result = React.createElement(NoCompactStyle, null, result);
+	{
+		{
+			result = React__default.createElement(NoCompactStyle, null, result);
+		}
 	}
 	return result;
-};
-function withPureRenderTheme(Component) {
-	return (props) => reactExports.createElement(ConfigProvider, { theme: { token: {
-		motion: false,
-		zIndexPopupBase: 0
-	} } }, reactExports.createElement(Component, { ...props }));
-}
-/* istanbul ignore next */
-const genPurePanel = (Component) => {
-	const PurePanel = (props) => {
-		const { prefixCls: customizePrefixCls, style } = props;
-		const holderRef = reactExports.useRef(null);
-		const [popupHeight, setPopupHeight] = reactExports.useState(0);
-		const [popupWidth, setPopupWidth] = reactExports.useState(0);
-		const [open, setOpen] = useControlledState(false, props.open);
-		const { getPrefixCls } = reactExports.useContext(ConfigContext);
-		const prefixCls = getPrefixCls("picker", customizePrefixCls);
-		reactExports.useEffect(() => {
-			// We do not care about ssr
-			setOpen(true);
-			if (typeof ResizeObserver !== "undefined") {
-				const resizeObserver = new ResizeObserver((entries) => {
-					const element = entries[0].target;
-					setPopupHeight(element.offsetHeight + 8);
-					setPopupWidth(element.offsetWidth);
-				});
-				const interval = setInterval(() => {
-					const dropdownCls = `.${prefixCls}-dropdown`;
-					const popup = holderRef.current?.querySelector(dropdownCls);
-					if (popup) {
-						clearInterval(interval);
-						resizeObserver.observe(popup);
-					}
-				}, 10);
-				return () => {
-					clearInterval(interval);
-					resizeObserver.disconnect();
-				};
-			}
-		}, [prefixCls]);
-		let mergedProps = {
-			...props,
-			style: {
-				...style,
-				margin: 0
-			},
-			open,
-			getPopupContainer: () => holderRef.current
-		};
-		{
-			Object.assign(mergedProps, { ["popupAlign"]: { overflow: {
-				adjustX: false,
-				adjustY: false
-			} } });
-		}
-		const mergedStyle = {
-			paddingBottom: popupHeight,
-			position: "relative",
-			minWidth: popupWidth
-		};
-		return reactExports.createElement("div", {
-			ref: holderRef,
-			style: mergedStyle
-		}, reactExports.createElement(Component, { ...mergedProps }));
-	};
-	return withPureRenderTheme(PurePanel);
 };
 function InternalItem(props, ref) {
 	const { prefixCls, invalidate, item, renderItem, responsive, responsiveDisabled, registerSize, itemKey, className, style, children, display, order, component: Component = "div", ...restProps } = props;
@@ -22507,7 +18901,7 @@ function useBatcher() {
 		if (!updateFuncRef.current) {
 			updateFuncRef.current = [];
 			channelUpdate(() => {
-				reactDomExports.k(() => {
+				reactDomExports.d(() => {
 					updateFuncRef.current.forEach((fn) => {
 						fn();
 					});
@@ -22533,43 +18927,19 @@ function useEffectState(notifyEffectUpdate, defaultValue) {
 	});
 	return [stateValue, setEffectVal];
 }
-const OverflowContext = React.createContext(null);
-const InternalRawItem = (props, ref) => {
-	const context = reactExports.useContext(OverflowContext);
-	// Render directly when context not provided
-	if (!context) {
-		const { component: Component = "div", ...restProps } = props;
-		return reactExports.createElement(Component, _extends$p({}, restProps, { ref }));
-	}
-	const { className: contextClassName, ...restContext } = context;
-	const { className, ...restProps } = props;
-	// Do not pass context to sub item to avoid multiple measure
-	return reactExports.createElement(OverflowContext.Provider, { value: null }, reactExports.createElement(Item, _extends$p({
-		ref,
-		className: clsx(contextClassName, className)
-	}, restContext, restProps)));
-};
-const RawItem = reactExports.forwardRef(InternalRawItem);
-function defaultRenderRest(omittedItems) {
-	return `+ ${omittedItems.length} ...`;
-}
 function Overflow(props, ref) {
-	const { prefixCls = "rc-overflow", data = [], renderItem, renderRawItem, itemKey, itemWidth = 10, ssr, style, className, maxCount, renderRest, renderRawRest, prefix, suffix, component: Component = "div", itemComponent, onVisibleChange, ...restProps } = props;
-	const fullySSR = ssr === "full";
+	const { prefixCls, data = [], renderItem, renderRawItem, itemKey, itemWidth: __unused_BFD7, ssr, style, className, maxCount, renderRest, renderRawRest, prefix, suffix, component: __unused_D33E, itemComponent, onVisibleChange, ...restProps } = props;
 	const notifyEffectUpdate = useBatcher();
 	const [containerWidth, setContainerWidth] = useEffectState(notifyEffectUpdate, null);
 	const mergedContainerWidth = containerWidth || 0;
 	const [itemWidths, setItemWidths] = useEffectState(notifyEffectUpdate, new Map());
 	const [prevRestWidth, setPrevRestWidth] = useEffectState(notifyEffectUpdate, 0);
 	const [restWidth, setRestWidth] = useEffectState(notifyEffectUpdate, 0);
-	const [prefixWidth, setPrefixWidth] = useEffectState(notifyEffectUpdate, 0);
-	const [suffixWidth, setSuffixWidth] = useEffectState(notifyEffectUpdate, 0);
+	const [prefixWidth, ,] = useEffectState(notifyEffectUpdate, 0);
+	const [suffixWidth, ,] = useEffectState(notifyEffectUpdate, 0);
 	const [suffixFixedStart, setSuffixFixedStart] = reactExports.useState(null);
 	const [displayCount, setDisplayCount] = reactExports.useState(null);
 	const mergedDisplayCount = reactExports.useMemo(() => {
-		if (displayCount === null && fullySSR) {
-			return Number.MAX_SAFE_INTEGER;
-		}
 		return displayCount || 0;
 	}, [displayCount, containerWidth]);
 	const [restReady, setRestReady] = reactExports.useState(false);
@@ -22587,10 +18957,10 @@ function Overflow(props, ref) {
 	const mergedData = reactExports.useMemo(() => {
 		let items = data;
 		if (shouldResponsive) {
-			if (containerWidth === null && fullySSR) {
-				items = data;
-			} else {
-				items = data.slice(0, Math.min(data.length, mergedContainerWidth / itemWidth));
+			{
+				{
+					items = data.slice(0, Math.min(data.length, mergedContainerWidth / 10));
+				}
 			}
 		} else if (typeof maxCount === "number") {
 			items = data.slice(0, maxCount);
@@ -22598,7 +18968,7 @@ function Overflow(props, ref) {
 		return items;
 	}, [
 		data,
-		itemWidth,
+		,
 		containerWidth,
 		maxCount,
 		shouldResponsive
@@ -22615,13 +18985,14 @@ function Overflow(props, ref) {
 		mergedDisplayCount
 	]);
 	// ================================= Item =================================
-	const getKey = reactExports.useCallback((item, index) => {
-		if (typeof itemKey === "function") {
-			return itemKey(item);
+	const getKey = reactExports.useCallback((item) => {
+		{
+			{
+				return itemKey(item);
+			}
 		}
-		return (itemKey && item?.[itemKey]) ?? index;
 	}, [itemKey]);
-	const mergedRenderItem = reactExports.useCallback(renderItem || ((item) => item), [renderItem]);
+	const mergedRenderItem = reactExports.useCallback(renderItem, [renderItem]);
 	function updateDisplayCount(count, suffixFixedStartVal, notReady) {
 		// React 18 will sync render even when the value is same in some case.
 		// We take `mergedData` as deps which may cause dead loop if it's dynamic generate.
@@ -22632,14 +19003,13 @@ function Overflow(props, ref) {
 		setDisplayCount(count);
 		if (!notReady) {
 			setRestReady(count < data.length - 1);
-			onVisibleChange?.(count);
 		}
 		if (suffixFixedStartVal !== void 0) {
 			setSuffixFixedStart(suffixFixedStartVal);
 		}
 	}
 	// ================================= Size =================================
-	function onOverflowResize(__unused_73F8, element) {
+	function onOverflowResize(__unused_F313, element) {
 		setContainerWidth(element.clientWidth);
 	}
 	function registerSize(key, width) {
@@ -22653,15 +19023,9 @@ function Overflow(props, ref) {
 			return clone;
 		});
 	}
-	function registerOverflowSize(__unused_FB48, width) {
+	function registerOverflowSize(__unused_7BC4, width) {
 		setRestWidth(width);
 		setPrevRestWidth(restWidth);
-	}
-	function registerPrefixSize(__unused_FB48_0, width) {
-		setPrefixWidth(width);
-	}
-	function registerSuffixSize(__unused_FB48_1, width) {
-		setSuffixWidth(width);
 	}
 	// ================================ Effect ================================
 	function getItemWidth(index) {
@@ -22679,10 +19043,6 @@ function Overflow(props, ref) {
 			}
 			for (let i = 0; i < len; i += 1) {
 				let currentItemWidth = getItemWidth(i);
-				// Fully will always render
-				if (fullySSR) {
-					currentItemWidth = currentItemWidth || 0;
-				}
 				// Break since data not ready
 				if (currentItemWidth === void 0) {
 					updateDisplayCount(i - 1, void 0, true);
@@ -22700,9 +19060,6 @@ function Overflow(props, ref) {
 					break;
 				}
 			}
-			if (suffix && getItemWidth(0) + suffixWidth > mergedContainerWidth) {
-				setSuffixFixedStart(null);
-			}
 		}
 	}, [
 		mergedContainerWidth,
@@ -22715,35 +19072,14 @@ function Overflow(props, ref) {
 	]);
 	// ================================ Render ================================
 	const displayRest = restReady && !!omittedItems.length;
-	let suffixStyle = {};
-	if (suffixFixedStart !== null && shouldResponsive) {
-		suffixStyle = {
-			position: "absolute",
-			left: suffixFixedStart,
-			top: 0
-		};
-	}
 	const itemSharedProps = {
 		prefixCls: itemPrefixCls,
 		responsive: shouldResponsive,
-		component: itemComponent,
+		component: void 0,
 		invalidate
 	};
 	// >>>>> Choice render fun by `renderRawItem`
-	const internalRenderItemNode = renderRawItem ? (item, index) => {
-		const key = getKey(item, index);
-		return reactExports.createElement(OverflowContext.Provider, {
-			key,
-			value: {
-				...itemSharedProps,
-				order: index,
-				item,
-				itemKey: key,
-				registerSize,
-				display: index <= mergedDisplayCount
-			}
-		}, renderRawItem(item, index));
-	} : (item, index) => {
+	const internalRenderItemNode = (item, index) => {
 		const key = getKey(item, index);
 		return reactExports.createElement(Item, _extends$p({}, itemSharedProps, {
 			order: index,
@@ -22762,175 +19098,43 @@ function Overflow(props, ref) {
 		registerSize: registerOverflowSize,
 		display: displayRest
 	};
-	const mergedRenderRest = renderRest || defaultRenderRest;
-	const restNode = renderRawRest ? reactExports.createElement(OverflowContext.Provider, { value: {
-		...itemSharedProps,
-		...restContextProps
-	} }, renderRawRest(omittedItems)) : reactExports.createElement(Item, _extends$p({}, itemSharedProps, restContextProps), typeof mergedRenderRest === "function" ? mergedRenderRest(omittedItems) : mergedRenderRest);
-	const overflowNode = reactExports.createElement(Component, _extends$p({
-		className: clsx(!invalidate && prefixCls, className),
-		style,
+	const mergedRenderRest = renderRest;
+	const restNode = reactExports.createElement(Item, _extends$p({}, itemSharedProps, restContextProps), mergedRenderRest(omittedItems));
+	const overflowNode = reactExports.createElement("div", _extends$p({
+		className: clsx(!invalidate && prefixCls, void 0),
+		style: void 0,
 		ref
-	}, restProps), prefix && reactExports.createElement(Item, _extends$p({}, itemSharedProps, {
-		responsive: isResponsive,
-		responsiveDisabled: !shouldResponsive,
-		order: -1,
-		className: `${itemPrefixCls}-prefix`,
-		registerSize: registerPrefixSize,
-		display: true
-	}), prefix), mergedData.map(internalRenderItemNode), showRest ? restNode : null, suffix && reactExports.createElement(Item, _extends$p({}, itemSharedProps, {
-		responsive: isResponsive,
-		responsiveDisabled: !shouldResponsive,
-		order: mergedDisplayCount,
-		className: `${itemPrefixCls}-suffix`,
-		registerSize: registerSuffixSize,
-		display: true,
-		style: suffixStyle
-	}), suffix));
+	}, restProps), void 0, mergedData.map(internalRenderItemNode), showRest ? restNode : null, void 0);
 	return isResponsive ? reactExports.createElement(RefResizeObserver, {
 		onResize: onOverflowResize,
 		disabled: !shouldResponsive
 	}, overflowNode) : overflowNode;
 }
 const ForwardOverflow = reactExports.forwardRef(Overflow);
-ForwardOverflow.Item = RawItem;
-ForwardOverflow.RESPONSIVE = "responsive";
-ForwardOverflow.INVALIDATE = "invalidate";
-const getStatusClassNames = (prefixCls, status, hasFeedback) => {
+const getStatusClassNames = () => {
 	return clsx({
-		[`${prefixCls}-status-success`]: status === "success",
-		[`${prefixCls}-status-warning`]: status === "warning",
-		[`${prefixCls}-status-error`]: status === "error",
-		[`${prefixCls}-status-validating`]: status === "validating",
-		[`${prefixCls}-has-feedback`]: hasFeedback
+		[`${"ant-picker"}-status-success`]: false,
+		[`${"ant-picker"}-status-warning`]: false,
+		[`${"ant-picker"}-status-error`]: false,
+		[`${"ant-picker"}-status-validating`]: false,
+		[`${"ant-picker"}-has-feedback`]: void 0
 	});
 };
-const getMergedStatus = (contextStatus, customStatus) => customStatus || contextStatus;
 /**
 * Compatible for legacy `bordered` prop.
 */
-const useVariant = (component, variant, legacyBordered) => {
-	const { variant: configVariant, [component]: componentConfig } = reactExports.useContext(ConfigContext);
-	const ctxVariant = reactExports.useContext(VariantContext);
-	const configComponentVariant = componentConfig?.variant;
-	let mergedVariant;
-	if (typeof variant !== "undefined") {
-		mergedVariant = variant;
-	} else if (legacyBordered === false) {
-		mergedVariant = "borderless";
-	} else {
-		// form variant > component global variant > global variant
-		mergedVariant = ctxVariant ?? configComponentVariant ?? configVariant ?? "outlined";
-	}
-	const enableVariantCls = Variants.includes(mergedVariant);
-	return [mergedVariant, enableVariantCls];
+const useVariant = () => {
+	const enableVariantCls = Variants.includes("outlined");
+	return [, enableVariantCls];
 };
-// This icon file is generated automatically.
-var CheckOutlined$1 = {
-	"icon": {
-		"tag": "svg",
-		"attrs": {
-			"viewBox": "64 64 896 896",
-			"focusable": "false"
-		},
-		"children": [{
-			"tag": "path",
-			"attrs": { "d": "M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a32 32 0 00-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l488.4-618.9c4.1-5.1.4-12.8-6.3-12.8z" }
-		}]
-	},
-	"name": "check",
-	"theme": "outlined"
-};
-var CheckOutlinedSvg = CheckOutlined$1;
-function _extends$m() {
-	_extends$m = Object.assign.bind();
-	return _extends$m.apply(this, arguments);
-}
-const CheckOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$m({}, props, {
-	ref,
-	icon: CheckOutlinedSvg
-}));
-/**![check](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTkxMiAxOTBoLTY5LjljLTkuOCAwLTE5LjEgNC41LTI1LjEgMTIuMkw0MDQuNyA3MjQuNSAyMDcgNDc0YTMyIDMyIDAgMDAtMjUuMS0xMi4ySDExMmMtNi43IDAtMTAuNCA3LjctNi4zIDEyLjlsMjczLjkgMzQ3YzEyLjggMTYuMiAzNy40IDE2LjIgNTAuMyAwbDQ4OC40LTYxOC45YzQuMS01LjEuNC0xMi44LTYuMy0xMi44eiIgLz48L3N2Zz4=) */
-const RefIcon$5 = reactExports.forwardRef(CheckOutlined);
-// This icon file is generated automatically.
-var DownOutlined$1 = {
-	"icon": {
-		"tag": "svg",
-		"attrs": {
-			"viewBox": "64 64 896 896",
-			"focusable": "false"
-		},
-		"children": [{
-			"tag": "path",
-			"attrs": { "d": "M884 256h-75c-5.1 0-9.9 2.5-12.9 6.6L512 654.2 227.9 262.6c-3-4.1-7.8-6.6-12.9-6.6h-75c-6.5 0-10.3 7.4-6.5 12.7l352.6 486.1c12.8 17.6 39 17.6 51.7 0l352.6-486.1c3.9-5.3.1-12.7-6.4-12.7z" }
-		}]
-	},
-	"name": "down",
-	"theme": "outlined"
-};
-var DownOutlinedSvg = DownOutlined$1;
-function _extends$l() {
-	_extends$l = Object.assign.bind();
-	return _extends$l.apply(this, arguments);
-}
-const DownOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$l({}, props, {
-	ref,
-	icon: DownOutlinedSvg
-}));
-/**![down](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTg4NCAyNTZoLTc1Yy01LjEgMC05LjkgMi41LTEyLjkgNi42TDUxMiA2NTQuMiAyMjcuOSAyNjIuNmMtMy00LjEtNy44LTYuNi0xMi45LTYuNmgtNzVjLTYuNSAwLTEwLjMgNy40LTYuNSAxMi43bDM1Mi42IDQ4Ni4xYzEyLjggMTcuNiAzOSAxNy42IDUxLjcgMGwzNTIuNi00ODYuMWMzLjktNS4zLjEtMTIuNy02LjQtMTIuN3oiIC8+PC9zdmc+) */
-const __unused_7EDC = reactExports.forwardRef(DownOutlined);
-// This icon file is generated automatically.
-var SearchOutlined$1 = {
-	"icon": {
-		"tag": "svg",
-		"attrs": {
-			"viewBox": "64 64 896 896",
-			"focusable": "false"
-		},
-		"children": [{
-			"tag": "path",
-			"attrs": { "d": "M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z" }
-		}]
-	},
-	"name": "search",
-	"theme": "outlined"
-};
-var SearchOutlinedSvg = SearchOutlined$1;
-function _extends$k() {
-	_extends$k = Object.assign.bind();
-	return _extends$k.apply(this, arguments);
-}
-const SearchOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$k({}, props, {
-	ref,
-	icon: SearchOutlinedSvg
-}));
-/**![search](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTkwOS42IDg1NC41TDY0OS45IDU5NC44QzY5MC4yIDU0Mi43IDcxMiA0NzkgNzEyIDQxMmMwLTgwLjItMzEuMy0xNTUuNC04Ny45LTIxMi4xLTU2LjYtNTYuNy0xMzItODcuOS0yMTIuMS04Ny45cy0xNTUuNSAzMS4zLTIxMi4xIDg3LjlDMTQzLjIgMjU2LjUgMTEyIDMzMS44IDExMiA0MTJjMCA4MC4xIDMxLjMgMTU1LjUgODcuOSAyMTIuMUMyNTYuNSA2ODAuOCAzMzEuOCA3MTIgNDEyIDcxMmM2NyAwIDEzMC42LTIxLjggMTgyLjctNjJsMjU5LjcgMjU5LjZhOC4yIDguMiAwIDAwMTEuNiAwbDQzLjYtNDMuNWE4LjIgOC4yIDAgMDAwLTExLjZ6TTU3MC40IDU3MC40QzUyOCA2MTIuNyA0NzEuOCA2MzYgNDEyIDYzNnMtMTE2LTIzLjMtMTU4LjQtNjUuNkMyMTEuMyA1MjggMTg4IDQ3MS44IDE4OCA0MTJzMjMuMy0xMTYuMSA2NS42LTE1OC40QzI5NiAyMTEuMyAzNTIuMiAxODggNDEyIDE4OHMxMTYuMSAyMy4yIDE1OC40IDY1LjZTNjM2IDM1Mi4yIDYzNiA0MTJzLTIzLjMgMTE2LjEtNjUuNiAxNTguNHoiIC8+PC9zdmc+) */
-const __unused_E73C = reactExports.forwardRef(SearchOutlined);
-function useIcons$1({ suffixIcon, clearIcon, menuItemSelectedIcon, removeIcon, loading, multiple, hasFeedback, showSuffixIcon, feedbackIcon, showArrow }) {
+function useIcons$1() {
 	// Clear Icon
-	const mergedClearIcon = clearIcon ?? reactExports.createElement(RefIcon$8, null);
-	// Validation Feedback Icon
-	const getSuffixIconNode = (arrowIcon) => {
-		if (suffixIcon === null && !hasFeedback && !showArrow) {
-			return;
+	const mergedClearIcon = reactExports.createElement(RefIcon$8, null);
+	let mergedRemoveIcon;
+	{
+		{
+			mergedRemoveIcon = reactExports.createElement(RefIcon$7, null);
 		}
-		return reactExports.createElement(reactExports.Fragment, null, showSuffixIcon !== false && arrowIcon, hasFeedback && feedbackIcon);
-	};
-	if (suffixIcon !== void 0) {
-		getSuffixIconNode(suffixIcon);
-	} else if (loading) {
-		getSuffixIconNode(reactExports.createElement(RefIcon$6, { spin: true }));
-	}
-	if (!(menuItemSelectedIcon !== void 0)) {
-		if (multiple) {
-			reactExports.createElement(RefIcon$5, null);
-		}
-	}
-	let mergedRemoveIcon = null;
-	if (removeIcon !== void 0) {
-		mergedRemoveIcon = removeIcon;
-	} else {
-		mergedRemoveIcon = reactExports.createElement(RefIcon$7, null);
 	}
 	return {
 		a: mergedClearIcon,
@@ -23003,7 +19207,7 @@ const genRoundedArrow = (token, bgColor, boxShadow) => {
 var dayjs_min$1 = {};
 function requireDayjs_min() {
 	(function(module) {
-		(function(__unused_F8B0, e) {
+		(function(__unused_772A, e) {
 			module.a = e();
 		})(0, function() {
 			var n = 36e5, $ = /^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$/, y = /\[([^\]]+)]|Y{1,4}|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g, M = {
@@ -23188,7 +19392,7 @@ function requireDayjs_min() {
 						return t && (t[n] || t(e, r)) || i[n].slice(0, s);
 					}, d = function(t) {
 						return b.s(s % 12 || 12, t, "0");
-					}, $ = f || function(t, __unused_9722, n) {
+					}, $ = f || function(t, __unused_A895, n) {
 						var r = t < 12 ? "AM" : "PM";
 						return n ? r.toLowerCase() : r;
 					};
@@ -23302,10 +19506,10 @@ var dayjs = getDefaultExportFromCjs(dayjs_minExports);
 var weekday$2 = {};
 function requireWeekday() {
 	(function(module) {
-		(function(__unused_1D3C, t) {
+		(function(__unused_C741, t) {
 			module.a = t();
 		})(0, function() {
-			return function(__unused_B5F1, t) {
+			return function(__unused_EBF4, t) {
 				t.prototype.weekday = function(e) {
 					var t = this.$locale().weekStart || 0, i = this.$W, n = (i < t ? i + 7 : i) - t;
 					return this.$utils().u(e) ? n : this.subtract(n, "day").add(e, "day");
@@ -23320,10 +19524,10 @@ var weekday = getDefaultExportFromCjs(weekdayExports);
 var localeData$2 = {};
 function requireLocaleData() {
 	(function(module) {
-		(function(__unused_DF76, e) {
+		(function(__unused_7432, e) {
 			module.a = e();
 		})(0, function() {
-			return function(__unused_C219, e) {
+			return function(__unused_C7F6, e) {
 				var r = e.prototype, o = function(n) {
 					return n && (n.indexOf ? n : n.s);
 				}, u = function(n, e, t, r) {
@@ -23335,7 +19539,7 @@ function requireLocaleData() {
 					}
 				}, a = function(n, e) {
 					return n.formats[e] || function(n) {
-						return n.replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g, function(__unused_C219_0, e, t) {
+						return n.replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g, function(__unused_8B28, e, t) {
 							return e || t.slice(1);
 						});
 					}(n.formats[e.toUpperCase()]);
@@ -23380,10 +19584,10 @@ var localeData = getDefaultExportFromCjs(localeDataExports);
 var weekOfYear$2 = {};
 function requireWeekOfYear() {
 	(function(module) {
-		(function(__unused_1D3C_0, t) {
+		(function(__unused_EA17, t) {
 			module.a = t();
 		})(0, function() {
-			return function(__unused_CC67, n, r) {
+			return function(__unused_8C2C, n, r) {
 				var f = n.prototype;
 				f.week = function(i) {
 					if (void 0 === i && (i = null), null !== i) return this.add(7 * (i - this.week()), "day");
@@ -23407,10 +19611,10 @@ var weekOfYear = getDefaultExportFromCjs(weekOfYearExports);
 var weekYear$2 = {};
 function requireWeekYear() {
 	(function(module) {
-		(function(__unused_1D3C_1, t) {
+		(function(__unused_6890, t) {
 			module.a = t();
 		})(0, function() {
-			return function(__unused_B5F1_0, t) {
+			return function(__unused_0820, t) {
 				t.prototype.weekYear = function() {
 					var e = this.month(), t = this.week(), n = this.year();
 					return 1 === t && 11 === e ? n + 1 : 0 === e && t >= 52 ? n - 1 : n;
@@ -23425,10 +19629,10 @@ var weekYear = getDefaultExportFromCjs(weekYearExports);
 var advancedFormat$2 = {};
 function requireAdvancedFormat() {
 	(function(module) {
-		(function(__unused_1D3C_2, t) {
+		(function(__unused_1084, t) {
 			module.a = t();
 		})(0, function() {
-			return function(__unused_03F7, t) {
+			return function(__unused_05C7, t) {
 				var r = t.prototype, n = r.format;
 				r.format = function(e) {
 					var t = this, r = this.$locale();
@@ -23465,7 +19669,7 @@ var advancedFormat = getDefaultExportFromCjs(advancedFormatExports);
 var customParseFormat$2 = {};
 function requireCustomParseFormat() {
 	(function(module) {
-		(function(__unused_1D3C_3, t) {
+		(function(__unused_4E23, t) {
 			module.a = t();
 		})(0, function() {
 			var e = {
@@ -23561,9 +19765,9 @@ function requireCustomParseFormat() {
 			function l(n) {
 				var r, i;
 				r = n, i = s && s.formats;
-				for (var o = r.replace(/(\[[^\]]+])|(LTS?|l{1,4}|L{1,4})/g, function(__unused_4BE4, n, r) {
+				for (var o = r.replace(/(\[[^\]]+])|(LTS?|l{1,4}|L{1,4})/g, function(__unused_E2E3, n, r) {
 					var o = r && r.toUpperCase();
-					return n || i[r] || e[r] || i[o].replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g, function(__unused_17A1, t, n) {
+					return n || i[r] || e[r] || i[o].replace(/(\[[^\]]+])|(MMMM|MM|DD|dddd)/g, function(__unused_9FA7, t, n) {
 						return t || n.slice(1);
 					});
 				}).match(t), a = o.length, f = 0; f < a; f += 1) {
@@ -23591,7 +19795,7 @@ function requireCustomParseFormat() {
 					}(t), t;
 				};
 			}
-			return function(__unused_17A1_0, t, n) {
+			return function(__unused_9E63, t, n) {
 				var r = t.prototype, i = r.parse;
 				r.parse = function(e) {
 					var t = e.date, r = e.utc, o = e.args;
@@ -23634,7 +19838,7 @@ dayjs.extend(weekday);
 dayjs.extend(localeData);
 dayjs.extend(weekOfYear);
 dayjs.extend(weekYear);
-dayjs.extend(function(__unused_325D, c) {
+dayjs.extend(function(__unused_C8FA, c) {
 	// todo support Wo (ISO week)
 	var proto = c.prototype;
 	var oldFormat = proto.format;
@@ -23868,20 +20072,19 @@ function PickerTrigger(_ref) {
 	var dropdownPrefixCls = "".concat(prefixCls, "-dropdown");
 	var realPlacement = getRealPlacement(placement, direction === "rtl");
 	return reactExports.createElement(Trigger, {
-		showAction: [],
-		hideAction: ["click"],
-		popupPlacement: realPlacement,
-		builtinPlacements,
-		prefixCls: dropdownPrefixCls,
-		popupMotion: { motionName: transitionName },
-		popup: popupElement,
-		popupAlign,
-		popupVisible: visible,
-		popupClassName: clsx(popupClassName, _defineProperty$q(_defineProperty$q({}, "".concat(dropdownPrefixCls, "-range"), range), "".concat(dropdownPrefixCls, "-rtl"), direction === "rtl")),
-		popupStyle,
-		stretch: "minWidth",
-		getPopupContainer,
-		onPopupVisibleChange: function(nextVisible) {
+		b: [],
+		c: ["click"],
+		j: realPlacement,
+		k: builtinPlacements,
+		a: dropdownPrefixCls,
+		m: { motionName: transitionName },
+		g: popupElement,
+		l: popupAlign,
+		d: visible,
+		h: clsx(popupClassName, _defineProperty$q(_defineProperty$q({}, "".concat(dropdownPrefixCls, "-range"), range), "".concat(dropdownPrefixCls, "-rtl"), direction === "rtl")),
+		i: popupStyle,
+		f: getPopupContainer,
+		e: function(nextVisible) {
 			if (!nextVisible) {
 				onClose();
 			}
@@ -23948,10 +20151,7 @@ function pickProps(props, keys) {
 	});
 	return clone;
 }
-function getRowFormat(picker, locale, format) {
-	if (format) {
-		return format;
-	}
+function getRowFormat(picker, locale) {
 	switch (picker) {
 		case "time": return locale.fieldTimeFormat;
 		case "datetime": return locale.fieldDateTimeFormat;
@@ -23961,13 +20161,6 @@ function getRowFormat(picker, locale, format) {
 		case "week": return locale.fieldWeekFormat;
 		default: return locale.fieldDateFormat;
 	}
-}
-function getFromDate(calendarValues, activeIndexList, activeIndex) {
-	var mergedActiveIndex = activeIndex !== void 0 ? activeIndex : activeIndexList[activeIndexList.length - 1];
-	var firstValuedIndex = activeIndexList.find(function(index) {
-		return calendarValues[index];
-	});
-	return mergedActiveIndex !== firstValuedIndex ? calendarValues[firstValuedIndex] : void 0;
 }
 function pickTriggerProps(props) {
 	return pickProps(props, [
@@ -24034,7 +20227,7 @@ function _toPrimitive$p(t) {
 	}
 	return String(t);
 }
-function useCellRender(cellRender, dateRender, monthCellRender, range) {
+function useCellRender(cellRender, dateRender, monthCellRender) {
 	// ======================== Render ========================
 	// Merged render
 	var mergedCellRender = reactExports.useMemo(function() {
@@ -24058,8 +20251,8 @@ function useCellRender(cellRender, dateRender, monthCellRender, range) {
 	]);
 	// Cell render
 	var onInternalCellRender = reactExports.useCallback(function(date, info) {
-		return mergedCellRender(date, _objectSpread$g(_objectSpread$g({}, info), {}, { range }));
-	}, [mergedCellRender, range]);
+		return mergedCellRender(date, _objectSpread$g(_objectSpread$g({}, info), {}, { range: void 0 }));
+	}, [mergedCellRender, void 0]);
 	return onInternalCellRender;
 }
 function _slicedToArray$u(arr) {
@@ -24077,7 +20270,7 @@ function _unsupportedIterableToArray$w(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$w(o, 2);
 }
 function _arrayLikeToArray$w(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -24254,7 +20447,7 @@ function fillLocale(locale, showHour, showMinute, showSecond, showMillisecond, u
 */
 function useLocale(locale, showProps) {
 	var showHour = showProps.showHour, showMinute = showProps.showMinute, showSecond = showProps.showSecond, showMillisecond = showProps.showMillisecond, use12Hours = showProps.use12Hours;
-	return React.useMemo(function() {
+	return React__default.useMemo(function() {
 		return fillLocale(locale, showHour, showMinute, showSecond, showMillisecond, use12Hours);
 	}, [
 		locale,
@@ -24492,7 +20685,7 @@ function fillShowTimeConfig(picker, showTimeFormat, propFormat, timeConfig, loca
 	if (picker === "datetime" || isTimePicker) {
 		var pickedProps = timeConfig;
 		// ====================== BaseFormat ======================
-		var defaultLocaleFormat = getRowFormat(picker, locale, null);
+		var defaultLocaleFormat = getRowFormat(picker, locale);
 		var baselineFormat = defaultLocaleFormat;
 		var formatList = [showTimeFormat, propFormat];
 		for (var i = 0; i < 2; i += 1) {
@@ -24559,12 +20752,9 @@ function _typeof$o(o) {
 /**
 * Used for `useFilledProps` since it already in the React.useMemo
 */
-function fillClearIcon(prefixCls, allowClear, clearIcon) {
-	if (allowClear === false) {
-		return null;
-	}
-	var config = allowClear && _typeof$o(allowClear) === "object" ? allowClear : {};
-	return config.clearIcon || clearIcon || reactExports.createElement("span", { className: "".concat(prefixCls, "-clear-btn") });
+function fillClearIcon(__unused_17C3, allowClear) {
+	var config = _typeof$o(allowClear) === "object" ? allowClear : {};
+	return config.clearIcon || void 0 || reactExports.createElement("span", { className: "".concat("ant-picker", "-clear-btn") });
 }
 /**
 * Wrap the compare logic.
@@ -24594,23 +20784,19 @@ function isSameYear(generateConfig, year1, year2) {
 		return generateConfig.getYear(year1) === generateConfig.getYear(year2);
 	});
 }
-function getQuarter(generateConfig, date) {
-	var quota = Math.floor(generateConfig.getMonth(date) / 3);
-	return quota + 1;
-}
 function isSameQuarter(generateConfig, quarter1, quarter2) {
 	return nullableCompare(quarter1, quarter2, function() {
-		return isSameYear(generateConfig, quarter1, quarter2) && getQuarter(generateConfig, quarter1) === getQuarter(generateConfig, quarter2);
+		return isSameYear(generateConfig, quarter1, quarter2);
 	});
 }
 function isSameMonth(generateConfig, month1, month2) {
 	return nullableCompare(month1, month2, function() {
-		return isSameYear(generateConfig, month1, month2) && generateConfig.getMonth(month1) === generateConfig.getMonth(month2);
+		return isSameYear(generateConfig, month1, month2);
 	});
 }
 function isSameDate(generateConfig, date1, date2) {
 	return nullableCompare(date1, date2, function() {
-		return isSameYear(generateConfig, date1, date2) && isSameMonth(generateConfig, date1, date2) && generateConfig.getDate(date1) === generateConfig.getDate(date2);
+		return isSameYear(generateConfig, date1, date2);
 	});
 }
 function isSameTime(generateConfig, time1, time2) {
@@ -24630,7 +20816,7 @@ function isSameWeek(generateConfig, locale, date1, date2) {
 	return nullableCompare(date1, date2, function() {
 		var weekStartDate1 = generateConfig.locale.getWeekFirstDate(locale, date1);
 		var weekStartDate2 = generateConfig.locale.getWeekFirstDate(locale, date2);
-		return isSameYear(generateConfig, weekStartDate1, weekStartDate2) && generateConfig.locale.getWeek(locale, date1) === generateConfig.locale.getWeek(locale, date2);
+		return isSameYear(generateConfig, weekStartDate1, weekStartDate2);
 	});
 }
 function isSame(generateConfig, locale, source, target, type) {
@@ -24704,17 +20890,8 @@ function fillTime(generateConfig, date, time) {
 /**
 * Merge `disabledDate` with `minDate` & `maxDate`.
 */
-function useDisabledBoundary(generateConfig, locale, disabledDate, minDate, maxDate) {
-	var mergedDisabledDate = useEvent(function(date, info) {
-		if (disabledDate && disabledDate(date, info)) {
-			return true;
-		}
-		if (minDate && generateConfig.isAfter(minDate, date) && !isSame(generateConfig, locale, minDate, date, info.type)) {
-			return true;
-		}
-		if (maxDate && generateConfig.isAfter(date, maxDate) && !isSame(generateConfig, locale, maxDate, date, info.type)) {
-			return true;
-		}
+function useDisabledBoundary() {
+	var mergedDisabledDate = useEvent(function() {
 		return false;
 	});
 	return mergedDisabledDate;
@@ -24725,9 +20902,9 @@ function _typeof$n(o) {
 		return typeof o;
 	}, _typeof$n(o);
 }
-function useFieldFormat(picker, locale, format) {
+function useFieldFormat(__unused_B53C, locale) {
 	return reactExports.useMemo(function() {
-		var rawFormat = getRowFormat(picker, locale, format);
+		var rawFormat = getRowFormat("date", locale);
 		var formatList = toArray(rawFormat);
 		var firstFormat = formatList[0];
 		var maskFormat = _typeof$n(firstFormat) === "object" && firstFormat.type === "mask" ? firstFormat.format : null;
@@ -24735,16 +20912,16 @@ function useFieldFormat(picker, locale, format) {
 			return typeof config === "string" || typeof config === "function" ? config : config.format;
 		}), maskFormat];
 	}, [
-		picker,
+		,
 		locale,
-		format
+		,
 	]);
 }
-function useInputReadOnly(formatList, inputReadOnly, multiple) {
-	if (typeof formatList[0] === "function" || multiple) {
+function useInputReadOnly(formatList) {
+	if (typeof formatList[0] === "function" || void 0) {
 		return true;
 	}
-	return inputReadOnly;
+	return void 0;
 }
 function _typeof$m(o) {
 	"@babel/helpers - typeof";
@@ -24804,38 +20981,13 @@ function _toPrimitive$m(t) {
 /**
 * Check if provided date is valid for the `disabledDate` & `showTime.disabledTime`.
 */
-function useInvalidate(generateConfig, picker, disabledDate, showTime) {
+function useInvalidate(generateConfig, __unused_AA48, disabledDate) {
 	// Check disabled date
 	var isInvalidate = useEvent(function(date, info) {
-		var outsideInfo = _objectSpread$d({ type: picker }, info);
+		var outsideInfo = _objectSpread$d({ type: "date" }, info);
 		delete outsideInfo.activeIndex;
 		if (!generateConfig.isValidate(date) || disabledDate && disabledDate(date, outsideInfo)) {
 			return true;
-		}
-		if ((picker === "date" || picker === "time") && showTime) {
-			var _showTime$disabledTim;
-			var range = info && info.activeIndex === 1 ? "end" : "start";
-			var _ref = ((_showTime$disabledTim = showTime.disabledTime) === null || _showTime$disabledTim === void 0 ? void 0 : _showTime$disabledTim.call(showTime, date, range, { from: outsideInfo.from })) || {}, disabledHours = _ref.disabledHours, disabledMinutes = _ref.disabledMinutes, disabledSeconds = _ref.disabledSeconds, disabledMilliseconds = _ref.disabledMilliseconds;
-			var legacyDisabledHours = showTime.disabledHours, legacyDisabledMinutes = showTime.disabledMinutes, legacyDisabledSeconds = showTime.disabledSeconds;
-			var mergedDisabledHours = disabledHours || legacyDisabledHours;
-			var mergedDisabledMinutes = disabledMinutes || legacyDisabledMinutes;
-			var mergedDisabledSeconds = disabledSeconds || legacyDisabledSeconds;
-			var hour = generateConfig.getHour(date);
-			var minute = generateConfig.getMinute(date);
-			var second = generateConfig.getSecond(date);
-			var millisecond = generateConfig.getMillisecond(date);
-			if (mergedDisabledHours && mergedDisabledHours().includes(hour)) {
-				return true;
-			}
-			if (mergedDisabledMinutes && mergedDisabledMinutes(hour).includes(minute)) {
-				return true;
-			}
-			if (mergedDisabledSeconds && mergedDisabledSeconds(hour, minute).includes(second)) {
-				return true;
-			}
-			if (disabledMilliseconds && disabledMilliseconds(hour, minute, second).includes(millisecond)) {
-				return true;
-			}
 		}
 		return false;
 	});
@@ -24903,8 +21055,6 @@ function _nonIterableRest$s() {
 	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
 function _unsupportedIterableToArray$u(o, minLen) {
-	if (!o) return;
-	if (typeof o === "string") return _arrayLikeToArray$u(o, 2);
 	var n = Object.prototype.toString.call(o).slice(8, -1);
 	if (n === "Object" && o.constructor) n = o.constructor.name;
 	if (n === "Map" || n === "Set") return Array.from(o);
@@ -24942,12 +21092,12 @@ function _arrayWithHoles$s(arr) {
 function useList(value) {
 	var fillMode = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
 	var values = reactExports.useMemo(function() {
-		var list = value ? toArray(value) : value;
+		var list = value;
 		if (fillMode && list) {
 			list[1] = list[1] || list[0];
 		}
 		return list;
-	}, [value, fillMode]);
+	}, [, ,]);
 	return values;
 }
 /**
@@ -24956,78 +21106,62 @@ function useList(value) {
 * - Convert `value` & `defaultValue` to array
 * - handle the legacy props fill like `clearIcon` + `allowClear` = `clearIcon`
 */
-function useFilledProps(props, updater) {
-	var generateConfig = props.generateConfig, locale = props.locale, _props$picker = props.picker, picker = _props$picker === void 0 ? "date" : _props$picker, _props$prefixCls = props.prefixCls, prefixCls = _props$prefixCls === void 0 ? "rc-picker" : _props$prefixCls, _props$previewValue = props.previewValue, previewValue = _props$previewValue === void 0 ? "hover" : _props$previewValue, _props$styles = props.styles, styles = _props$styles === void 0 ? {} : _props$styles, _props$classNames = props.classNames, classNames = _props$classNames === void 0 ? {} : _props$classNames, _props$order = props.order, order = _props$order === void 0 ? true : _props$order, _props$components = props.components, components = _props$components === void 0 ? {} : _props$components, inputRender = props.inputRender, allowClear = props.allowClear, clearIcon = props.clearIcon, needConfirm = props.needConfirm, multiple = props.multiple, format = props.format, inputReadOnly = props.inputReadOnly, disabledDate = props.disabledDate, minDate = props.minDate, maxDate = props.maxDate, showTime = props.showTime, value = props.value, defaultValue = props.defaultValue, pickerValue = props.pickerValue, defaultPickerValue = props.defaultPickerValue;
-	var values = useList(value);
-	var defaultValues = useList(defaultValue);
-	var pickerValues = useList(pickerValue);
-	var defaultPickerValues = useList(defaultPickerValue);
-	// ======================== Picker ========================
-	/** Almost same as `picker`, but add `datetime` for `date` with `showTime` */
-	var internalPicker = picker === "date" && showTime ? "datetime" : picker;
-	/** The picker is `datetime` or `time` */
-	var multipleInteractivePicker = internalPicker === "time" || internalPicker === "datetime";
-	var complexPicker = multipleInteractivePicker || multiple;
-	var mergedNeedConfirm = needConfirm !== null && needConfirm !== void 0 ? needConfirm : multipleInteractivePicker;
+function useFilledProps(props) {
+	var generateConfig = props.generateConfig, locale = props.locale, _props$styles = props.styles, styles = _props$styles, _props$classNames = props.classNames, classNames = _props$classNames, _props$components = props.components, components = _props$components, allowClear = props.allowClear;
+	var values = useList(void 0);
+	var defaultValues = useList(void 0);
+	var pickerValues = useList(void 0);
+	var defaultPickerValues = useList(void 0);
 	// ========================== Time ==========================
 	// Auto `format` need to check `showTime.showXXX` first.
 	// And then merge the `locale` into `mergedShowTime`.
-	var _getTimeProps = getTimeProps(props), _getTimeProps2 = _slicedToArray$s(_getTimeProps, 4), timeProps = _getTimeProps2[0], localeTimeProps = _getTimeProps2[1], showTimeFormat = _getTimeProps2[2], propFormat = _getTimeProps2[3];
+	var _getTimeProps = getTimeProps(props), _getTimeProps2 = _slicedToArray$s(_getTimeProps, 4), localeTimeProps = _getTimeProps2[1];
 	// ======================= Locales ========================
 	var mergedLocale = useLocale(locale, localeTimeProps);
-	var mergedShowTime = reactExports.useMemo(function() {
-		return fillShowTimeConfig(internalPicker, showTimeFormat, propFormat, timeProps, mergedLocale);
-	}, [
-		internalPicker,
-		showTimeFormat,
-		propFormat,
-		timeProps,
-		mergedLocale
-	]);
 	// ======================== Props =========================
 	var filledProps = reactExports.useMemo(function() {
 		return _objectSpread$c(_objectSpread$c({}, props), {}, {
-			previewValue,
-			prefixCls,
+			previewValue: "hover",
+			prefixCls: "ant-picker",
 			locale: mergedLocale,
-			picker,
+			picker: "date",
 			styles,
 			classNames,
-			order,
-			components: _objectSpread$c({ input: inputRender }, components),
-			clearIcon: fillClearIcon(prefixCls, allowClear, clearIcon),
-			showTime: mergedShowTime,
+			order: true,
+			components: _objectSpread$c({ input: void 0 }, components),
+			clearIcon: fillClearIcon(0, allowClear),
+			showTime: null,
 			value: values,
 			defaultValue: defaultValues,
 			pickerValue: pickerValues,
 			defaultPickerValue: defaultPickerValues
-		}, updater === void 0 ? void 0 : updater());
+		}, void 0);
 	}, [props]);
 	// ======================== Format ========================
-	var _useFieldFormat = useFieldFormat(internalPicker, mergedLocale, format), _useFieldFormat2 = _slicedToArray$s(_useFieldFormat, 2), formatList = _useFieldFormat2[0], maskFormat = _useFieldFormat2[1];
+	var _useFieldFormat = useFieldFormat(0, mergedLocale), _useFieldFormat2 = _slicedToArray$s(_useFieldFormat, 2), formatList = _useFieldFormat2[0], maskFormat = _useFieldFormat2[1];
 	// ======================= ReadOnly =======================
-	var mergedInputReadOnly = useInputReadOnly(formatList, inputReadOnly, multiple);
+	var mergedInputReadOnly = useInputReadOnly(formatList);
 	// ======================= Boundary =======================
-	var disabledBoundaryDate = useDisabledBoundary(generateConfig, locale, disabledDate, minDate, maxDate);
+	var disabledBoundaryDate = useDisabledBoundary();
 	// ====================== Invalidate ======================
-	var isInvalidateDate = useInvalidate(generateConfig, picker, disabledBoundaryDate, mergedShowTime);
+	var isInvalidateDate = useInvalidate(generateConfig, 0, disabledBoundaryDate);
 	// ======================== Merged ========================
 	var mergedProps = reactExports.useMemo(function() {
 		return _objectSpread$c(_objectSpread$c({}, filledProps), {}, {
-			needConfirm: mergedNeedConfirm,
+			needConfirm: false,
 			inputReadOnly: mergedInputReadOnly,
 			disabledDate: disabledBoundaryDate
 		});
 	}, [
 		filledProps,
-		mergedNeedConfirm,
-		mergedInputReadOnly,
+		,
+		,
 		disabledBoundaryDate
 	]);
 	return [
 		mergedProps,
-		internalPicker,
-		complexPicker,
+		"date",
+		void 0,
 		formatList,
 		maskFormat,
 		isInvalidateDate
@@ -25048,7 +21182,7 @@ function _unsupportedIterableToArray$t(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$t(o, 2);
 }
 function _arrayLikeToArray$t(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -25083,14 +21217,14 @@ function _arrayWithHoles$r(arr) {
 function useDelayState(value, defaultValue, onChange) {
 	var _useControlledState = useControlledState(defaultValue, value), _useControlledState2 = _slicedToArray$r(_useControlledState), state = _useControlledState2[0], setState = _useControlledState2[1];
 	// Need force update to ensure React re-render
-	var _React$useState = React.useState({}), _React$useState2 = _slicedToArray$r(_React$useState), forceUpdate = _React$useState2[1];
+	var _React$useState = React__default.useState({}), _React$useState2 = _slicedToArray$r(_React$useState), forceUpdate = _React$useState2[1];
 	var triggerUpdate = useEvent(function(nextState) {
 		setState(nextState);
 		forceUpdate({});
 	});
-	var nextValueRef = React.useRef(value);
+	var nextValueRef = React__default.useRef(value);
 	// ============================= Update =============================
-	var rafRef = React.useRef();
+	var rafRef = React__default.useRef();
 	var cancelRaf = function() {
 		wrapperRaf.a(rafRef.current);
 	};
@@ -25109,7 +21243,7 @@ function useDelayState(value, defaultValue, onChange) {
 			rafRef.current = wrapperRaf(doUpdate);
 		}
 	});
-	React.useEffect(function() {
+	React__default.useEffect(function() {
 		return cancelRaf;
 	}, []);
 	return [state, updateValue];
@@ -25127,7 +21261,7 @@ function _unsupportedIterableToArray$s(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$s(o, 2);
 }
 function _arrayLikeToArray$s(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -25194,66 +21328,13 @@ function usePickerRef(ref) {
 	});
 	return selectorRef;
 }
-function _slicedToArray$p(arr) {
-	return _arrayWithHoles$p(arr) || _iterableToArrayLimit$p(arr) || _unsupportedIterableToArray$r(arr) || _nonIterableRest$p();
-}
-function _nonIterableRest$p() {
-	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$r(o) {
-	if (!o) return;
-	if (typeof o === "string") return _arrayLikeToArray$r(o, 2);
-	var n = Object.prototype.toString.call(o).slice(8, -1);
-	if (n === "Object" && o.constructor) n = o.constructor.name;
-	if (n === "Map" || n === "Set") return Array.from(o);
-	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$r(o, 2);
-}
-function _arrayLikeToArray$r(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
-	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-	return arr2;
-}
-function _iterableToArrayLimit$p(r) {
-	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
-	if (null != t) {
-		var e, n, i, u, a = [], f = true, o = false;
-		try {
-			{
-				i = (t = t.call(r)).next;
-				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
-			}
-		} catch (r) {
-			o = true, n = r;
-		} finally {
-			try {
-				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
-			} finally {
-				if (o) throw n;
-			}
-		}
-		return a;
-	}
-}
-function _arrayWithHoles$p(arr) {
-	if (Array.isArray(arr)) return arr;
-}
-function usePresets(presets, legacyRanges) {
+function usePresets(presets) {
 	return reactExports.useMemo(function() {
 		if (presets) {
 			return presets;
 		}
-		if (legacyRanges) {
-			warningOnce(false, "`ranges` is deprecated. Please use `presets` instead.");
-			return Object.entries(legacyRanges).map(function(_ref) {
-				var _ref2 = _slicedToArray$p(_ref), label = _ref2[0], value = _ref2[1];
-				return {
-					label,
-					value
-				};
-			});
-		}
 		return [];
-	}, [presets, legacyRanges]);
+	}, [, ,]);
 }
 /**
 * Trigger `callback` immediately when `condition` is `true`.
@@ -25291,7 +21372,7 @@ function _unsupportedIterableToArray$q(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$q(o, 2);
 }
 function _arrayLikeToArray$q(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -25386,127 +21467,6 @@ function useRangeActive(disabled) {
 		hasActiveSubmitValue
 	];
 }
-function _typeof$k(o) {
-	"@babel/helpers - typeof";
-	return _typeof$k = function(o) {
-		return typeof o;
-	}, _typeof$k(o);
-}
-function ownKeys$b(e, r) {
-	var t = Object.keys(e);
-	if (Object.getOwnPropertySymbols) {
-		var o = Object.getOwnPropertySymbols(e);
-		r && (o = o.filter(function(r) {
-			return Object.getOwnPropertyDescriptor(e, r).enumerable;
-		})), t.push.apply(t, o);
-	}
-	return t;
-}
-function _objectSpread$b(e) {
-	for (var r = 1; r < arguments.length; r++) {
-		var t = null != arguments[r] ? arguments[r] : {};
-		r % 2 ? ownKeys$b(Object(t), true).forEach(function(r) {
-			_defineProperty$k(e, r, t[r]);
-		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$b(Object(t)).forEach(function(r) {
-			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
-		});
-	}
-	return e;
-}
-function _defineProperty$k(obj, key, value) {
-	key = _toPropertyKey$k(key);
-	if (key in obj) {
-		Object.defineProperty(obj, key, {
-			value,
-			enumerable: true,
-			configurable: true,
-			writable: true
-		});
-	} else {
-		obj[key] = value;
-	}
-	return;
-}
-function _toPropertyKey$k(t) {
-	var i = _toPrimitive$k(t);
-	return "symbol" == _typeof$k(i) ? i : String(i);
-}
-function _toPrimitive$k(t) {
-	if ("object" != _typeof$k(t) || !t) return t;
-	var e = t[Symbol.toPrimitive];
-	if (void 0 !== e) {
-		var i = e.call(t, "string");
-		if ("object" != _typeof$k(i)) return i;
-		throw new TypeError("@@toPrimitive must return a primitive value.");
-	}
-	return String(t);
-}
-function _slicedToArray$n(arr) {
-	return _arrayWithHoles$n(arr) || _iterableToArrayLimit$n(arr) || _unsupportedIterableToArray$p(arr) || _nonIterableRest$n();
-}
-function _nonIterableRest$n() {
-	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$p(o) {
-	if (!o) return;
-	if (typeof o === "string") return _arrayLikeToArray$p(o, 2);
-	var n = Object.prototype.toString.call(o).slice(8, -1);
-	if (n === "Object" && o.constructor) n = o.constructor.name;
-	if (n === "Map" || n === "Set") return Array.from(o);
-	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$p(o, 2);
-}
-function _arrayLikeToArray$p(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
-	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-	return arr2;
-}
-function _iterableToArrayLimit$n(r) {
-	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
-	if (null != t) {
-		var e, n, i, u, a = [], f = true, o = false;
-		try {
-			{
-				i = (t = t.call(r)).next;
-				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== 2); f = true);
-			}
-		} catch (r) {
-			o = true, n = r;
-		} finally {
-			try {
-				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
-			} finally {
-				if (o) throw n;
-			}
-		}
-		return a;
-	}
-}
-function _arrayWithHoles$n(arr) {
-	if (Array.isArray(arr)) return arr;
-}
-/**
-* RangePicker need additional logic to handle the `disabled` case. e.g.
-* [disabled, enabled] should end date not before start date
-*/
-function useRangeDisabledDate(values, disabled, activeIndexList, generateConfig, locale, disabledDate) {
-	var activeIndex = activeIndexList[activeIndexList.length - 1];
-	var rangeDisabledDate = function(date, info) {
-		var _values = _slicedToArray$n(values), start = _values[0], end = _values[1];
-		var mergedInfo = _objectSpread$b(_objectSpread$b({}, info), {}, { from: getFromDate(values, activeIndexList) });
-		// ============================ Disabled ============================
-		// Should not select days before the start date
-		if (activeIndex === 1 && disabled[0] && start && !isSame(generateConfig, locale, start, date, mergedInfo.type) && generateConfig.isAfter(start, date)) {
-			return true;
-		}
-		// Should not select days after the end date
-		if (activeIndex === 0 && disabled[1] && end && !isSame(generateConfig, locale, end, date, mergedInfo.type) && generateConfig.isAfter(date, end)) {
-			return true;
-		}
-		// ============================= Origin =============================
-		return disabledDate === null || disabledDate === void 0 ? void 0 : disabledDate(date, mergedInfo);
-	};
-	return rangeDisabledDate;
-}
 function _slicedToArray$m(arr) {
 	return _arrayWithHoles$m(arr) || _iterableToArrayLimit$m(arr) || _unsupportedIterableToArray$o(arr) || _nonIterableRest$m();
 }
@@ -25522,7 +21482,7 @@ function _unsupportedIterableToArray$o(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$o(o, 2);
 }
 function _arrayLikeToArray$o(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -25624,28 +21584,7 @@ function useRangePickerValue(generateConfig, locale, calendarValue, modes, open,
 	*   - pickerValue minus one month
 	* - Else pass directly
 	*/
-	var getEndDatePickerValue = function(startDate, endDate) {
-		if (multiplePanel) {
-			// Basic offset
-			var SAME_CHECKER = {
-				date: "month",
-				week: "month",
-				month: "year",
-				quarter: "year"
-			};
-			var mode = SAME_CHECKER[pickerMode];
-			if (mode && !isSame(generateConfig, 0, startDate, endDate, mode)) {
-				return offsetPanelDate(generateConfig, pickerMode, endDate, -1);
-			}
-			// Year offset
-			if (pickerMode === "year" && startDate) {
-				var srcYear = Math.floor(generateConfig.getYear(startDate) / 10);
-				var tgtYear = Math.floor(generateConfig.getYear(endDate) / 10);
-				if (srcYear !== tgtYear) {
-					return offsetPanelDate(generateConfig, pickerMode, endDate, -1);
-				}
-			}
-		}
+	var getEndDatePickerValue = function(__unused_6EB8, endDate) {
 		return endDate;
 	};
 	// >>> When switch field, reset the picker value as prev field picker value
@@ -25668,7 +21607,7 @@ function useRangePickerValue(generateConfig, locale, calendarValue, modes, open,
 					nextPickerValue = [mergedStartPickerValue, mergedEndPickerValue][mergedActiveIndex ^ 1];
 				} else if (calendarValue[mergedActiveIndex]) {
 					// Current field has value
-					nextPickerValue = mergedActiveIndex === 0 ? calendarValue[0] : getEndDatePickerValue(calendarValue[0], calendarValue[1]);
+					nextPickerValue = mergedActiveIndex === 0 ? calendarValue[0] : getEndDatePickerValue(0, calendarValue[1]);
 				} else if (calendarValue[mergedActiveIndex ^ 1]) {
 					// Current field has no value but another field has value
 					nextPickerValue = calendarValue[mergedActiveIndex ^ 1];
@@ -25680,9 +21619,9 @@ function useRangePickerValue(generateConfig, locale, calendarValue, modes, open,
 						nextPickerValue = minDate;
 					}
 					// maxDate < nextPickerValue
-					var offsetPickerValue = multiplePanel ? offsetPanelDate(generateConfig, pickerMode, nextPickerValue, 1) : nextPickerValue;
+					var offsetPickerValue = nextPickerValue;
 					if (maxDate && generateConfig.isAfter(offsetPickerValue, maxDate)) {
-						nextPickerValue = multiplePanel ? offsetPanelDate(generateConfig, pickerMode, maxDate, -1) : maxDate;
+						nextPickerValue = maxDate;
 					}
 					setCurrentPickerValue(nextPickerValue, "reset");
 				}
@@ -25726,7 +21665,7 @@ function _unsupportedIterableToArray$n(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$n(o, 2);
 }
 function _arrayLikeToArray$n(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -25900,7 +21839,7 @@ function useCalendarValue(mergedValue) {
 * Control the internal `value` align with prop `value` and provide a temp `calendarValue` for ui.
 * `calendarValue` will be reset when blur & focus & open.
 */
-function useInnerValue(generateConfig, locale, formatList, rangeValue, order, defaultValue, value, onCalendarChange, onOk) {
+function useInnerValue(generateConfig, locale, formatList, __unused_494E, order, defaultValue, value, onCalendarChange, onOk) {
 	// This is the root value which will sync with controlled or uncontrolled value
 	var _useControlledState = useControlledState(defaultValue, value), _useControlledState2 = _slicedToArray$k(_useControlledState, 2), innerValue = _useControlledState2[0], setInnerValue = _useControlledState2[1];
 	var mergedValue = innerValue || EMPTY_VALUE;
@@ -25910,29 +21849,31 @@ function useInnerValue(generateConfig, locale, formatList, rangeValue, order, de
 	var _useUtil = useUtil(generateConfig, locale, formatList), _useUtil2 = _slicedToArray$k(_useUtil, 2), getDateTexts = _useUtil2[0], isSameDates = _useUtil2[1];
 	var triggerCalendarChange = useEvent(function(nextCalendarValues) {
 		var clone = _toConsumableArray$6(nextCalendarValues);
-		if (rangeValue) {
-			for (var i = 0; i < 2; i += 1) {
-				clone[i] = clone[i] || null;
+		{
+			if (order) {
+				clone = orderDates(clone.filter(function(date) {
+					return date;
+				}), generateConfig);
 			}
-		} else if (order) {
-			clone = orderDates(clone.filter(function(date) {
-				return date;
-			}), generateConfig);
 		}
 		// Update merged value
 		var _isSameDates = isSameDates(calendarValue(), clone), _isSameDates2 = _slicedToArray$k(_isSameDates, 2), isSameMergedDates = _isSameDates2[0], isSameStart = _isSameDates2[1];
 		if (!isSameMergedDates) {
 			setCalendarValue(clone);
 			// Trigger calendar change event
-			if (onCalendarChange) {
-				var cellTexts = getDateTexts(clone);
-				onCalendarChange(clone, cellTexts, { range: isSameStart ? "end" : "start" });
+			{
+				{
+					var cellTexts = getDateTexts(clone);
+					onCalendarChange(clone, cellTexts, { range: isSameStart ? "end" : "start" });
+				}
 			}
 		}
 	});
 	var triggerOk = function() {
-		if (onOk) {
-			onOk(calendarValue());
+		{
+			{
+				onOk(calendarValue());
+			}
 		}
 	};
 	return [
@@ -26038,7 +21979,7 @@ function useRangeValue(info, mergedValue, setInnerValue, getCalendarValue, trigg
 	// ============================ Return ============================
 	return [flushSubmit, triggerSubmit];
 }
-function useShowNow(picker, mode, showNow, showToday, rangePicker) {
+function useShowNow(picker, mode, showNow, showToday) {
 	if (mode !== "date" && mode !== "time") {
 		return false;
 	}
@@ -26049,7 +21990,7 @@ function useShowNow(picker, mode, showNow, showToday, rangePicker) {
 	if (showToday !== void 0) {
 		return showToday;
 	}
-	return !rangePicker && (picker === "date" || picker === "time");
+	return picker === "date" || picker === "time";
 }
 function _toConsumableArray$5(arr) {
 	return _arrayWithoutHoles$5(arr) || _iterableToArray$5(arr) || _unsupportedIterableToArray$l(arr) || _nonIterableSpread$5();
@@ -26181,7 +22122,7 @@ function _unsupportedIterableToArray$k(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$k(o, 4);
 }
 function _arrayLikeToArray$k(arr, len) {
-	if (4 == null || 4 > arr.length) len = arr.length;
+	if (4 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -26346,7 +22287,7 @@ function _unsupportedIterableToArray$j(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$j(o, 1);
 }
 function _arrayLikeToArray$j(arr, len) {
-	if (1 == null || 1 > arr.length) len = arr.length;
+	if (1 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -26576,7 +22517,7 @@ function _unsupportedIterableToArray$h(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$h(o, 2);
 }
 function _arrayLikeToArray$h(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -26705,13 +22646,13 @@ function PanelBody(props) {
 }
 var HIDDEN_STYLE = { visibility: "hidden" };
 function PanelHeader(props) {
-	var offset = props.offset, superOffset = props.superOffset, onChange = props.onChange, getStart = props.getStart, getEnd = props.getEnd, children = props.children;
+	var offset = props.a, superOffset = props.b, onChange = props.c, getStart = props.d, getEnd = props.e, children = props.children;
 	var _usePanelContext = usePanelContext(), prefixCls = _usePanelContext.prefixCls, classNames = _usePanelContext.classNames, styles = _usePanelContext.styles, _usePanelContext$prev = _usePanelContext.prevIcon, prevIcon = _usePanelContext$prev === void 0 ? "‹" : _usePanelContext$prev, _usePanelContext$next = _usePanelContext.nextIcon, nextIcon = _usePanelContext$next === void 0 ? "›" : _usePanelContext$next, _usePanelContext$supe = _usePanelContext.superPrevIcon, superPrevIcon = _usePanelContext$supe === void 0 ? "«" : _usePanelContext$supe, _usePanelContext$supe2 = _usePanelContext.superNextIcon, superNextIcon = _usePanelContext$supe2 === void 0 ? "»" : _usePanelContext$supe2, minDate = _usePanelContext.minDate, maxDate = _usePanelContext.maxDate, generateConfig = _usePanelContext.generateConfig, locale = _usePanelContext.locale, pickerValue = _usePanelContext.pickerValue, type = _usePanelContext.panelType;
 	var headerPrefixCls = "".concat(prefixCls, "-header");
 	var _React$useContext = reactExports.useContext(PickerHackContext), hidePrev = _React$useContext.hidePrev, hideNext = _React$useContext.hideNext, hideHeader = _React$useContext.hideHeader;
 	// ======================= Limitation =======================
 	var disabledOffsetPrev = reactExports.useMemo(function() {
-		if (!minDate || !offset || !getEnd) {
+		if (!minDate || !offset || false) {
 			return false;
 		}
 		var prevPanelLimitDate = getEnd(offset(-1, pickerValue));
@@ -26726,7 +22667,7 @@ function PanelHeader(props) {
 		type
 	]);
 	var disabledSuperOffsetPrev = reactExports.useMemo(function() {
-		if (!minDate || !superOffset || !getEnd) {
+		if (!minDate || !superOffset || false) {
 			return false;
 		}
 		var prevPanelLimitDate = getEnd(superOffset(-1, pickerValue));
@@ -26741,7 +22682,7 @@ function PanelHeader(props) {
 		type
 	]);
 	var disabledOffsetNext = reactExports.useMemo(function() {
-		if (!maxDate || !offset || !getStart) {
+		if (!maxDate || !offset || false) {
 			return false;
 		}
 		var nextPanelLimitDate = getStart(offset(1, pickerValue));
@@ -26756,7 +22697,7 @@ function PanelHeader(props) {
 		type
 	]);
 	var disabledSuperOffsetNext = reactExports.useMemo(function() {
-		if (!maxDate || !superOffset || !getStart) {
+		if (!maxDate || !superOffset || false) {
 			return false;
 		}
 		var nextPanelLimitDate = getStart(superOffset(1, pickerValue));
@@ -26772,13 +22713,17 @@ function PanelHeader(props) {
 	]);
 	// ========================= Offset =========================
 	var onOffset = function(distance) {
-		if (offset) {
-			onChange(offset(distance, pickerValue));
+		{
+			{
+				onChange(offset(distance, pickerValue));
+			}
 		}
 	};
 	var onSuperOffset = function(distance) {
-		if (superOffset) {
-			onChange(superOffset(distance, pickerValue));
+		{
+			{
+				onChange(superOffset(distance, pickerValue));
+			}
 		}
 	};
 	// ========================= Render =========================
@@ -26885,7 +22830,7 @@ function _unsupportedIterableToArray$g(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$g(o, 2);
 }
 function _arrayLikeToArray$g(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -27013,17 +22958,17 @@ function DatePanel(props) {
 	var monthYearNodes = locale.monthBeforeYear ? [monthNode, yearNode] : [yearNode, monthNode];
 	// ========================= Render =========================
 	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: clsx(panelPrefixCls, showWeek && "".concat(panelPrefixCls, "-show-week")) }, reactExports.createElement(PanelHeader, {
-		offset: function(distance) {
+		a: function(distance) {
 			return generateConfig.addMonth(pickerValue, distance);
 		},
-		superOffset: function(distance) {
+		b: function(distance) {
 			return generateConfig.addYear(pickerValue, distance);
 		},
-		onChange: onPickerValueChange,
-		getStart: function(date) {
+		c: onPickerValueChange,
+		d: function(date) {
 			return generateConfig.setDate(date, 1);
 		},
-		getEnd: function(date) {
+		e: function(date) {
 			var clone = generateConfig.setDate(date, 1);
 			clone = generateConfig.addMonth(clone, 1);
 			return generateConfig.addDate(clone, -1);
@@ -27624,7 +23569,7 @@ function _unsupportedIterableToArray$d(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$d(o, 1);
 }
 function _arrayLikeToArray$d(arr, len) {
-	if (1 == null || 1 > arr.length) len = arr.length;
+	if (1 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -27682,7 +23627,7 @@ function _unsupportedIterableToArray$c(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$c(o, 1);
 }
 function _arrayLikeToArray$c(arr, len) {
-	if (1 == null || 1 > arr.length) len = arr.length;
+	if (1 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -27789,7 +23734,7 @@ function _unsupportedIterableToArray$b(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$b(o, 1);
 }
 function _arrayLikeToArray$b(arr, len) {
-	if (1 == null || 1 > arr.length) len = arr.length;
+	if (1 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -27877,12 +23822,12 @@ function DecadePanel(props) {
 	}));
 	// ========================= Render =========================
 	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(PanelHeader, {
-		superOffset: function(distance) {
+		b: function(distance) {
 			return generateConfig.addYear(pickerValue, distance * 100);
 		},
-		onChange: onPickerValueChange,
-		getStart: getStartYear,
-		getEnd: getEndYear
+		c: onPickerValueChange,
+		d: getStartYear,
+		e: getEndYear
 	}, yearNode), reactExports.createElement(PanelBody, _extends$g({}, props, {
 		disabledDate: mergedDisabledDate,
 		colNum: 3,
@@ -27944,7 +23889,7 @@ function _unsupportedIterableToArray$a(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$a(o, 1);
 }
 function _arrayLikeToArray$a(arr, len) {
-	if (1 == null || 1 > arr.length) len = arr.length;
+	if (1 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -28019,14 +23964,14 @@ function MonthPanel(props) {
 	}));
 	// ========================= Render =========================
 	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(PanelHeader, {
-		superOffset: function(distance) {
+		b: function(distance) {
 			return generateConfig.addYear(pickerValue, distance);
 		},
-		onChange: onPickerValueChange,
-		getStart: function(date) {
+		c: onPickerValueChange,
+		d: function(date) {
 			return generateConfig.setMonth(date, 0);
 		},
-		getEnd: function(date) {
+		e: function(date) {
 			return generateConfig.setMonth(date, 11);
 		}
 	}, yearNode), reactExports.createElement(PanelBody, _extends$f({}, props, {
@@ -28091,7 +24036,7 @@ function _unsupportedIterableToArray$9(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$9(o, 1);
 }
 function _arrayLikeToArray$9(arr, len) {
-	if (1 == null || 1 > arr.length) len = arr.length;
+	if (1 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -28156,14 +24101,14 @@ function QuarterPanel(props) {
 	}));
 	// ========================= Render =========================
 	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(PanelHeader, {
-		superOffset: function(distance) {
+		b: function(distance) {
 			return generateConfig.addYear(pickerValue, distance);
 		},
-		onChange: onPickerValueChange,
-		getStart: function(date) {
+		c: onPickerValueChange,
+		d: function(date) {
 			return generateConfig.setMonth(date, 0);
 		},
-		getEnd: function(date) {
+		e: function(date) {
 			return generateConfig.setMonth(date, 11);
 		}
 	}, yearNode), reactExports.createElement(PanelBody, _extends$e({}, props, {
@@ -28229,7 +24174,7 @@ function _unsupportedIterableToArray$8(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$8(o, 2);
 }
 function _arrayLikeToArray$8(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -28342,7 +24287,7 @@ function _unsupportedIterableToArray$7(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$7(o, 1);
 }
 function _arrayLikeToArray$7(arr, len) {
-	if (1 == null || 1 > arr.length) len = arr.length;
+	if (1 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -28398,7 +24343,7 @@ function YearPanel(props) {
 		});
 	};
 	var getCellClassName = function(date) {
-		return _defineProperty$b({}, "".concat(prefixCls, "-cell-in-view"), isSameYear(generateConfig, date, startYearDate) || isSameYear(generateConfig, date, endYearDate) || isInRange(generateConfig, startYearDate, endYearDate, date));
+		return _defineProperty$b({}, "".concat(prefixCls, "-cell-in-view"), (isSameYear(generateConfig, date, startYearDate), isSameYear(generateConfig, date, endYearDate), isInRange(generateConfig, startYearDate, endYearDate, date)));
 	};
 	// ======================== Disabled ========================
 	var mergedDisabledDate = disabledDate ? function(currentDate, disabledInfo) {
@@ -28431,12 +24376,12 @@ function YearPanel(props) {
 	}));
 	// ========================= Render =========================
 	return reactExports.createElement(PanelContext.Provider, { value: info }, reactExports.createElement("div", { className: panelPrefixCls }, reactExports.createElement(PanelHeader, {
-		superOffset: function(distance) {
+		b: function(distance) {
 			return generateConfig.addYear(pickerValue, distance * 10);
 		},
-		onChange: onPickerValueChange,
-		getStart: getStartYear,
-		getEnd: getEndYear
+		c: onPickerValueChange,
+		d: getStartYear,
+		e: getEndYear
 	}, yearNode), reactExports.createElement(PanelBody, _extends$c({}, props, {
 		disabledDate: mergedDisabledDate,
 		titleFormat: locale.fieldYearFormat,
@@ -28871,7 +24816,7 @@ function executeValue(value) {
 	return typeof value === "function" ? value() : value;
 }
 function PresetPanel(props) {
-	var prefixCls = props.prefixCls, presets = props.presets, _onClick = props.onClick, onHover = props.onHover;
+	var prefixCls = props.a, presets = props.b, _onClick = props.c, onHover = props.d;
 	if (!presets.length) {
 		return null;
 	}
@@ -29094,10 +25039,10 @@ function Popup(props) {
 		onSubmit();
 	};
 	var mergedNodes = reactExports.createElement("div", { className: "".concat(prefixCls, "-panel-layout") }, reactExports.createElement(PresetPanel, {
-		prefixCls,
-		presets,
-		onClick: onPresetSubmit,
-		onHover: onPresetHover
+		a: prefixCls,
+		b: presets,
+		c: onPresetSubmit,
+		d: onPresetHover
 	}), reactExports.createElement("div", null, reactExports.createElement(PopupPanel, _extends$9({}, props, { value: popupPanelValue })), reactExports.createElement(Footer, _extends$9({}, props, {
 		showNow: multiple ? false : showNow,
 		invalid: disableSubmit,
@@ -29302,7 +25247,7 @@ function useInputProps(props, postProps) {
 					}
 				}
 			}
-		}, postProps === void 0 ? void 0 : postProps({ valueTexts }));
+		}, postProps({ a: valueTexts }));
 		// ============== Clean Up ==============
 		Object.keys(inputProps).forEach(function(key) {
 			if (inputProps[key] === void 0) {
@@ -29945,310 +25890,6 @@ var Input = reactExports.forwardRef(function(props, ref) {
 	}), clearIcon);
 });
 var Input$1 = Input;
-var _excluded$1 = [
-	"id",
-	"prefix",
-	"clearIcon",
-	"suffixIcon",
-	"separator",
-	"activeIndex",
-	"activeHelp",
-	"allHelp",
-	"focused",
-	"onFocus",
-	"onBlur",
-	"onKeyDown",
-	"locale",
-	"generateConfig",
-	"placeholder",
-	"className",
-	"style",
-	"onClick",
-	"onClear",
-	"value",
-	"onChange",
-	"onSubmit",
-	"onInputChange",
-	"format",
-	"maskFormat",
-	"preserveInvalidOnBlur",
-	"onInvalid",
-	"disabled",
-	"invalid",
-	"inputReadOnly",
-	"direction",
-	"onOpenChange",
-	"onActiveInfo",
-	"placement",
-	"onMouseDown",
-	"required",
-	"aria-required",
-	"autoFocus",
-	"tabIndex"
-], _excluded2 = ["index"];
-function _extends$6() {
-	_extends$6 = Object.assign.bind();
-	return _extends$6.apply(this, arguments);
-}
-function ownKeys$4(e, r) {
-	var t = Object.keys(e);
-	if (Object.getOwnPropertySymbols) {
-		var o = Object.getOwnPropertySymbols(e);
-		r && (o = o.filter(function(r) {
-			return Object.getOwnPropertyDescriptor(e, r).enumerable;
-		})), t.push.apply(t, o);
-	}
-	return t;
-}
-function _objectSpread$4(e) {
-	for (var r = 1; r < arguments.length; r++) {
-		var t = null != arguments[r] ? arguments[r] : {};
-		r % 2 ? ownKeys$4(Object(t), true).forEach(function(r) {
-			_defineProperty$4(e, r, t[r]);
-		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$4(Object(t)).forEach(function(r) {
-			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
-		});
-	}
-	return e;
-}
-function _defineProperty$4(obj, key, value) {
-	key = _toPropertyKey$4(key);
-	if (key in obj) {
-		Object.defineProperty(obj, key, {
-			value,
-			enumerable: true,
-			configurable: true,
-			writable: true
-		});
-	} else {
-		obj[key] = value;
-	}
-	return obj;
-}
-function _toPropertyKey$4(t) {
-	var i = _toPrimitive$4(t);
-	return "symbol" == _typeof$4(i) ? i : String(i);
-}
-function _toPrimitive$4(t) {
-	if ("object" != _typeof$4(t) || !t) return t;
-	var e = t[Symbol.toPrimitive];
-	if (void 0 !== e) {
-		var i = e.call(t, "string");
-		if ("object" != _typeof$4(i)) return i;
-		throw new TypeError("@@toPrimitive must return a primitive value.");
-	}
-	return String(t);
-}
-function _slicedToArray$3(arr, i) {
-	return _arrayWithHoles$3(arr) || _iterableToArrayLimit$3(arr, i) || _unsupportedIterableToArray$3(arr, i) || _nonIterableRest$3();
-}
-function _nonIterableRest$3() {
-	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$3(o, minLen) {
-	if (!o) return;
-	if (typeof o === "string") return _arrayLikeToArray$3(o, 2);
-	var n = Object.prototype.toString.call(o).slice(8, -1);
-	if (n === "Object" && o.constructor) n = o.constructor.name;
-	if (n === "Map" || n === "Set") return Array.from(o);
-	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$3(o, minLen);
-}
-function _arrayLikeToArray$3(arr, len) {
-	if (len == null || len > arr.length) len = arr.length;
-	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-	return arr2;
-}
-function _iterableToArrayLimit$3(r, l) {
-	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
-	if (null != t) {
-		var e, n, i, u, a = [], f = true, o = false;
-		try {
-			{
-				i = (t = t.call(r)).next;
-				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
-			}
-		} catch (r) {
-			o = true, n = r;
-		} finally {
-			try {
-				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
-			} finally {
-				if (o) throw n;
-			}
-		}
-		return a;
-	}
-}
-function _arrayWithHoles$3(arr) {
-	if (Array.isArray(arr)) return arr;
-}
-function _typeof$4(o) {
-	"@babel/helpers - typeof";
-	return _typeof$4 = function(o) {
-		return typeof o;
-	}, _typeof$4(o);
-}
-function _objectWithoutProperties$1(source, excluded) {
-	if (source == null) return {};
-	var target = _objectWithoutPropertiesLoose$1(source, excluded);
-	var key, i;
-	if (Object.getOwnPropertySymbols) {
-		var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
-		for (i = 0; i < sourceSymbolKeys.length; i++) {
-			key = sourceSymbolKeys[i];
-			if (excluded.indexOf(key) >= 0) continue;
-			if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
-			target[key] = source[key];
-		}
-	}
-	return target;
-}
-function _objectWithoutPropertiesLoose$1(source, excluded) {
-	if (source == null) return {};
-	var target = {};
-	var sourceKeys = Object.keys(source);
-	var key, i;
-	for (i = 0; i < sourceKeys.length; i++) {
-		key = sourceKeys[i];
-		if (excluded.indexOf(key) >= 0) continue;
-		target[key] = source[key];
-	}
-	return target;
-}
-function RangeSelector(props, ref) {
-	var id = props.id, prefix = props.prefix, clearIcon = props.clearIcon, suffixIcon = props.suffixIcon, _props$separator = props.separator, separator = _props$separator === void 0 ? "~" : _props$separator, activeIndex = props.activeIndex;
-	var focused = props.focused;
-	var placeholder = props.placeholder, className = props.className, style = props.style, onClick = props.onClick, onClear = props.onClear, value = props.value;
-	var disabled = props.disabled, invalid = props.invalid;
-	var direction = props.direction;
-	var onActiveInfo = props.onActiveInfo;
-	var _onMouseDown = props.onMouseDown;
-	var autoFocus = props.autoFocus, tabIndex = props.tabIndex, restProps = _objectWithoutProperties$1(props, _excluded$1);
-	var rtl = direction === "rtl";
-	// ======================== Prefix ========================
-	var _React$useContext = reactExports.useContext(PickerContext$1), prefixCls = _React$useContext.prefixCls, classNames = _React$useContext.classNames, styles = _React$useContext.styles;
-	// ========================== Id ==========================
-	var ids = reactExports.useMemo(function() {
-		if (typeof id === "string") {
-			return [id];
-		}
-		var mergedId = id || {};
-		return [mergedId.start, mergedId.end];
-	}, [id]);
-	// ========================= Refs =========================
-	var rootRef = reactExports.useRef();
-	var inputStartRef = reactExports.useRef();
-	var inputEndRef = reactExports.useRef();
-	var getInput = function(index) {
-		var _index;
-		return (_index = [inputStartRef, inputEndRef][index]) === null || _index === void 0 ? void 0 : _index.current;
-	};
-	reactExports.useImperativeHandle(ref, function() {
-		return {
-			nativeElement: rootRef.current,
-			focus: function(options) {
-				if (_typeof$4(options) === "object") {
-					var _getInput;
-					var _ref = options || {}, _ref$index = _ref.index, _index2 = _ref$index === void 0 ? 0 : _ref$index, rest = _objectWithoutProperties$1(_ref, _excluded2);
-					(_getInput = getInput(_index2)) === null || _getInput === void 0 || _getInput.focus(rest);
-				} else {
-					var _getInput2;
-					(_getInput2 = getInput(options !== null && options !== void 0 ? options : 0)) === null || _getInput2 === void 0 || _getInput2.focus();
-				}
-			},
-			blur: function() {
-				var _getInput3, _getInput4;
-				(_getInput3 = getInput(0)) === null || _getInput3 === void 0 || _getInput3.blur();
-				(_getInput4 = getInput(1)) === null || _getInput4 === void 0 || _getInput4.blur();
-			}
-		};
-	});
-	// ======================== Props =========================
-	var rootProps = useRootProps(restProps);
-	// ===================== Placeholder ======================
-	var mergedPlaceholder = reactExports.useMemo(function() {
-		return Array.isArray(placeholder) ? placeholder : [placeholder, placeholder];
-	}, [placeholder]);
-	// ======================== Inputs ========================
-	var _useInputProps = useInputProps(_objectSpread$4(_objectSpread$4({}, props), {}, {
-		id: ids,
-		placeholder: mergedPlaceholder
-	})), _useInputProps2 = _slicedToArray$3(_useInputProps, 1), getInputProps = _useInputProps2[0];
-	// ====================== ActiveBar =======================
-	var _React$useState = reactExports.useState({
-		position: "absolute",
-		width: 0
-	}), _React$useState2 = _slicedToArray$3(_React$useState, 2), activeBarStyle = _React$useState2[0], setActiveBarStyle = _React$useState2[1];
-	var syncActiveOffset = useEvent(function() {
-		var input = getInput(activeIndex);
-		if (input) {
-			var inputRect = input.nativeElement.getBoundingClientRect();
-			var parentRect = rootRef.current.getBoundingClientRect();
-			var rectOffset = inputRect.left - parentRect.left;
-			setActiveBarStyle(function(ori) {
-				return _objectSpread$4(_objectSpread$4({}, ori), {}, {
-					width: inputRect.width,
-					left: rectOffset
-				});
-			});
-			onActiveInfo([
-				inputRect.left,
-				inputRect.right,
-				parentRect.width
-			]);
-		}
-	});
-	reactExports.useEffect(function() {
-		syncActiveOffset();
-	}, [activeIndex]);
-	// ======================== Clear =========================
-	var showClear = clearIcon && (value[0] && !disabled[0] || value[1] && !disabled[1]);
-	// ======================= Disabled =======================
-	var startAutoFocus = autoFocus && !disabled[0];
-	var endAutoFocus = autoFocus && !startAutoFocus && !disabled[1];
-	// ======================== Render ========================
-	return reactExports.createElement(RefResizeObserver, { onResize: syncActiveOffset }, reactExports.createElement("div", _extends$6({}, rootProps, {
-		className: clsx(prefixCls, "".concat(prefixCls, "-range"), _defineProperty$4(_defineProperty$4(_defineProperty$4(_defineProperty$4({}, "".concat(prefixCls, "-focused"), focused), "".concat(prefixCls, "-disabled"), disabled.every(function(i) {
-			return i;
-		})), "".concat(prefixCls, "-invalid"), invalid.some(function(i) {
-			return i;
-		})), "".concat(prefixCls, "-rtl"), rtl), className),
-		style,
-		ref: rootRef,
-		onClick,
-		onMouseDown: function(e) {
-			var target = e.target;
-			if (target !== inputStartRef.current.inputElement && target !== inputEndRef.current.inputElement) {
-				e.preventDefault();
-			}
-			_onMouseDown === null || _onMouseDown === void 0 || _onMouseDown(e);
-		}
-	}), prefix && reactExports.createElement("div", {
-		className: clsx("".concat(prefixCls, "-prefix"), classNames.prefix),
-		style: styles.prefix
-	}, prefix), reactExports.createElement(Input$1, _extends$6({ ref: inputStartRef }, getInputProps(0), {
-		className: "".concat(prefixCls, "-input-start"),
-		autoFocus: startAutoFocus,
-		tabIndex,
-		"date-range": "start"
-	})), reactExports.createElement("div", { className: "".concat(prefixCls, "-range-separator") }, separator), reactExports.createElement(Input$1, _extends$6({ ref: inputEndRef }, getInputProps(1), {
-		className: "".concat(prefixCls, "-input-end"),
-		autoFocus: endAutoFocus,
-		tabIndex,
-		"date-range": "end"
-	})), reactExports.createElement("div", {
-		className: "".concat(prefixCls, "-active-bar"),
-		style: activeBarStyle
-	}), reactExports.createElement(Icon, {
-		type: "suffix",
-		icon: suffixIcon
-	}), showClear && reactExports.createElement(ClearIcon, {
-		icon: clearIcon,
-		onClear
-	})));
-}
-var RefRangeSelector = reactExports.forwardRef(RangeSelector);
-var RangeSelector$1 = RefRangeSelector;
 function _typeof$3(o) {
 	"@babel/helpers - typeof";
 	return _typeof$3 = function(o) {
@@ -30314,532 +25955,8 @@ function useSemantic(classNames, styles) {
 		return [mergedClassNames, mergedStyles];
 	}, [classNames, styles]);
 }
-function _typeof$2(o) {
-	"@babel/helpers - typeof";
-	return _typeof$2 = function(o) {
-		return typeof o;
-	}, _typeof$2(o);
-}
-function _extends$5() {
-	_extends$5 = Object.assign.bind();
-	return _extends$5.apply(this, arguments);
-}
-function _toConsumableArray$1(arr) {
-	return _arrayWithoutHoles$1(arr) || _iterableToArray$1(arr) || _unsupportedIterableToArray$2(arr) || _nonIterableSpread$1();
-}
-function _nonIterableSpread$1() {
-	throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _iterableToArray$1(iter) {
-	if (iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter);
-}
-function _arrayWithoutHoles$1(arr) {
-	if (Array.isArray(arr)) return _arrayLikeToArray$2(arr);
-}
-function ownKeys$2(e, r) {
-	var t = Object.keys(e);
-	if (Object.getOwnPropertySymbols) {
-		var o = Object.getOwnPropertySymbols(e);
-		r && (o = o.filter(function(r) {
-			return Object.getOwnPropertyDescriptor(e, r).enumerable;
-		})), t.push.apply(t, o);
-	}
-	return t;
-}
-function _objectSpread$2(e) {
-	for (var r = 1; r < arguments.length; r++) {
-		var t = null != arguments[r] ? arguments[r] : {};
-		r % 2 ? ownKeys$2(Object(t), true).forEach(function(r) {
-			_defineProperty$2(e, r, t[r]);
-		}) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys$2(Object(t)).forEach(function(r) {
-			Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
-		});
-	}
-	return e;
-}
-function _defineProperty$2(obj, key, value) {
-	key = _toPropertyKey$2(key);
-	if (key in obj) {
-		Object.defineProperty(obj, key, {
-			value,
-			enumerable: true,
-			configurable: true,
-			writable: true
-		});
-	} else {
-		obj[key] = value;
-	}
-	return;
-}
-function _toPropertyKey$2(t) {
-	var i = _toPrimitive$2(t);
-	return "symbol" == _typeof$2(i) ? i : String(i);
-}
-function _toPrimitive$2(t) {
-	if ("object" != _typeof$2(t) || !t) return t;
-	var e = t[Symbol.toPrimitive];
-	if (void 0 !== e) {
-		var i = e.call(t, "string");
-		if ("object" != _typeof$2(i)) return i;
-		throw new TypeError("@@toPrimitive must return a primitive value.");
-	}
-	return String(t);
-}
-function _slicedToArray$2(arr, i) {
-	return _arrayWithHoles$2(arr) || _iterableToArrayLimit$2(arr, i) || _unsupportedIterableToArray$2(arr, i) || _nonIterableRest$2();
-}
-function _nonIterableRest$2() {
-	throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _unsupportedIterableToArray$2(o, minLen) {
-	if (!o) return;
-	if (typeof o === "string") return _arrayLikeToArray$2(o, minLen);
-	var n = Object.prototype.toString.call(o).slice(8, -1);
-	if (n === "Object" && o.constructor) n = o.constructor.name;
-	if (n === "Map" || n === "Set") return Array.from(o);
-	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$2(o, minLen);
-}
-function _arrayLikeToArray$2(arr, len) {
-	if (len == null || len > arr.length) len = arr.length;
-	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-	return arr2;
-}
-function _iterableToArrayLimit$2(r, l) {
-	var t = null == r ? null : r[Symbol.iterator] || r["@@iterator"];
-	if (null != t) {
-		var e, n, i, u, a = [], f = true, o = false;
-		try {
-			{
-				i = (t = t.call(r)).next;
-				for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = true);
-			}
-		} catch (r) {
-			o = true, n = r;
-		} finally {
-			try {
-				if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
-			} finally {
-				if (o) throw n;
-			}
-		}
-		return a;
-	}
-}
-function _arrayWithHoles$2(arr) {
-	if (Array.isArray(arr)) return arr;
-}
-function separateConfig(config) {
-	var singleConfig = config !== null && config !== void 0 ? config : false;
-	if (Array.isArray(singleConfig)) {
-		return singleConfig;
-	}
-	return [singleConfig, singleConfig];
-}
-/** Used for change event, it should always be not undefined */
-function getActiveRange(activeIndex) {
-	return activeIndex === 1 ? "end" : "start";
-}
-function RangePicker(props, ref) {
-	// ========================= Prop =========================
-	var _useFilledProps = useFilledProps(props, function() {
-		var disabled = props.disabled, allowEmpty = props.allowEmpty;
-		var mergedDisabled = separateConfig(disabled);
-		var mergedAllowEmpty = separateConfig(allowEmpty);
-		return {
-			disabled: mergedDisabled,
-			allowEmpty: mergedAllowEmpty
-		};
-	}), _useFilledProps2 = _slicedToArray$2(_useFilledProps, 6), filledProps = _useFilledProps2[0], internalPicker = _useFilledProps2[1], complexPicker = _useFilledProps2[2], formatList = _useFilledProps2[3], maskFormat = _useFilledProps2[4], isInvalidateDate = _useFilledProps2[5];
-	var prefixCls = filledProps.prefixCls, rootClassName = filledProps.rootClassName, propStyles = filledProps.styles, propClassNames = filledProps.classNames, previewValue = filledProps.previewValue, defaultValue = filledProps.defaultValue, value = filledProps.value, needConfirm = filledProps.needConfirm, onKeyDown = filledProps.onKeyDown, disabled = filledProps.disabled, allowEmpty = filledProps.allowEmpty, disabledDate = filledProps.disabledDate, minDate = filledProps.minDate, maxDate = filledProps.maxDate, defaultOpen = filledProps.defaultOpen, open = filledProps.open, onOpenChange = filledProps.onOpenChange, locale = filledProps.locale, generateConfig = filledProps.generateConfig, picker = filledProps.picker, showNow = filledProps.showNow, showToday = filledProps.showToday, showTime = filledProps.showTime, mode = filledProps.mode, onPanelChange = filledProps.onPanelChange, onCalendarChange = filledProps.onCalendarChange, onOk = filledProps.onOk, defaultPickerValue = filledProps.defaultPickerValue, pickerValue = filledProps.pickerValue, onPickerValueChange = filledProps.onPickerValueChange, inputReadOnly = filledProps.inputReadOnly, suffixIcon = filledProps.suffixIcon, onFocus = filledProps.onFocus, onBlur = filledProps.onBlur, presets = filledProps.presets, ranges = filledProps.ranges, components = filledProps.components, cellRender = filledProps.cellRender, dateRender = filledProps.dateRender, monthCellRender = filledProps.monthCellRender, onClick = filledProps.onClick;
-	// ========================= Refs =========================
-	var selectorRef = usePickerRef(ref);
-	// ======================= Semantic =======================
-	var _useSemantic = useSemantic(propClassNames, propStyles), _useSemantic2 = _slicedToArray$2(_useSemantic, 2), mergedClassNames = _useSemantic2[0], mergedStyles = _useSemantic2[1];
-	// ========================= Open =========================
-	var _useOpen = useOpen(open, defaultOpen, disabled, onOpenChange), _useOpen2 = _slicedToArray$2(_useOpen, 2), mergedOpen = _useOpen2[0], setMergeOpen = _useOpen2[1];
-	var triggerOpen = function(nextOpen, config) {
-		// No need to open if all disabled
-		if (disabled.some(function(fieldDisabled) {
-			return !fieldDisabled;
-		}) || !nextOpen) {
-			setMergeOpen(nextOpen, config);
-		}
-	};
-	// ======================== Values ========================
-	var _useInnerValue = useInnerValue(generateConfig, locale, formatList, true, 0, defaultValue, value, onCalendarChange, onOk), _useInnerValue2 = _slicedToArray$2(_useInnerValue, 5), mergedValue = _useInnerValue2[0], setInnerValue = _useInnerValue2[1], getCalendarValue = _useInnerValue2[2], triggerCalendarChange = _useInnerValue2[3], triggerOk = _useInnerValue2[4];
-	var calendarValue = getCalendarValue();
-	// ======================== Active ========================
-	var _useRangeActive = useRangeActive(disabled, allowEmpty, mergedOpen), _useRangeActive2 = _slicedToArray$2(_useRangeActive, 9), focused = _useRangeActive2[0], triggerFocus = _useRangeActive2[1], lastOperation = _useRangeActive2[2], activeIndex = _useRangeActive2[3], setActiveIndex = _useRangeActive2[4], nextActiveIndex = _useRangeActive2[5], activeIndexList = _useRangeActive2[6], updateSubmitIndex = _useRangeActive2[7], hasActiveSubmitValue = _useRangeActive2[8];
-	var onSharedFocus = function(event, index) {
-		triggerFocus(true);
-		onFocus === null || onFocus === void 0 || onFocus(event, { range: getActiveRange(index !== null && index !== void 0 ? index : activeIndex) });
-	};
-	var onSharedBlur = function(event, index) {
-		triggerFocus(false);
-		onBlur === null || onBlur === void 0 || onBlur(event, { range: getActiveRange(index !== null && index !== void 0 ? index : activeIndex) });
-	};
-	// ======================= ShowTime =======================
-	/** Used for Popup panel */
-	var mergedShowTime = reactExports.useMemo(function() {
-		if (!showTime) {
-			return null;
-		}
-		var disabledTime = showTime.disabledTime;
-		var proxyDisabledTime = disabledTime ? function(date) {
-			var range = getActiveRange(activeIndex);
-			var fromDate = getFromDate(calendarValue, activeIndexList, activeIndex);
-			return disabledTime(date, range, { from: fromDate });
-		} : void 0;
-		return _objectSpread$2(_objectSpread$2({}, showTime), {}, { disabledTime: proxyDisabledTime });
-	}, [
-		showTime,
-		activeIndex,
-		calendarValue,
-		activeIndexList
-	]);
-	// ========================= Mode =========================
-	var _useControlledState = useControlledState([picker, picker], mode), _useControlledState2 = _slicedToArray$2(_useControlledState, 2), modes = _useControlledState2[0], setModes = _useControlledState2[1];
-	var mergedMode = modes[activeIndex] || picker;
-	/** Extends from `mergedMode` to patch `datetime` mode */
-	var internalMode = mergedMode === "date" && mergedShowTime ? "datetime" : mergedMode;
-	// ====================== PanelCount ======================
-	var multiplePanel = internalMode === picker && internalMode !== "time";
-	// ======================= Show Now =======================
-	var mergedShowNow = useShowNow(0, mergedMode, showNow, showToday, true);
-	// ======================== Value =========================
-	var _useRangeValue = useRangeValue(filledProps, mergedValue, setInnerValue, getCalendarValue, triggerCalendarChange, disabled, formatList, focused, mergedOpen, isInvalidateDate), _useRangeValue2 = _slicedToArray$2(_useRangeValue, 2), flushSubmit = _useRangeValue2[0], triggerSubmitChange = _useRangeValue2[1];
-	// ===================== DisabledDate =====================
-	var mergedDisabledDate = useRangeDisabledDate(calendarValue, disabled, activeIndexList, generateConfig, locale, disabledDate);
-	// ======================= Validate =======================
-	var _useFieldsInvalidate = useFieldsInvalidate(calendarValue, isInvalidateDate, allowEmpty), _useFieldsInvalidate2 = _slicedToArray$2(_useFieldsInvalidate, 2), submitInvalidates = _useFieldsInvalidate2[0], onSelectorInvalid = _useFieldsInvalidate2[1];
-	// ===================== Picker Value =====================
-	var _useRangePickerValue = useRangePickerValue(generateConfig, locale, calendarValue, modes, mergedOpen, activeIndex, internalPicker, multiplePanel, defaultPickerValue, pickerValue, mergedShowTime === null || mergedShowTime === void 0 ? void 0 : mergedShowTime.defaultOpenValue, onPickerValueChange, minDate, maxDate), _useRangePickerValue2 = _slicedToArray$2(_useRangePickerValue, 2), currentPickerValue = _useRangePickerValue2[0], setCurrentPickerValue = _useRangePickerValue2[1];
-	// >>> Mode need wait for `pickerValue`
-	var triggerModeChange = useEvent(function(nextPickerValue, nextMode, triggerEvent) {
-		var clone = fillIndex(modes, activeIndex, nextMode);
-		if (clone[0] !== modes[0] || clone[1] !== modes[1]) {
-			setModes(clone);
-		}
-		// Compatible with `onPanelChange`
-		if (onPanelChange && triggerEvent !== false) {
-			var clonePickerValue = _toConsumableArray$1(calendarValue);
-			if (nextPickerValue) {
-				clonePickerValue[activeIndex] = nextPickerValue;
-			}
-			onPanelChange(clonePickerValue, clone);
-		}
-	});
-	// ======================== Change ========================
-	var fillCalendarValue = function(date, index) {
-		return fillIndex(calendarValue, index, date);
-	};
-	// ======================== Submit ========================
-	/**
-	* Trigger by confirm operation.
-	* This function has already handle the `needConfirm` check logic.
-	* - Selector: enter key
-	* - Panel: OK button
-	*/
-	var triggerPartConfirm = function(date, skipFocus) {
-		var nextValue = calendarValue;
-		if (date) {
-			nextValue = fillCalendarValue(date, activeIndex);
-		}
-		updateSubmitIndex(activeIndex);
-		// Get next focus index
-		var nextIndex = nextActiveIndex(nextValue);
-		// Change calendar value and tell flush it
-		triggerCalendarChange(nextValue);
-		flushSubmit(activeIndex, nextIndex === null);
-		if (nextIndex === null) {
-			triggerOpen(false, { force: true });
-		} else if (!skipFocus) {
-			selectorRef.current.focus({ index: nextIndex });
-		}
-	};
-	// ======================== Click =========================
-	var onSelectorClick = function(event) {
-		var _activeElement;
-		var rootNode = event.target.getRootNode();
-		if (!selectorRef.current.nativeElement.contains((_activeElement = rootNode.activeElement) !== null && _activeElement !== void 0 ? _activeElement : document.activeElement)) {
-			// Click to focus the enabled input
-			var enabledIndex = disabled.findIndex(function(d) {
-				return !d;
-			});
-			if (enabledIndex >= 0) {
-				selectorRef.current.focus({ index: enabledIndex });
-			}
-		}
-		triggerOpen(true);
-		onClick === null || onClick === void 0 || onClick(event);
-	};
-	var onSelectorClear = function() {
-		triggerSubmitChange(null);
-		triggerOpen(false, { force: true });
-	};
-	// ======================== Hover =========================
-	var _React$useState = reactExports.useState(null), _React$useState2 = _slicedToArray$2(_React$useState, 2), hoverSource = _React$useState2[0], setHoverSource = _React$useState2[1];
-	var _React$useState3 = reactExports.useState(null), _React$useState4 = _slicedToArray$2(_React$useState3, 2), internalHoverValues = _React$useState4[0], setInternalHoverValues = _React$useState4[1];
-	var hoverValues = reactExports.useMemo(function() {
-		return internalHoverValues || calendarValue;
-	}, [calendarValue, internalHoverValues]);
-	// Clean up `internalHoverValues` when closed
-	reactExports.useEffect(function() {
-		if (!mergedOpen) {
-			setInternalHoverValues(null);
-		}
-	}, [mergedOpen]);
-	// ========================================================
-	// ==                       Panels                       ==
-	// ========================================================
-	// Save the offset with active bar position
-	// const [activeOffset, setActiveOffset] = React.useState(0);
-	var _React$useState5 = reactExports.useState([
-		0,
-		0,
-		0
-	]), _React$useState6 = _slicedToArray$2(_React$useState5, 2), activeInfo = _React$useState6[0], setActiveInfo = _React$useState6[1];
-	var onSetHover = function(date, source) {
-		if (previewValue !== "hover") {
-			return;
-		}
-		setInternalHoverValues(date);
-		setHoverSource(source);
-	};
-	// ======================= Presets ========================
-	var presetList = usePresets(presets, ranges);
-	var onPresetHover = function(nextValues) {
-		onSetHover(nextValues, "preset");
-	};
-	var onPresetSubmit = function(nextValues) {
-		var passed = triggerSubmitChange(nextValues);
-		if (passed) {
-			triggerOpen(false, { force: true });
-		}
-	};
-	var onNow = function(now) {
-		triggerPartConfirm(now);
-	};
-	// ======================== Panel =========================
-	var onPanelHover = function(date) {
-		onSetHover(date ? fillCalendarValue(date, activeIndex) : null, "cell");
-	};
-	// >>> Focus
-	var onPanelFocus = function(event) {
-		triggerOpen(true);
-		onSharedFocus(event);
-	};
-	// >>> MouseDown
-	var onPanelMouseDown = function() {
-		lastOperation("panel");
-	};
-	// >>> Calendar
-	var onPanelSelect = function(date) {
-		var clone = fillIndex(calendarValue, activeIndex, date);
-		// Only trigger calendar event but not update internal `calendarValue` state
-		triggerCalendarChange(clone);
-		// >>> Trigger next active if !needConfirm
-		// Fully logic check `useRangeValue` hook
-		if (!needConfirm && !complexPicker && internalPicker === internalMode) {
-			triggerPartConfirm(date);
-		}
-	};
-	// >>> Close
-	var onPopupClose = function() {
-		// Close popup
-		triggerOpen(false);
-	};
-	// >>> cellRender
-	var onInternalCellRender = useCellRender(cellRender, dateRender, monthCellRender, getActiveRange(activeIndex));
-	// >>> Value
-	var panelValue = calendarValue[activeIndex] || null;
-	// >>> invalid
-	var isPopupInvalidateDate = useEvent(function(date) {
-		return isInvalidateDate(date, { activeIndex });
-	});
-	var panelProps = reactExports.useMemo(function() {
-		var domProps = pickAttrs(filledProps, false);
-		var restProps = omit(filledProps, [].concat(_toConsumableArray$1(Object.keys(domProps)), [
-			"onChange",
-			"onCalendarChange",
-			"style",
-			"className",
-			"onPanelChange",
-			"disabledTime",
-			"classNames",
-			"styles"
-		]));
-		return restProps;
-	}, [filledProps]);
-	// >>> Render
-	var panel = reactExports.createElement(Popup, _extends$5({}, panelProps, {
-		showNow: mergedShowNow,
-		showTime: mergedShowTime,
-		range: true,
-		multiplePanel,
-		activeInfo,
-		disabledDate: mergedDisabledDate,
-		onFocus: onPanelFocus,
-		onBlur: onSharedBlur,
-		onPanelMouseDown,
-		picker,
-		mode: mergedMode,
-		internalMode,
-		onPanelChange: triggerModeChange,
-		format: maskFormat,
-		value: panelValue,
-		isInvalid: isPopupInvalidateDate,
-		onChange: null,
-		onSelect: onPanelSelect,
-		pickerValue: currentPickerValue,
-		defaultOpenValue: toArray(showTime === null || showTime === void 0 ? void 0 : showTime.defaultOpenValue)[activeIndex],
-		onPickerValueChange: setCurrentPickerValue,
-		hoverValue: hoverValues,
-		onHover: onPanelHover,
-		needConfirm,
-		onSubmit: triggerPartConfirm,
-		onOk: triggerOk,
-		presets: presetList,
-		onPresetHover,
-		onPresetSubmit,
-		onNow,
-		cellRender: onInternalCellRender,
-		classNames: mergedClassNames,
-		styles: mergedStyles
-	}));
-	// ========================================================
-	// ==                      Selector                      ==
-	// ========================================================
-	// ======================== Change ========================
-	var onSelectorChange = function(date, index) {
-		var clone = fillCalendarValue(date, index);
-		triggerCalendarChange(clone);
-	};
-	var onSelectorInputChange = function() {
-		lastOperation("input");
-	};
-	// ======================= Selector =======================
-	var onSelectorFocus = function(event, index) {
-		// Check if `needConfirm` but user not submit yet
-		var activeListLen = activeIndexList.length;
-		var lastActiveIndex = activeIndexList[activeListLen - 1];
-		if (activeListLen && lastActiveIndex !== index && needConfirm && !allowEmpty[lastActiveIndex] && !hasActiveSubmitValue(lastActiveIndex) && calendarValue[lastActiveIndex]) {
-			selectorRef.current.focus({ index: lastActiveIndex });
-			return;
-		}
-		lastOperation("input");
-		triggerOpen(true, { inherit: true });
-		// When click input to switch the field, it will not trigger close.
-		// Which means it will lose the part confirm and we need fill back.
-		// ref: https://github.com/ant-design/ant-design/issues/49512
-		if (activeIndex !== index && mergedOpen && !needConfirm && complexPicker) {
-			triggerPartConfirm(null, true);
-		}
-		setActiveIndex(index);
-		onSharedFocus(event, index);
-	};
-	var onSelectorBlur = function(event, index) {
-		triggerOpen(false);
-		if (!needConfirm && lastOperation() === "input") {
-			var nextIndex = nextActiveIndex(calendarValue);
-			flushSubmit(activeIndex, nextIndex === null);
-		}
-		onSharedBlur(event, index);
-	};
-	var onSelectorKeyDown = function(event, preventDefault) {
-		if (event.key === "Tab") {
-			triggerPartConfirm(null, true);
-		}
-		onKeyDown === null || onKeyDown === void 0 || onKeyDown(event, preventDefault);
-	};
-	// ======================= Context ========================
-	var context = reactExports.useMemo(function() {
-		return {
-			prefixCls,
-			locale,
-			generateConfig,
-			button: components.button,
-			input: components.input,
-			classNames: mergedClassNames,
-			styles: mergedStyles
-		};
-	}, [
-		prefixCls,
-		locale,
-		generateConfig,
-		components.button,
-		components.input,
-		mergedClassNames,
-		mergedStyles
-	]);
-	// ======================== Effect ========================
-	// >>> Mode
-	// Reset for every active
-	useLayoutEffect(function() {
-		if (mergedOpen && activeIndex !== void 0) {
-			// Legacy compatible. This effect update should not trigger `onPanelChange`
-			triggerModeChange(null, picker, false);
-		}
-	}, [
-		mergedOpen,
-		activeIndex,
-		picker
-	]);
-	// >>> For complex picker, we need check if need to focus next one
-	useLayoutEffect(function() {
-		var lastOp = lastOperation();
-		// Trade as confirm on field leave
-		if (!mergedOpen && lastOp === "input") {
-			triggerOpen(false);
-			triggerPartConfirm(null, true);
-		}
-		// Submit with complex picker
-		if (!mergedOpen && complexPicker && !needConfirm && lastOp === "panel") {
-			triggerOpen(true);
-			triggerPartConfirm();
-		}
-	}, [mergedOpen]);
-	// ======================== Render ========================
-	return reactExports.createElement(PickerContext$1.Provider, { value: context }, reactExports.createElement(PickerTrigger, _extends$5({}, pickTriggerProps(filledProps), {
-		popupElement: panel,
-		popupStyle: mergedStyles.popup.root,
-		popupClassName: clsx(rootClassName, mergedClassNames.popup.root),
-		visible: mergedOpen,
-		onClose: onPopupClose,
-		range: true
-	}), reactExports.createElement(RangeSelector$1, _extends$5({}, filledProps, {
-		ref: selectorRef,
-		className: clsx(filledProps.className, rootClassName, mergedClassNames.root),
-		style: _objectSpread$2(_objectSpread$2({}, mergedStyles.root), filledProps.style),
-		suffixIcon,
-		activeIndex: focused || mergedOpen ? activeIndex : null,
-		activeHelp: !!internalHoverValues,
-		allHelp: !!internalHoverValues && hoverSource === "preset",
-		focused,
-		onFocus: onSelectorFocus,
-		onBlur: onSelectorBlur,
-		onKeyDown: onSelectorKeyDown,
-		onSubmit: triggerPartConfirm,
-		value: hoverValues,
-		maskFormat,
-		onChange: onSelectorChange,
-		onInputChange: onSelectorInputChange,
-		format: formatList,
-		inputReadOnly,
-		disabled,
-		open: mergedOpen,
-		onOpenChange: triggerOpen,
-		onClick: onSelectorClick,
-		onClear: onSelectorClear,
-		invalid: submitInvalidates,
-		onInvalid: onSelectorInvalid,
-		onActiveInfo: setActiveInfo
-	}))));
-}
-var RefRangePicker = reactExports.forwardRef(RangePicker);
-var RCRangePicker = RefRangePicker;
 function MultipleDates(props) {
-	var prefixCls = props.prefixCls, value = props.value, onRemove = props.onRemove, _props$removeIcon = props.removeIcon, removeIcon = _props$removeIcon === void 0 ? "×" : _props$removeIcon, formatDate = props.formatDate, disabled = props.disabled, maxTagCount = props.maxTagCount, placeholder = props.placeholder;
+	var prefixCls = props.a, value = props.b, onRemove = props.c, _props$removeIcon = props.d, removeIcon = _props$removeIcon === void 0 ? "×" : _props$removeIcon, formatDate = props.e, disabled = props.f, maxTagCount = props.g, placeholder = props.h;
 	var selectorCls = "".concat(prefixCls, "-selector");
 	var selectionCls = "".concat(prefixCls, "-selection");
 	var overflowCls = "".concat(selectionCls, "-overflow");
@@ -30995,7 +26112,7 @@ function _unsupportedIterableToArray$1(o) {
 	if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray$1(o, 2);
 }
 function _arrayLikeToArray$1(arr, len) {
-	if (2 == null || 2 > arr.length) len = arr.length;
+	if (2 > arr.length) len = arr.length;
 	for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
 	return arr2;
 }
@@ -31096,7 +26213,7 @@ function SingleSelector(props, ref) {
 	};
 	// ======================== Inputs ========================
 	var _useInputProps = useInputProps(_objectSpread$1(_objectSpread$1({}, props), {}, { onChange: onSingleChange }), function(_ref) {
-		var valueTexts = _ref.valueTexts;
+		var valueTexts = _ref.a;
 		return {
 			value: valueTexts[0] || "",
 			active: focused
@@ -31106,14 +26223,14 @@ function SingleSelector(props, ref) {
 	var showClear = !!(clearIcon && value.length && !disabled);
 	// ======================= Multiple =======================
 	var selectorNode = multiple ? reactExports.createElement(reactExports.Fragment, null, reactExports.createElement(MultipleDates, {
-		prefixCls,
-		value,
-		onRemove: onMultipleRemove,
-		formatDate: getText,
-		maxTagCount,
-		disabled,
-		removeIcon,
-		placeholder
+		a: prefixCls,
+		b: value,
+		c: onMultipleRemove,
+		e: getText,
+		g: maxTagCount,
+		f: disabled,
+		d: removeIcon,
+		h: placeholder
 	}), reactExports.createElement("input", {
 		className: "".concat(prefixCls, "-multiple-input"),
 		value: value.map(getText).join(","),
@@ -31304,7 +26421,7 @@ function Picker(props, ref) {
 		onOk === null || onOk === void 0 || onOk(pickerParam(dates));
 	};
 	// ======================== Values ========================
-	var _useInnerValue = useInnerValue(generateConfig, locale, formatList, false, order, defaultValue, value, onInternalCalendarChange, onInternalOk), _useInnerValue2 = _slicedToArray(_useInnerValue, 5), mergedValue = _useInnerValue2[0], setInnerValue = _useInnerValue2[1], getCalendarValue = _useInnerValue2[2], triggerCalendarChange = _useInnerValue2[3], triggerOk = _useInnerValue2[4];
+	var _useInnerValue = useInnerValue(generateConfig, locale, formatList, 0, order, defaultValue, value, onInternalCalendarChange, onInternalOk), _useInnerValue2 = _slicedToArray(_useInnerValue, 5), mergedValue = _useInnerValue2[0], setInnerValue = _useInnerValue2[1], getCalendarValue = _useInnerValue2[2], triggerCalendarChange = _useInnerValue2[3], triggerOk = _useInnerValue2[4];
 	var calendarValue = getCalendarValue();
 	// ======================== Active ========================
 	// In SinglePicker, we will always get `activeIndex` is 0.
@@ -33188,43 +28305,16 @@ var useStyle = genStyleHooks("DatePicker", (token) => {
 		genCompactItemStyle(token, { focusElCls: `${token.componentCls}-focused` })
 	];
 }, prepareComponentToken);
-// This icon file is generated automatically.
-var SwapRightOutlined$1 = {
-	"icon": {
-		"tag": "svg",
-		"attrs": {
-			"viewBox": "0 0 1024 1024",
-			"focusable": "false"
-		},
-		"children": [{
-			"tag": "path",
-			"attrs": { "d": "M873.1 596.2l-164-208A32 32 0 00684 376h-64.8c-6.7 0-10.4 7.7-6.3 13l144.3 183H152c-4.4 0-8 3.6-8 8v60c0 4.4 3.6 8 8 8h695.9c26.8 0 41.7-30.8 25.2-51.8z" }
-		}]
-	},
-	"name": "swap-right",
-	"theme": "outlined"
-};
-var SwapRightOutlinedSvg = SwapRightOutlined$1;
-function _extends$2() {
-	_extends$2 = Object.assign.bind();
-	return _extends$2.apply(this, arguments);
-}
-const SwapRightOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends$2({}, props, {
-	ref,
-	icon: SwapRightOutlinedSvg
-}));
-/**![swap-right](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTg3My4xIDU5Ni4ybC0xNjQtMjA4QTMyIDMyIDAgMDA2ODQgMzc2aC02NC44Yy02LjcgMC0xMC40IDcuNy02LjMgMTNsMTQ0LjMgMTgzSDE1MmMtNC40IDAtOCAzLjYtOCA4djYwYzAgNC40IDMuNiA4IDggOGg2OTUuOWMyNi44IDAgNDEuNy0zMC44IDI1LjItNTEuOHoiIC8+PC9zdmc+) */
-const RefIcon$2 = reactExports.forwardRef(SwapRightOutlined);
-const useMergedPickerSemantic = (pickerType, classNames, styles, popupClassName, popupStyle, mergedProps) => {
-	const { classNames: contextClassNames, styles: contextStyles } = useComponentConfig(pickerType);
-	const [mergedClassNames, mergedStyles] = useMergeSemantic([contextClassNames, classNames], [contextStyles, styles], { props: mergedProps }, { popup: { _default: "root" } });
+const useMergedPickerSemantic = (__unused_B8DF, __unused_ECC6, __unused_4034, __unused_91D2, __unused_014C, mergedProps) => {
+	const { a: contextClassNames, b: contextStyles } = useComponentConfig();
+	const [mergedClassNames, mergedStyles] = useMergeSemantic([contextClassNames, void 0], [contextStyles, void 0], { props: mergedProps }, { popup: { _default: "root" } });
 	return reactExports.useMemo(() => {
 		// ClassNames
 		const filledClassNames = {
 			...mergedClassNames,
 			popup: {
 				...mergedClassNames.popup,
-				root: clsx(mergedClassNames.popup?.root, popupClassName)
+				root: clsx(mergedClassNames.popup?.root, void 0)
 			}
 		};
 		// Styles
@@ -33234,7 +28324,7 @@ const useMergedPickerSemantic = (pickerType, classNames, styles, popupClassName,
 				...mergedStyles.popup,
 				root: {
 					...mergedStyles.popup?.root,
-					...popupStyle
+					...void 0
 				}
 			}
 		};
@@ -33243,68 +28333,24 @@ const useMergedPickerSemantic = (pickerType, classNames, styles, popupClassName,
 	}, [
 		mergedClassNames,
 		mergedStyles,
-		popupClassName,
-		popupStyle
+		,
+		,
 	]);
 };
-function getPlaceholder(locale, picker, customizePlaceholder) {
-	if (customizePlaceholder !== void 0) {
-		return customizePlaceholder;
-	}
-	if (picker === "year" && locale.lang.yearPlaceholder) {
-		return locale.lang.yearPlaceholder;
-	}
-	if (picker === "quarter" && locale.lang.quarterPlaceholder) {
-		return locale.lang.quarterPlaceholder;
-	}
-	if (picker === "month" && locale.lang.monthPlaceholder) {
-		return locale.lang.monthPlaceholder;
-	}
-	if (picker === "week" && locale.lang.weekPlaceholder) {
-		return locale.lang.weekPlaceholder;
-	}
-	if (picker === "time" && locale.timePickerLocale.placeholder) {
-		return locale.timePickerLocale.placeholder;
-	}
+function getPlaceholder(locale) {
 	return locale.lang.placeholder;
 }
-function getRangePlaceholder(locale, picker, customizePlaceholder) {
-	if (customizePlaceholder !== void 0) {
-		return customizePlaceholder;
-	}
-	if (picker === "year" && locale.lang.yearPlaceholder) {
-		return locale.lang.rangeYearPlaceholder;
-	}
-	if (picker === "quarter" && locale.lang.quarterPlaceholder) {
-		return locale.lang.rangeQuarterPlaceholder;
-	}
-	if (picker === "month" && locale.lang.monthPlaceholder) {
-		return locale.lang.rangeMonthPlaceholder;
-	}
-	if (picker === "week" && locale.lang.weekPlaceholder) {
-		return locale.lang.rangeWeekPlaceholder;
-	}
-	if (picker === "time" && locale.timePickerLocale.placeholder) {
-		return locale.timePickerLocale.rangePlaceholder;
-	}
-	return locale.lang.rangePlaceholder;
-}
-function useIcons(props) {
-	const { allowClear = true } = props;
-	const { a: clearIcon, b: removeIcon } = useIcons$1({ ...props });
+function useIcons() {
+	const { a: clearIcon, b: removeIcon } = useIcons$1();
 	const mergedAllowClear = reactExports.useMemo(() => {
-		if (allowClear === false) {
-			return false;
-		}
-		const allowClearConfig = allowClear === true ? {} : allowClear;
+		const allowClearConfig = {};
 		return {
 			clearIcon,
 			...allowClearConfig
 		};
-	}, [allowClear, clearIcon]);
+	}, [, clearIcon]);
 	return [mergedAllowClear, removeIcon];
 }
-const [, QUARTERPICKER] = [, "QuarterPicker"];
 // This icon file is generated automatically.
 var CalendarOutlined$1 = {
 	"icon": {
@@ -33332,229 +28378,88 @@ const CalendarOutlined = (props, ref) => reactExports.createElement(Icon$1, _ext
 }));
 /**![calendar](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTg4MCAxODRINzEydi02NGMwLTQuNC0zLjYtOC04LThoLTU2Yy00LjQgMC04IDMuNi04IDh2NjRIMzg0di02NGMwLTQuNC0zLjYtOC04LThoLTU2Yy00LjQgMC04IDMuNi04IDh2NjRIMTQ0Yy0xNy43IDAtMzIgMTQuMy0zMiAzMnY2NjRjMCAxNy43IDE0LjMgMzIgMzIgMzJoNzM2YzE3LjcgMCAzMi0xNC4zIDMyLTMyVjIxNmMwLTE3LjctMTQuMy0zMi0zMi0zMnptLTQwIDY1NkgxODRWNDYwaDY1NnYzODB6TTE4NCAzOTJWMjU2aDEyOHY0OGMwIDQuNCAzLjYgOCA4IDhoNTZjNC40IDAgOC0zLjYgOC04di00OGgyNTZ2NDhjMCA0LjQgMy42IDggOCA4aDU2YzQuNCAwIDgtMy42IDgtOHYtNDhoMTI4djEzNkgxODR6IiAvPjwvc3ZnPg==) */
 const RefIcon$1 = reactExports.forwardRef(CalendarOutlined);
-// This icon file is generated automatically.
-var ClockCircleOutlined$1 = {
-	"icon": {
-		"tag": "svg",
-		"attrs": {
-			"viewBox": "64 64 896 896",
-			"focusable": "false"
-		},
-		"children": [{
-			"tag": "path",
-			"attrs": { "d": "M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" }
-		}, {
-			"tag": "path",
-			"attrs": { "d": "M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z" }
-		}]
-	},
-	"name": "clock-circle",
-	"theme": "outlined"
-};
-var ClockCircleOutlinedSvg = ClockCircleOutlined$1;
-function _extends() {
-	_extends = Object.assign.bind();
-	return _extends.apply(this, arguments);
-}
-const ClockCircleOutlined = (props, ref) => reactExports.createElement(Icon$1, _extends({}, props, {
-	ref,
-	icon: ClockCircleOutlinedSvg
-}));
-/**![clock-circle](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiNjYWNhY2EiIHZpZXdCb3g9IjY0IDY0IDg5NiA4OTYiIGZvY3VzYWJsZT0iZmFsc2UiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUxMiA2NEMyNjQuNiA2NCA2NCAyNjQuNiA2NCA1MTJzMjAwLjYgNDQ4IDQ0OCA0NDggNDQ4LTIwMC42IDQ0OC00NDhTNzU5LjQgNjQgNTEyIDY0em0wIDgyMGMtMjA1LjQgMC0zNzItMTY2LjYtMzcyLTM3MnMxNjYuNi0zNzIgMzcyLTM3MiAzNzIgMTY2LjYgMzcyIDM3Mi0xNjYuNiAzNzItMzcyIDM3MnoiIC8+PHBhdGggZD0iTTY4Ni43IDYzOC42TDU0NC4xIDUzNS41VjI4OGMwLTQuNC0zLjYtOC04LThINDg4Yy00LjQgMC04IDMuNi04IDh2Mjc1LjRjMCAyLjYgMS4yIDUgMy4zIDYuNWwxNjUuNCAxMjAuNmMzLjYgMi42IDguNiAxLjggMTEuMi0xLjdsMjguNi0zOWMyLjYtMy43IDEuOC04LjctMS44LTExLjJ6IiAvPjwvc3ZnPg==) */
-const RefIcon = reactExports.forwardRef(ClockCircleOutlined);
-const useSuffixIcon = ({ a: picker, b: hasFeedback, c: feedbackIcon, d: suffixIcon }) => {
-	if (suffixIcon === null || suffixIcon === false) {
-		return null;
+const useSuffixIcon = () => {
+	{
+		{
+			return React__default.createElement(React__default.Fragment, null, React__default.createElement(RefIcon$1, null), void 0);
+		}
 	}
-	if (suffixIcon === true || suffixIcon === void 0) {
-		return React.createElement(React.Fragment, null, picker === "time" ? React.createElement(RefIcon, null) : React.createElement(RefIcon$1, null), hasFeedback && feedbackIcon);
-	}
-	return suffixIcon;
 };
 const PickerButton = (props) => reactExports.createElement(Button, {
 	size: "small",
 	type: "primary",
 	...props
 });
-function useComponents(components) {
+function useComponents() {
 	return reactExports.useMemo(() => ({
 		button: PickerButton,
-		...components
-	}), [components]);
+		...void 0
+	}), [,]);
 }
-const generateRangePicker = (generateConfig) => {
-	const RangePicker = reactExports.forwardRef((props, ref) => {
-		const { prefixCls: customizePrefixCls, getPopupContainer: customGetPopupContainer, components, className, style, classNames, styles, placement, size: customizeSize, disabled: customDisabled, bordered = true, placeholder, status: customStatus, variant: customVariant, picker, dropdownClassName, popupClassName, popupStyle, rootClassName, suffixIcon, ...restProps } = props;
-		const pickerType = picker === "time" ? "timePicker" : "datePicker";
-		const [mergedClassNames, mergedStyles] = useMergedPickerSemantic(pickerType, classNames, styles, popupClassName || dropdownClassName, popupStyle);
-		const innerRef = reactExports.useRef(null);
-		const { getPrefixCls, direction, getPopupContainer, rangePicker } = reactExports.useContext(ConfigContext);
-		const prefixCls = getPrefixCls("picker", customizePrefixCls);
-		const { a: compactSize, b: compactItemClassnames } = useCompactItemContext(prefixCls, direction);
-		const rootPrefixCls = getPrefixCls();
-		const [variant, enableVariantCls] = useVariant("rangePicker", customVariant, bordered);
-		const rootCls = useCSSVarCls(prefixCls);
-		const [hashId, cssVarCls] = useStyle(prefixCls, rootCls);
-		const mergedRootClassName = clsx(hashId, cssVarCls, rootCls, rootClassName);
-		// ===================== Icon =====================
-		const [mergedAllowClear] = useIcons(props);
-		// ================== components ==================
-		const mergedComponents = useComponents(components);
-		// ===================== Size =====================
-		const mergedSize = useSize((ctx) => customizeSize ?? compactSize ?? ctx);
-		// ===================== Disabled =====================
-		const disabled = reactExports.useContext(DisabledContext);
-		const mergedDisabled = customDisabled ?? disabled;
-		// ===================== FormItemInput =====================
-		const formItemContext = reactExports.useContext(FormItemInputContext);
-		const { hasFeedback, status: contextStatus, feedbackIcon } = formItemContext;
-		const mergedSuffixIcon = useSuffixIcon({
-			a: picker,
-			b: hasFeedback,
-			c: feedbackIcon,
-			d: suffixIcon
-		});
-		reactExports.useImperativeHandle(ref, () => innerRef.current);
-		const [contextLocale] = useLocale$1("Calendar", locale);
-		const locale$1 = merge$1(contextLocale, props.locale || {});
-		// ============================ zIndex ============================
-		const [zIndex] = useZIndex(0, mergedStyles?.popup?.root?.zIndex);
-		return reactExports.createElement(ContextIsolator, { space: true }, reactExports.createElement(RCRangePicker, {
-			separator: reactExports.createElement("span", {
-				"aria-label": "to",
-				className: `${prefixCls}-separator`
-			}, reactExports.createElement(RefIcon$2, null)),
-			disabled: mergedDisabled,
-			ref: innerRef,
-			placement,
-			placeholder: getRangePlaceholder(locale$1, picker, placeholder),
-			suffixIcon: mergedSuffixIcon,
-			prevIcon: reactExports.createElement("span", { className: `${prefixCls}-prev-icon` }),
-			nextIcon: reactExports.createElement("span", { className: `${prefixCls}-next-icon` }),
-			superPrevIcon: reactExports.createElement("span", { className: `${prefixCls}-super-prev-icon` }),
-			superNextIcon: reactExports.createElement("span", { className: `${prefixCls}-super-next-icon` }),
-			transitionName: `${rootPrefixCls}-slide-up`,
-			picker,
-			...restProps,
-			locale: locale$1.lang,
-			getPopupContainer: customGetPopupContainer || getPopupContainer,
-			generateConfig,
-			components: mergedComponents,
-			direction,
-			prefixCls,
-			rootClassName: mergedRootClassName,
-			className: clsx({
-				[`${prefixCls}-${mergedSize}`]: mergedSize,
-				[`${prefixCls}-${variant}`]: enableVariantCls
-			}, getStatusClassNames(prefixCls, getMergedStatus(contextStatus, customStatus), hasFeedback), compactItemClassnames, className, rangePicker?.className),
-			style: {
-				...rangePicker?.style,
-				...style
-			},
-			classNames: mergedClassNames,
-			styles: {
-				...mergedStyles,
-				popup: {
-					...mergedStyles.popup,
-					root: {
-						...mergedStyles.popup.root,
-						zIndex
-					}
-				}
-			},
-			allowClear: mergedAllowClear
-		}));
-	});
-	return RangePicker;
-};
 const generatePicker$1 = (generateConfig) => {
-	const getPicker = (picker, displayName) => {
-		const pickerType = displayName === "TimePicker" ? "timePicker" : "datePicker";
+	const getPicker = () => {
 		const Picker = reactExports.forwardRef((props, ref) => {
-			const { prefixCls: customizePrefixCls, getPopupContainer: customizeGetPopupContainer, components, style, className, size: customizeSize, bordered, placement, placeholder, disabled: customDisabled, status: customStatus, variant: customVariant, onCalendarChange, classNames, styles, dropdownClassName, popupClassName, popupStyle, rootClassName, suffixIcon, ...restProps } = props;
-			const { getPrefixCls, direction, getPopupContainer, [pickerType]: contextPickerConfig } = reactExports.useContext(ConfigContext);
-			const prefixCls = getPrefixCls("picker", customizePrefixCls);
+			const { prefixCls: __unused_F029, getPopupContainer: __unused_2043, components, style, className, size: __unused_1736, bordered, placement, placeholder, disabled: __unused_9097, status: __unused_CDF4, variant: __unused_C799, onCalendarChange, classNames, styles, dropdownClassName, popupClassName, popupStyle, rootClassName, suffixIcon, ...restProps } = props;
 			// ===================== Size =====================
-			const { a: compactSize, b: compactItemClassnames } = useCompactItemContext(prefixCls, direction);
-			const mergedSize = useSize((ctx) => customizeSize ?? compactSize ?? ctx);
-			// ===================== Disabled =====================
-			const disabled = reactExports.useContext(DisabledContext);
-			const mergedDisabled = customDisabled ?? disabled;
+			const { a: compactSize, b: compactItemClassnames } = useCompactItemContext("ant-picker");
+			const mergedSize = useSize((ctx) => compactSize ?? ctx);
 			// =========== Merged Props for Semantic ===========
 			const mergedProps = {
 				...props,
 				size: mergedSize,
-				disabled: mergedDisabled,
-				status: customStatus,
-				variant: customVariant
+				disabled: false,
+				status: void 0,
+				variant: void 0
 			};
 			// ========================= Style ==========================
 			// Use original useMergedPickerSemantic for proper popup handling
-			const [mergedClassNames, mergedStyles] = useMergedPickerSemantic(pickerType, classNames, styles, popupClassName || dropdownClassName, popupStyle, mergedProps);
+			const [mergedClassNames, mergedStyles] = useMergedPickerSemantic(0, 0, 0, 0, 0, mergedProps);
 			const innerRef = reactExports.useRef(null);
-			const [variant, enableVariantCls] = useVariant("datePicker", customVariant, bordered);
-			const rootCls = useCSSVarCls(prefixCls);
-			const [hashId, cssVarCls] = useStyle(prefixCls, rootCls);
-			const mergedRootClassName = clsx(hashId, cssVarCls, rootCls, rootClassName);
+			const [, enableVariantCls] = useVariant();
+			const rootCls = useCSSVarCls();
+			const [hashId, cssVarCls] = useStyle("ant-picker", rootCls);
+			const mergedRootClassName = clsx(hashId, cssVarCls, rootCls, void 0);
 			reactExports.useImperativeHandle(ref, () => innerRef.current);
 			const additionalProps = { showToday: true };
-			const mergedPicker = picker || props.picker;
-			const rootPrefixCls = getPrefixCls();
-			// ==================== Legacy =====================
-			const { onSelect, multiple } = restProps;
-			const hasLegacyOnSelect = onSelect && picker === "time" && !multiple;
-			const onInternalCalendarChange = (date, dateStr, info) => {
-				onCalendarChange?.(date, dateStr, info);
-				if (hasLegacyOnSelect) {
-					onSelect(date);
-				}
-			};
+			const onInternalCalendarChange = () => {};
 			// ===================== Icon =====================
-			const [mergedAllowClear, removeIcon] = useIcons(props);
+			const [mergedAllowClear, removeIcon] = useIcons();
 			// ================== components ==================
-			const mergedComponents = useComponents(components);
-			// ===================== FormItemInput =====================
-			const formItemContext = reactExports.useContext(FormItemInputContext);
-			const { hasFeedback, status: contextStatus, feedbackIcon } = formItemContext;
-			const mergedSuffixIcon = useSuffixIcon({
-				a: mergedPicker,
-				b: hasFeedback,
-				c: feedbackIcon,
-				d: suffixIcon
-			});
-			const [contextLocale] = useLocale$1("DatePicker", locale);
-			const locale$1 = merge$1(contextLocale, props.locale || {});
+			const mergedComponents = useComponents();
+			const mergedSuffixIcon = useSuffixIcon();
+			const [contextLocale] = useLocale$1(0, locale);
+			const locale$1 = merge$1(contextLocale, {});
 			// ============================ zIndex ============================
-			const [zIndex] = useZIndex(0, mergedStyles?.popup?.root?.zIndex);
-			return reactExports.createElement(ContextIsolator, { space: true }, reactExports.createElement(Picker$1, {
+			const [zIndex] = useZIndex(0, mergedStyles.popup?.root?.zIndex);
+			return reactExports.createElement(ContextIsolator, {}, reactExports.createElement(Picker$1, {
 				ref: innerRef,
-				placeholder: getPlaceholder(locale$1, mergedPicker, placeholder),
+				placeholder: getPlaceholder(locale$1),
 				suffixIcon: mergedSuffixIcon,
-				placement,
-				prevIcon: reactExports.createElement("span", { className: `${prefixCls}-prev-icon` }),
-				nextIcon: reactExports.createElement("span", { className: `${prefixCls}-next-icon` }),
-				superPrevIcon: reactExports.createElement("span", { className: `${prefixCls}-super-prev-icon` }),
-				superNextIcon: reactExports.createElement("span", { className: `${prefixCls}-super-next-icon` }),
-				transitionName: `${rootPrefixCls}-slide-up`,
-				picker,
+				placement: void 0,
+				prevIcon: reactExports.createElement("span", { className: `${"ant-picker"}-prev-icon` }),
+				nextIcon: reactExports.createElement("span", { className: `${"ant-picker"}-next-icon` }),
+				superPrevIcon: reactExports.createElement("span", { className: `${"ant-picker"}-super-prev-icon` }),
+				superNextIcon: reactExports.createElement("span", { className: `${"ant-picker"}-super-next-icon` }),
+				transitionName: `${"ant"}-slide-up`,
+				picker: void 0,
 				onCalendarChange: onInternalCalendarChange,
 				...additionalProps,
 				...restProps,
 				locale: locale$1.lang,
-				getPopupContainer: customizeGetPopupContainer || getPopupContainer,
+				getPopupContainer: void 0,
 				generateConfig,
 				components: mergedComponents,
-				direction,
-				disabled: mergedDisabled,
-				prefixCls,
+				direction: void 0,
+				disabled: false,
+				prefixCls: "ant-picker",
 				rootClassName: mergedRootClassName,
 				className: clsx({
-					[`${prefixCls}-${mergedSize}`]: mergedSize,
-					[`${prefixCls}-${variant}`]: enableVariantCls
-				}, getStatusClassNames(prefixCls, getMergedStatus(contextStatus, customStatus), hasFeedback), compactItemClassnames, contextPickerConfig?.className, className),
+					[`${"ant-picker"}-${mergedSize}`]: mergedSize,
+					[`${"ant-picker"}-${"outlined"}`]: enableVariantCls
+				}, getStatusClassNames(), compactItemClassnames, void 0, void 0),
 				style: {
-					...contextPickerConfig?.style,
-					...style
+					...void 0,
+					...void 0
 				},
 				classNames: mergedClassNames,
 				styles: {
@@ -33574,69 +28479,15 @@ const generatePicker$1 = (generateConfig) => {
 		return Picker;
 	};
 	const DatePicker = getPicker();
-	const WeekPicker = getPicker("week", "WeekPicker");
-	const MonthPicker = getPicker("month", "MonthPicker");
-	const YearPicker = getPicker("year", "YearPicker");
-	const QuarterPicker = getPicker("quarter", QUARTERPICKER);
-	const TimePicker = getPicker("time", "TimePicker");
-	return {
-		a: DatePicker,
-		b: WeekPicker,
-		c: MonthPicker,
-		d: YearPicker,
-		e: TimePicker,
-		f: QuarterPicker
-	};
+	return { a: DatePicker };
 };
 const generatePicker = (generateConfig) => {
 	// =========================== Picker ===========================
-	const { a: DatePicker, b: WeekPicker, c: MonthPicker, d: YearPicker, e: TimePicker, f: QuarterPicker } = generatePicker$1(generateConfig);
-	// ======================== Range Picker ========================
-	const RangePicker = generateRangePicker(generateConfig);
+	const { a: DatePicker } = generatePicker$1(generateConfig);
 	const MergedDatePicker = DatePicker;
-	MergedDatePicker.WeekPicker = WeekPicker;
-	MergedDatePicker.MonthPicker = MonthPicker;
-	MergedDatePicker.YearPicker = YearPicker;
-	MergedDatePicker.RangePicker = RangePicker;
-	MergedDatePicker.TimePicker = TimePicker;
-	MergedDatePicker.QuarterPicker = QuarterPicker;
 	return MergedDatePicker;
 };
 const DatePicker = generatePicker(dayjsGenerateConfig);
-// We don't care debug panel
-/* istanbul ignore next */
-const PurePanel = genPurePanel(DatePicker);
-DatePicker._InternalPanelDoNotUseOrYouWillBeFired = PurePanel;
-const PureRangePanel = genPurePanel(DatePicker.RangePicker);
-DatePicker._InternalRangePanelDoNotUseOrYouWillBeFired = PureRangePanel;
-DatePicker.generatePicker = generatePicker;
-var jsxRuntime = {};
-var reactJsxRuntime_production = {};
-function requireReactJsxRuntime_production() {
-	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element");
-	function jsxProd(type, config, maybeKey) {
-		if ("key" in config) {
-			maybeKey = {};
-			for (var propName in config) maybeKey[propName] = config[propName];
-		} else maybeKey = config;
-		return {
-			$$typeof: REACT_ELEMENT_TYPE,
-			type,
-			key: null,
-			ref: null,
-			props: maybeKey
-		};
-	}
-	reactJsxRuntime_production.b = jsxProd;
-	return reactJsxRuntime_production;
-}
-function requireJsxRuntime() {
-	{
-		jsxRuntime.a = requireReactJsxRuntime_production();
-	}
-	return jsxRuntime.a;
-}
-var jsxRuntimeExports = requireJsxRuntime();
 const container = document.getElementById("root");
 const root = ReactDOM.a(container);
-root.render(jsxRuntimeExports.b(React.StrictMode, { children: jsxRuntimeExports.b(DatePicker, {}) }));
+root.render(jsxRuntimeExports.b(React__default.StrictMode, { children: jsxRuntimeExports.b(DatePicker, {}) }));

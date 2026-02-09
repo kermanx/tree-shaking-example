@@ -2029,7 +2029,7 @@ function getStackAsyncContextStrategy() {
 		withIsolationScope,
 		withScope: withScope$1,
 		withSetScope,
-		withSetIsolationScope: (__unused_E4BB, callback) => {
+		withSetIsolationScope: (__unused_86C4, callback) => {
 			return withIsolationScope(callback);
 		},
 		getCurrentScope: () => getAsyncContextStack().getScope(),
@@ -2471,7 +2471,7 @@ function spanToJSON(span) {
 	if (spanIsSentrySpan(span)) {
 		return span.getSpanJSON();
 	}
-	const __unused_1026 = span.spanContext();
+	span.spanContext();
 	// Handle a span from @opentelemetry/sdk-base-trace's `Span` class
 	if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
 		const { attributes, startTime, name, endTime, links } = span;
@@ -2947,7 +2947,7 @@ function forEachEnvelopeItem(envelope, callback) {
 * Returns true if the envelope contains any of the given envelope item types
 */
 function envelopeContainsItemType(envelope, types) {
-	return forEachEnvelopeItem(envelope, (__unused_F2F1, type) => types.includes(type));
+	return forEachEnvelopeItem(envelope, (__unused_AD9E, type) => types.includes(type));
 }
 /**
 * Encode a string to UTF8 array.
@@ -3142,7 +3142,7 @@ function resolvedSyncPromise(value) {
 * @returns the rejected sync promise
 */
 function rejectedSyncPromise(reason) {
-	return new SyncPromise((__unused_D336, reject) => {
+	return new SyncPromise((__unused_FF59, reject) => {
 		reject(reason);
 	});
 }
@@ -3833,7 +3833,7 @@ function _encodedAuth(dsn, sdkInfo) {
 *
 * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
 */
-function getEnvelopeEndpointWithUrlEncodedAuth(dsn, __unused_27BE, sdkInfo) {
+function getEnvelopeEndpointWithUrlEncodedAuth(dsn, __unused_0306, sdkInfo) {
 	return `${_getIngestEndpoint(dsn)}?${_encodedAuth(dsn, sdkInfo)}`;
 }
 const installedIntegrations = [];
@@ -4273,7 +4273,7 @@ function createTransport(options, makeRequest, buffer) {
 				DEBUG_BUILD$2 && debug.b(`Dropping client report. Will not send outcomes (reason: ${reason}).`);
 				return;
 			}
-			forEachEnvelopeItem(filteredEnvelope, (__unused_6F98, type) => {
+			forEachEnvelopeItem(filteredEnvelope, (__unused_E8F0, type) => {
 				options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
 			});
 		};
@@ -4415,7 +4415,7 @@ function _isDoNotSendEventError(error) {
 *
 * Uses closure variables to track weight and timeout state.
 */
-function setupWeightBasedFlushing(client, afterCaptureHook, __unused_113C, estimateSizeFn, flushFn) {
+function setupWeightBasedFlushing(client, afterCaptureHook, __unused_5CD5, estimateSizeFn, flushFn) {
 	// Track weight and timeout in closure variables
 	let weight = 0;
 	let flushTimeout;
@@ -5329,7 +5329,7 @@ function stripDataUrlContent(url) {
 		const mimeType = match ? match[1] : "text/plain";
 		const isBase64 = url.includes(";base64,");
 		// Find where the actual data starts (after the comma)
-		const __unused_1CC5 = url.indexOf(",");
+		url.indexOf(",");
 		return `data:${mimeType}${isBase64 ? ",base64" : ""}${""}`;
 	}
 	return url;
@@ -5367,7 +5367,7 @@ function addAutoIpAddressToSession(session) {
 * @param options SDK options object that gets mutated
 * @param names list of package names
 */
-function applySdkMetadata(options, __unused_9AC0, names, source = "npm") {
+function applySdkMetadata(options, __unused_7E18, names, source = "npm") {
 	const metadata = {};
 	{
 		{
@@ -5478,7 +5478,7 @@ const eventFiltersIntegration = defineIntegration(() => {
 			const clientOptions = client.getOptions();
 			mergedOptions = _mergeOptions(0, clientOptions);
 		},
-		processEvent(event, __unused_6498, client) {
+		processEvent(event, __unused_0D54, client) {
 			if (!mergedOptions) {
 				const clientOptions = client.getOptions();
 				mergedOptions = _mergeOptions(0, clientOptions);
@@ -5509,7 +5509,7 @@ const inboundFiltersIntegration = defineIntegration(() => {
 		name: "InboundFilters"
 	};
 });
-function _mergeOptions(__unused_3797, clientOptions = {}) {
+function _mergeOptions(__unused_143A, clientOptions = {}) {
 	return {
 		allowUrls: [...clientOptions.allowUrls || []],
 		denyUrls: [...clientOptions.denyUrls || []],
@@ -5610,7 +5610,7 @@ function _isUselessError(event) {
 /**
 * Creates exceptions inside `event.exception.values` for errors that are nested on properties based on the `key` parameter.
 */
-function applyAggregateErrorsToEvent(exceptionFromErrorImplementation, parser, __unused_C307, __unused_A4A9, event, hint) {
+function applyAggregateErrorsToEvent(exceptionFromErrorImplementation, parser, __unused_1E50, __unused_DC8A, event, hint) {
 	if (!event.exception?.values || !hint || !isInstanceOf(hint.originalException, Error)) {
 		return;
 	}
@@ -6384,7 +6384,7 @@ function eventFromUnknownInput(stackParser, exception, syntheticException, attac
 		if ("code" in domException) {
 			// eslint-disable-next-line deprecation/deprecation
 			event.tags = {
-				...(event.tags, void 0),
+				...void 0,
 				"DOMException.code": `${domException.code}`
 			};
 		}
@@ -6824,14 +6824,14 @@ const cachedImplementations = {};
 * - `fetch`: This can be wrapped by e.g. ad-blockers, causing an infinite loop when a request is blocked.
 */
 function getNativeImplementation() {
-	const cached = cachedImplementations["fetch"];
+	const cached = cachedImplementations["a"];
 	if (cached) {
 		return cached;
 	}
 	let impl = WINDOW["fetch"];
 	// Fast path to avoid DOM I/O
 	if (isNativeFunction(impl)) {
-		return cachedImplementations["fetch"] = impl.bind(WINDOW);
+		return cachedImplementations["a"] = impl.bind(WINDOW);
 	}
 	const document = WINDOW.document;
 	// eslint-disable-next-line deprecation/deprecation
@@ -6855,11 +6855,11 @@ function getNativeImplementation() {
 	if (!impl) {
 		return impl;
 	}
-	return cachedImplementations["fetch"] = impl.bind(WINDOW);
+	return cachedImplementations["a"] = impl.bind(WINDOW);
 }
 /** Clear a cached implementation. */
 function clearCachedImplementation() {
-	cachedImplementations["fetch"] = void 0;
+	cachedImplementations["a"] = void 0;
 }
 const SENTRY_XHR_DATA_KEY = "__sentry_xhr_v3__";
 /**

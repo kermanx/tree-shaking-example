@@ -8,6 +8,7 @@ interface BundleOptions {
   entry: string;
   env: 'browser' | 'node';
   cjs: boolean;
+  excludeReact: boolean;
 }
 
 export const bundlers: Record<string, (options: BundleOptions) => Promise<string>> = {
@@ -29,7 +30,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
     assert(result.outputFiles && result.outputFiles.length === 1, 'Expected exactly one output file');
     return result.outputFiles[0].text;
   },
-  async rollup({ name, entry, env, cjs }) {
+  async rollup({ name, entry, env, cjs, excludeReact }) {
     const { rollup } = await import('rollup');
     const { nodeResolve } = await import('@rollup/plugin-node-resolve');
     const { default: commonjs } = await import('@rollup/plugin-commonjs');
@@ -61,7 +62,8 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
           return;
         }
         warn(warning);
-      }
+      },
+      external: excludeReact ? ['react', 'react/jsx-runtime', 'classnames'] : undefined,
     });
     const { output } = await bundle.generate({
       format: cjs ? 'cjs' : 'esm',

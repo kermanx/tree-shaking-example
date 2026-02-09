@@ -14,9 +14,12 @@ export interface OptimizeOptions {
 
 export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<string>> = {
   jsshaker,
-  async rollup({ code }) {
+  async rollup({ code, env }) {
     const { rollup } = await import('rollup');
+    const { nodeResolve } = await import('@rollup/plugin-node-resolve');
     const { default: virtual } = await import('@rollup/plugin-virtual');
+    const { default: commonjs } = await import('@rollup/plugin-commonjs');
+    const { default: replace } = await import('@rollup/plugin-replace');
 
     const bundle = await rollup({
       input: 'entry',
@@ -24,10 +27,21 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
         virtual({
           entry: code,
         }),
+        replace({
+          'import.meta.env.NODE_ENV': '"production"',
+          'process.env.NODE_ENV': '"production"',
+          'import.meta.env.PROD': 'true',
+          'import.meta.env.DEV': 'false',
+          preventAssignment: true,
+        }),
+        nodeResolve({ browser: env === 'browser' }),
+        commonjs(),
       ],
       treeshake: {
-        moduleSideEffects: false,
-      }
+        tryCatchDeoptimization: false,
+        correctVarValueBeforeDeclaration: true,
+        unknownGlobalSideEffects: false,
+      },
     });
     const { output } = await bundle.generate({
       format: 'esm',
@@ -204,17 +218,13 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
 
       // Run Lacuna and wait for completion
       await new Promise((resolve, reject) => {
-        try {
-          run(runOptions, (log: any) => {
-            if (log) {
-              resolve(log);
-            } else {
-              reject(new Error('Lacuna optimization failed'));
-            }
-          });
-        } catch (error) {
-          reject(error);
-        }
+        run(runOptions, (log: any) => {
+          if (log) {
+            resolve(log);
+          } else {
+            reject(new Error('Lacuna optimization failed'));
+          }
+        });
       });
 
       // Read the optimized code back from the JS file

@@ -23,6 +23,11 @@ module.exports = function()
 		jellyAnalyzer(entryDirectory, edges => {
         /* {caller: {file, start}, callee: {file, start} } */
             
+            // Check if analysis failed (edges is null)
+            if (!edges) {
+                return callback([]);
+            }
+            
             edges.forEach(function (edge) {
                 var edgeWeight = lacunaSettings.STATIC_ANALYSERS_DEFAULT_EDGE_WEIGHT;
                 if (!edge.caller || !edge.callee) { return; }
@@ -57,7 +62,9 @@ function jellyAnalyzer(entryDirectory, callback) {
     console.log(command);
     child_process.exec(command, function (error, stdout, stderr) {
         if(error) {
-            throw logger.error(error);
+            logger.error(error);
+            callback(null);
+            return;
         }
         console.log(stdout)
         var edges = jellyToLacunaFormatter(stdout, pathForCallGraphText);

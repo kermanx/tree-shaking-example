@@ -6,8 +6,8 @@ import { realpath, readlink, readdir, lstat } from "node:fs/promises";
 import { EventEmitter } from "node:events";
 import Stream from "node:stream";
 import { StringDecoder } from "node:string_decoder";
-const balanced = (__unused_128F, __unused_9413, str) => {
-	const r = "}" != null && range(0, 0, str);
+const balanced = (__unused_0D75, __unused_B4AA, str) => {
+	const r = range(0, 0, str);
 	return r && {
 		start: r[0],
 		end: r[1],
@@ -16,7 +16,7 @@ const balanced = (__unused_128F, __unused_9413, str) => {
 		post: str.slice(r[1] + 1)
 	};
 };
-const range = (__unused_7366, __unused_9413_0, str) => {
+const range = (__unused_58F4, __unused_EC47, str) => {
 	let begs, beg, left, right = void 0, result;
 	let ai = str.indexOf("{");
 	let bi = str.indexOf("}", ai + 1);
@@ -1772,7 +1772,7 @@ if (typeof AC === "undefined") {
 		_onabort = [];
 		reason;
 		aborted = false;
-		addEventListener(__unused_C697, fn) {
+		addEventListener(__unused_CFDC, fn) {
 			this._onabort.push(fn);
 		}
 	};
@@ -2297,7 +2297,7 @@ class LRUCache {
 	}
 	#removeItemSize = () => {};
 	#addItemSize = () => {};
-	#requireSize = (__unused_2B9B, __unused_0477, size, sizeCalculation) => {
+	#requireSize = (__unused_C755, __unused_5DF8, size, sizeCalculation) => {
 		if (size || sizeCalculation) {
 			throw new TypeError("cannot set size without setting maxSize or maxEntrySize on cache");
 		}
@@ -3445,7 +3445,7 @@ class Minipass extends EventEmitter {
 	/**
 	* @deprecated - This is a read only property
 	*/
-	set encoding(__unused_7C05) {
+	set encoding(__unused_B8C0) {
 		throw new Error("Encoding must be set at instantiation time");
 	}
 	/**
@@ -3463,7 +3463,7 @@ class Minipass extends EventEmitter {
 	/**
 	* @deprecated - This is a read-only property
 	*/
-	set objectMode(__unused_3976) {
+	set objectMode(__unused_CF2E) {
 		throw new Error("objectMode must be set at instantiation time");
 	}
 	/**
@@ -3498,7 +3498,7 @@ class Minipass extends EventEmitter {
 	* No-op setter. Stream aborted status is set via the AbortSignal provided
 	* in the constructor options.
 	*/
-	set aborted(__unused_2AA0) {}
+	set aborted(__unused_8ECB) {}
 	write(chunk, encoding, cb) {
 		if (this[ABORTED]) return false;
 		if (this[EOF]) throw new Error("write after end");
@@ -6673,7 +6673,7 @@ class GlobUtil {
 			const childrenCached = t.readdirCached();
 			if (t.calledReaddir()) this.walkCB3(t, childrenCached, processor, next);
 			else {
-				t.readdirCB((__unused_D781, entries) => this.walkCB3(t, entries, processor, next), true);
+				t.readdirCB((__unused_9D7F, entries) => this.walkCB3(t, entries, processor, next), true);
 			}
 		}
 		next();
@@ -6997,7 +6997,7 @@ class Glob {
 		return this.iterate();
 	}
 }
-function globSync(__unused_3CC0, options) {
+function globSync(__unused_B01E, options) {
 	return new Glob(0, options).walkSync();
 }
 const files = globSync(0, { ignore: ["node_modules/**", "dist/**"] });
