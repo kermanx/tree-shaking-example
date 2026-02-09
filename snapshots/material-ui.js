@@ -459,9 +459,11 @@ function _objectWithoutPropertiesLoose(r, e) {
 function _objectWithoutProperties(e, t) {
 	if (null == e) return {};
 	var o, r, i = _objectWithoutPropertiesLoose(e, t);
-	if (Object.getOwnPropertySymbols) {
-		var n = Object.getOwnPropertySymbols(e);
-		for (r = 0; r < n.length; r++) o = n[r], -1 === t.indexOf(o) && {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]);
+	{
+		{
+			var n = Object.getOwnPropertySymbols(e);
+			for (r = 0; r < n.length; r++) o = n[r], -1 === t.indexOf(o) && {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]);
+		}
 	}
 	return i;
 }
@@ -1057,9 +1059,7 @@ function _createClass(e, r) {
 	return _defineProperties(e.prototype, r), Object.defineProperty(e, "prototype", { writable: false });
 }
 function _setPrototypeOf(t, e) {
-	return _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function(t, e) {
-		return t.__proto__ = e, t;
-	}, _setPrototypeOf(t, e);
+	return _setPrototypeOf = Object.setPrototypeOf.bind(), _setPrototypeOf(t, e);
 }
 function _inheritsLoose(t, o) {
 	t.prototype = Object.create(o.prototype), t.prototype.constructor = t, _setPrototypeOf(t, o);
@@ -3940,15 +3940,19 @@ function requireHoistNonReactStatics_cjs() {
 	function hoistNonReactStatics(targetComponent, sourceComponent, blacklist) {
 		if (typeof sourceComponent !== "string") {
 			// don't hoist over string (html) components
-			if (objectPrototype) {
-				var inheritedComponent = getPrototypeOf(sourceComponent);
-				if (inheritedComponent && inheritedComponent !== objectPrototype) {
-					hoistNonReactStatics(targetComponent, inheritedComponent, blacklist);
+			{
+				{
+					var inheritedComponent = getPrototypeOf(sourceComponent);
+					if (inheritedComponent && inheritedComponent !== objectPrototype) {
+						hoistNonReactStatics(targetComponent, inheritedComponent, blacklist);
+					}
 				}
 			}
 			var keys = getOwnPropertyNames(sourceComponent);
-			if (getOwnPropertySymbols) {
-				keys = keys.concat(getOwnPropertySymbols(sourceComponent));
+			{
+				{
+					keys = keys.concat(getOwnPropertySymbols(sourceComponent));
+				}
 			}
 			var targetStatics = getStatics(targetComponent);
 			var sourceStatics = getStatics(sourceComponent);

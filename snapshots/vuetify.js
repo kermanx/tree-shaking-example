@@ -788,6 +788,7 @@ function getDepFromReactive(object, key) {
 function reactiveReadArray(array) {
 	const raw = toRaw(array);
 	if (raw === array) return raw;
+	track(raw, 0, ARRAY_ITERATE_KEY);
 	return isShallow(array) ? raw : raw.map(toReactive);
 }
 function shallowReadArray(arr) {
@@ -1069,6 +1070,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 		return result;
 	}
 	ownKeys(target) {
+		track(target, 0, isArray(target) ? "length" : ITERATE_KEY);
 		return Reflect.ownKeys(target);
 	}
 }
@@ -1094,8 +1096,10 @@ function createIterableMethod(method, isReadonly2, isShallow2) {
 		const rawTarget = toRaw(target);
 		const targetIsMap = isMap(rawTarget);
 		const isPair = method === "entries" || method === Symbol.iterator && targetIsMap;
+		const isKeyOnly = method === "keys" && targetIsMap;
 		const innerIterator = target[method](...args);
 		const wrap = isShallow2 ? toShallow : isReadonly2 ? toReadonly : toReactive;
+		!isReadonly2 && track(rawTarget, 0, isKeyOnly ? MAP_KEY_ITERATE_KEY : ITERATE_KEY);
 		return extend(
 			// inheriting all iterator properties
 			Object.create(innerIterator),
@@ -1135,7 +1139,7 @@ function createInstrumentations(readonly, shallow) {
 		},
 		get size() {
 			const target = this["__v_raw"];
-			!readonly && toRaw(target);
+			!readonly && track(toRaw(target), 0, ITERATE_KEY);
 			return target.size;
 		},
 		has(key) {
