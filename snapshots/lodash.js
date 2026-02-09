@@ -1,4 +1,4 @@
-var commonjsGlobal = globalThis;
+var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x) {
 	return x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
 }
@@ -404,7 +404,7 @@ function requireLodash() {
 			/** Built-in method references without a dependency on `root`. */
 			var freeParseFloat = parseFloat, freeParseInt = parseInt;
 			/** Detect free variable `global` from Node.js. */
-			var freeGlobal = commonjsGlobal.Object === Object && commonjsGlobal;
+			var freeGlobal = typeof commonjsGlobal == "object" && commonjsGlobal && commonjsGlobal.Object === Object && commonjsGlobal;
 			/** Detect free variable `self`. */
 			var freeSelf = typeof self == "object" && self && self.Object === Object && self;
 			/** Used as a reference to the global object. */

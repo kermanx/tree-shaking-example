@@ -84,7 +84,7 @@ const looseToNumber = (val) => {
 };
 let _globalThis;
 const getGlobalThis = () => {
-	return _globalThis || (_globalThis = globalThis);
+	return _globalThis || (_globalThis = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : {});
 };
 function normalizeStyle(value) {
 	if (isArray(value)) {
@@ -2307,6 +2307,7 @@ function invalidatePendingSetRef(rawRef) {
 	}
 }
 getGlobalThis();
+getGlobalThis();
 const isAsyncWrapper = (i) => !!i.type.__asyncLoader;
 const isKeepAlive = (vnode) => vnode.type.__isKeepAlive;
 function onActivated(hook) {
@@ -3622,7 +3623,7 @@ function baseCreateRenderer(options) {
 				}
 			}
 			if ("value" in props) {
-				hostPatchProp(el, "value", null, props.value, namespace);
+				hostPatchProp(el, "value", 0, props.value, namespace);
 			}
 			if (vnodeHook = props.onVnodeBeforeMount) {
 				invokeVNodeHook(vnodeHook, parentComponent, vnode);
@@ -3703,11 +3704,11 @@ function baseCreateRenderer(options) {
 			} else {
 				if (patchFlag & 2) {
 					if (oldProps.class !== newProps.class) {
-						hostPatchProp(el, "class", null, newProps.class, namespace);
+						hostPatchProp(el, "class", 0, newProps.class, namespace);
 					}
 				}
 				if (patchFlag & 4) {
-					hostPatchProp(el, "style", oldProps.style, newProps.style, namespace);
+					hostPatchProp(el, "style", oldProps.style, newProps.style);
 				}
 				if (patchFlag & 8) {
 					const propsToUpdate = n2.dynamicProps;
@@ -3762,7 +3763,7 @@ function baseCreateRenderer(options) {
 				}
 			}
 			if ("value" in newProps) {
-				hostPatchProp(el, "value", oldProps.value, newProps.value, namespace);
+				hostPatchProp(el, "value", 0, newProps.value, namespace);
 			}
 		}
 	};

@@ -7626,9 +7626,7 @@ const INTEGRATION_NAME$1 = "GlobalHandlers";
 const _globalHandlersIntegration = () => {
 	return {
 		name: INTEGRATION_NAME$1,
-		setupOnce() {
-			Error.stackTraceLimit = 50;
-		},
+		setupOnce() {},
 		setup(client) {
 			{
 				{
