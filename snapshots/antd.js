@@ -1948,8 +1948,8 @@ function requireReactDomClient_production() {
 			if (3 === node.nodeType) {
 				nodeEnd = root + node.textContent.length;
 				if (root <= offset && nodeEnd >= offset) return {
-					node,
-					offset: offset - root
+					a: node,
+					b: offset - root
 				};
 				root = nodeEnd;
 			}
@@ -7081,11 +7081,11 @@ function requireReactDomClient_production() {
 									var selection = win.getSelection(), length = priorFocusedElem.textContent.length, start$jscomp$0 = Math.min(priorSelectionRange.start, length), end$jscomp$0 = void 0 === priorSelectionRange.end ? start$jscomp$0 : Math.min(priorSelectionRange.end, length);
 									!selection.extend && start$jscomp$0 > end$jscomp$0 && (curFocusedElem = end$jscomp$0, end$jscomp$0 = start$jscomp$0, start$jscomp$0 = curFocusedElem);
 									var startMarker = getNodeForCharacterOffset(priorFocusedElem, start$jscomp$0), endMarker = getNodeForCharacterOffset(priorFocusedElem, end$jscomp$0);
-									if (startMarker && endMarker && (1 !== selection.rangeCount || selection.anchorNode !== startMarker.node || selection.anchorOffset !== startMarker.offset || selection.focusNode !== endMarker.node || selection.focusOffset !== endMarker.offset)) {
+									if (startMarker && endMarker && (1 !== selection.rangeCount || selection.anchorNode !== startMarker.a || selection.anchorOffset !== startMarker.b || selection.focusNode !== endMarker.a || selection.focusOffset !== endMarker.b)) {
 										var range = doc.createRange();
-										range.setStart(startMarker.node, startMarker.offset);
+										range.setStart(startMarker.a, startMarker.b);
 										selection.removeAllRanges();
-										start$jscomp$0 > end$jscomp$0 ? (selection.addRange(range), selection.extend(endMarker.node, endMarker.offset)) : (range.setEnd(endMarker.node, endMarker.offset), selection.addRange(range));
+										start$jscomp$0 > end$jscomp$0 ? (selection.addRange(range), selection.extend(endMarker.a, endMarker.b)) : (range.setEnd(endMarker.a, endMarker.b), selection.addRange(range));
 									}
 								}
 							}
@@ -9988,15 +9988,15 @@ function contains(root, n) {
 	return false;
 }
 const containerCache = new Map();
-function getMark({ mark }) {
+function getMark({ a: mark }) {
 	if (mark) {
 		return mark.startsWith("data-") ? mark : `data-${mark}`;
 	}
 	return "rc-util-key";
 }
 function getContainer(option) {
-	if (option.attachTo) {
-		return option.attachTo;
+	if (option.b) {
+		return option.b;
 	}
 	const head = document.querySelector("head");
 	return head || document.body;
@@ -10017,7 +10017,7 @@ function injectCSS(css, option) {
 	if (!canUseDom()) {
 		return null;
 	}
-	const { csp, prepend, priority = 0 } = option;
+	const { c: csp, d: prepend, e: priority = 0 } = option;
 	const mergedOrder = getOrder(prepend);
 	const isPrependQueue = mergedOrder === "prependQueue";
 	const styleNode = document.createElement("style");
@@ -10025,8 +10025,8 @@ function injectCSS(css, option) {
 	if (isPrependQueue && priority) {
 		styleNode.setAttribute("data-rc-priority", `${priority}`);
 	}
-	if (csp?.nonce) {
-		styleNode.nonce = csp?.nonce;
+	if (csp?.a) {
+		styleNode.nonce = csp?.a;
 	}
 	styleNode.innerHTML = css;
 	const container = getContainer(option);
@@ -10035,7 +10035,7 @@ function injectCSS(css, option) {
 		{
 			// If is queue `prepend`, it will prepend first style and then append rest style
 			if (isPrependQueue) {
-				const existStyle = (option.styles || findStyles(container)).filter((node) => {
+				const existStyle = (option.f || findStyles(container)).filter((node) => {
 					// Ignore style which not injected by rc-util with prepend
 					if (!["prepend", "prependQueue"].includes(node.getAttribute("data-rc-order"))) {
 						return false;
@@ -10056,7 +10056,7 @@ function injectCSS(css, option) {
 	return styleNode;
 }
 function findExistNode(key, option) {
-	let { styles } = option;
+	let { f: styles } = option;
 	styles ||= findStyles(getContainer(option));
 	return styles.find((node) => node.getAttribute(getMark(option)) === key);
 }
@@ -10085,14 +10085,14 @@ function updateCSS(css, key, originOption) {
 	const styles = findStyles(container);
 	const option = {
 		...originOption,
-		styles
+		f: styles
 	};
 	// Sync real parent
 	syncRealContainer(container, option);
 	const existNode = findExistNode(key, option);
 	if (existNode) {
-		if (option.csp?.nonce && existNode.nonce !== option.csp?.nonce) {
-			existNode.nonce = option.csp?.nonce;
+		if (option.c?.a && existNode.nonce !== option.c?.a) {
+			existNode.nonce = option.c?.a;
 		}
 		if (existNode.innerHTML !== css) {
 			existNode.innerHTML = css;
@@ -10342,7 +10342,7 @@ const transformToken = (token, themeKey, config) => {
 		}
 	});
 	return [result, serializeCSSVar(cssVars, themeKey, {
-		b: config.e,
+		b: config.f,
 		a: hashCls
 	})];
 };
@@ -10481,10 +10481,10 @@ function useCacheToken(theme, tokens, option) {
 			return;
 		}
 		const style = updateCSS(cssVarsStr, murmur2(`css-var-${themeKey}`), {
-			mark: ATTR_MARK,
-			prepend: "queue",
-			attachTo: void 0,
-			priority: -999
+			a: ATTR_MARK,
+			d: "queue",
+			b: void 0,
+			e: -999
 		});
 		style[CSS_IN_JS_INSTANCE] = instanceId;
 		// Used for `useCacheToken` to remove on batch when token removed
@@ -11254,14 +11254,14 @@ function useStyleRegister(info, styleFn) {
 			const [styleStr, styleId, effectStyle, , priority] = cacheValue;
 			if (isMergedClientSide && styleStr !== "_FILE_STYLE__") {
 				const mergedCSSConfig = {
-					mark: ATTR_MARK,
-					prepend: "queue",
-					attachTo: void 0,
-					priority
+					a: ATTR_MARK,
+					d: "queue",
+					b: void 0,
+					e: priority
 				};
 				const nonceStr = typeof nonce === "function" ? nonce() : nonce;
 				if (nonceStr) {
-					mergedCSSConfig.csp = { nonce: nonceStr };
+					mergedCSSConfig.c = { a: nonceStr };
 				}
 				// ================= Split Effect Style =================
 				// We will split effectStyle here since @layer should be at the top level
@@ -11279,7 +11279,7 @@ function useStyleRegister(info, styleFn) {
 				effectLayerKeys.forEach((effectKey) => {
 					updateCSS(normalizeStyle(effectStyle[effectKey]), `_layer-${effectKey}`, {
 						...mergedCSSConfig,
-						prepend: true
+						d: true
 					});
 				});
 				// ==================== Inject Style ====================
@@ -11311,7 +11311,7 @@ const useCSSVarRegister = (config, fn) => {
 			b: "ant",
 			c: unitless,
 			d: ignore,
-			e: scope,
+			f: scope,
 			a: void 0
 		});
 		const styleId = uniqueHash(stylePath, cssVarsStr);
@@ -11324,8 +11324,8 @@ const useCSSVarRegister = (config, fn) => {
 	}, ([, , styleId]) => {
 		if (isClientSide) {
 			removeCSS(styleId, {
-				mark: ATTR_MARK,
-				attachTo: void 0
+				a: ATTR_MARK,
+				b: void 0
 			});
 		}
 	}, ([, cssVarsStr, styleId]) => {
@@ -11333,10 +11333,10 @@ const useCSSVarRegister = (config, fn) => {
 			return;
 		}
 		const style = updateCSS(cssVarsStr, styleId, {
-			mark: ATTR_MARK,
-			prepend: "queue",
-			attachTo: void 0,
-			priority: -999
+			a: ATTR_MARK,
+			d: "queue",
+			b: void 0,
+			e: -999
 		});
 		style[CSS_IN_JS_INSTANCE] = instanceId;
 		// Used for `useCacheToken` to remove on batch when token removed
@@ -11489,9 +11489,7 @@ function _createSuper(t) {
 		return _possibleConstructorReturn(this, e);
 	};
 }
-var AbstractCalculator = _createClass$1(function AbstractCalculator() {
-	_classCallCheck$1(this, AbstractCalculator);
-});
+var AbstractCalculator = _createClass$1(function() {});
 var AbstractCalculator$1 = AbstractCalculator;
 var regexp$2 = new RegExp("CALC_UNIT", "g");
 function unit(value) {
@@ -13803,8 +13801,8 @@ const useInsertStyles = (eleRef) => {
 		const ele = eleRef.current;
 		const shadowRoot = getShadowRoot(ele);
 		updateCSS("\n.anticon {\n  display: inline-flex;\n  align-items: center;\n  color: inherit;\n  font-style: normal;\n  line-height: 0;\n  text-align: center;\n  text-transform: none;\n  vertical-align: -0.125em;\n  text-rendering: optimizeLegibility;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\n.anticon > * {\n  line-height: 1;\n}\n\n.anticon svg {\n  display: inline-block;\n  vertical-align: inherit;\n}\n\n.anticon::before {\n  display: none;\n}\n\n.anticon .anticon-icon {\n  display: block;\n}\n\n.anticon[tabindex] {\n  cursor: pointer;\n}\n\n.anticon-spin::before,\n.anticon-spin {\n  display: inline-block;\n  -webkit-animation: loadingCircle 1s infinite linear;\n  animation: loadingCircle 1s infinite linear;\n}\n\n@-webkit-keyframes loadingCircle {\n  100% {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n\n@keyframes loadingCircle {\n  100% {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n", "@ant-design-icons", {
-			prepend: true,
-			attachTo: shadowRoot
+			d: true,
+			b: shadowRoot
 		});
 	}, []);
 };
@@ -15908,7 +15906,7 @@ function generateTrigger(PortalComponent) {
 		}, [mousePos, popupPlacement]);
 		// When no builtinPlacements and popupAlign changed
 		useLayoutEffect(() => {
-			if (mergedOpen && !builtinPlacements[popupPlacement]) {
+			if (mergedOpen && !builtinPlacements?.[popupPlacement]) {
 				triggerAlign();
 			}
 		}, [JSON.stringify(popupAlign)]);
@@ -17374,7 +17372,7 @@ var useStyle$1 = genStyleHooks("Button", (token) => {
 } });
 // handle border collapse
 function compactItemBorder(token, parentCls, options, prefixCls) {
-	const { focusElCls, focus } = options;
+	const { a: focusElCls, b: focus } = options;
 	const hoverEffects = [
 		"hover",
 		focus ? "focus" : null,
@@ -17404,7 +17402,7 @@ function compactItemBorderRadius(prefixCls, parentCls) {
 		} }
 	};
 }
-function genCompactItemStyle(token, options = { focus: true }) {
+function genCompactItemStyle(token, options = { b: true }) {
 	const { componentCls } = token;
 	const mergedComponentCls = componentCls;
 	const compactCls = `${mergedComponentCls}-compact`;
@@ -17489,7 +17487,7 @@ var Compact = genSubStyleComponent(["Button", "compact"], (token) => {
 }, prepareComponentToken$1);
 function getLoadingConfig(loading) {
 	if (typeof loading === "object" && loading) {
-		let delay = loading.delay;
+		let delay = loading?.delay;
 		delay = !Number.isNaN(delay) && typeof delay === "number" ? delay : 0;
 		return {
 			a: delay <= 0,
@@ -19462,9 +19460,9 @@ function requireDayjs_min() {
 				k[t[1]] = function(e) {
 					return this.$g(e, t[0], t[1]);
 				};
-			}), O.extend = function(t) {
+			}), O.a = function(t) {
 				return t(0, _, O);
-			}, O.Ls = D, O;
+			}, O.b = D, O;
 		});
 	})(dayjs_min$1);
 	return dayjs_min$1.a;
@@ -19771,7 +19769,7 @@ function requireCustomParseFormat() {
 					var a = o[1];
 					if ("string" == typeof a) {
 						var f = true === o[2], h = true === o[3], u = f || h, d = o[2];
-						h && (d = o[2]), s = this.$locale(), !f && d && (s = n.Ls[d]), this.$d = function(e, t, n, r) {
+						h && (d = o[2]), s = this.$locale(), !f && d && (s = n.b[d]), this.$d = function(e, t, n, r) {
 							try {
 								if (["x", "X"].indexOf(t) > -1) return new Date(("X" === t ? 1e3 : 1) * e);
 								var i = l(t)(e), o = i.year, s = i.month, a = i.day, f = i.hours, h = i.minutes, u = i.seconds, d = i.milliseconds, c = i.zone, m = i.week, M = new Date(), Y = a || (o || s ? 1 : M.getDate()), p = o || M.getFullYear(), v = 0;
@@ -19800,13 +19798,13 @@ function requireCustomParseFormat() {
 }
 var customParseFormatExports = requireCustomParseFormat();
 var customParseFormat = getDefaultExportFromCjs(customParseFormatExports);
-dayjs.extend(customParseFormat);
-dayjs.extend(advancedFormat);
-dayjs.extend(weekday);
-dayjs.extend(localeData);
-dayjs.extend(weekOfYear);
-dayjs.extend(weekYear);
-dayjs.extend(function(__unused_C8FA, c) {
+dayjs.a(customParseFormat);
+dayjs.a(advancedFormat);
+dayjs.a(weekday);
+dayjs.a(localeData);
+dayjs.a(weekOfYear);
+dayjs.a(weekYear);
+dayjs.a(function(__unused_C8FA, c) {
 	// todo support Wo (ISO week)
 	var proto = c.prototype;
 	var oldFormat = proto.format;
@@ -27408,8 +27406,8 @@ genStyleHooks(["Input", "Component"], (token) => {
 		genGroupStyle(inputToken),
 		genRangeStyle(inputToken),
 		genCompactItemStyle(inputToken, {
-			focus: true,
-			focusElCls: `${inputToken.componentCls}-affix-wrapper-focused`
+			b: true,
+			a: `${inputToken.componentCls}-affix-wrapper-focused`
 		})
 	];
 }, initComponentToken, { resetFont: false });
@@ -28303,7 +28301,7 @@ var useStyle = genStyleHooks("DatePicker", (token) => {
 		genVariantsStyle(pickerToken),
 		genPickerStatusStyle(pickerToken),
 		genPickerMultipleStyle(pickerToken),
-		genCompactItemStyle(token, { focusElCls: `${token.componentCls}-focused` })
+		genCompactItemStyle(token, { a: `${token.componentCls}-focused` })
 	];
 }, prepareComponentToken);
 const useMergedPickerSemantic = (__unused_B8DF, __unused_ECC6, __unused_4034, __unused_91D2, __unused_014C, mergedProps) => {

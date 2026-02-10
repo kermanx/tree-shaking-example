@@ -2442,9 +2442,9 @@ function spanToJSON(span) {
 			data: attributes,
 			description: name,
 			parent_span_id: parentSpanId,
-			start_timestamp: spanTimeInputToSeconds(startTime),
-			timestamp: spanTimeInputToSeconds(endTime),
-			links: convertSpanLinksForEnvelope(links)
+			a: spanTimeInputToSeconds(startTime),
+			b: spanTimeInputToSeconds(endTime),
+			c: convertSpanLinksForEnvelope(links)
 		};
 	}
 	// Finally, at least we have `spanContext()`....
@@ -4048,7 +4048,7 @@ const SENTRY_BUFFER_FULL_ERROR = Symbol.for("SentryBufferFullError");
 * Creates an new PromiseBuffer object with the specified limit
 * @param limit max number of promises that can be stored in the buffer
 */
-function makePromiseBuffer(limit = 100) {
+function makePromiseBuffer(limit) {
 	const buffer = new Set();
 	function isReady() {
 		return buffer.size < limit;
@@ -5253,12 +5253,10 @@ function parseUrl(url) {
 	const query = match[6] || "";
 	const fragment = match[8] || "";
 	return {
-		host: match[4],
-		path: match[5],
-		protocol: match[2],
-		search: query,
-		hash: fragment,
-		relative: match[5] + query + fragment
+		a: match[4],
+		b: match[5],
+		c: match[2],
+		d: match[5] + query + fragment
 	};
 }
 /**
@@ -5321,7 +5319,7 @@ function addAutoIpAddressToSession(session) {
 * @param options SDK options object that gets mutated
 * @param names list of package names
 */
-function applySdkMetadata(options, __unused_7E18, names, source = "npm") {
+function applySdkMetadata(options, __unused_7E18, names, source) {
 	const metadata = {};
 	{
 		{
@@ -7328,16 +7326,16 @@ function _getHistoryBreadcrumbHandler(client) {
 		let parsedFrom = from ? parseUrl(from) : void 0;
 		const parsedTo = parseUrl(to);
 		// Initial pushState doesn't provide `from` information
-		if (!parsedFrom?.path) {
+		if (!parsedFrom?.b) {
 			parsedFrom = parsedLoc;
 		}
 		// Use only the path component of the URL if the URL matches the current
 		// document (almost all the time when using pushState)
-		if (parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host) {
-			to = parsedTo.relative;
+		if (parsedLoc.c === parsedTo.c && parsedLoc.a === parsedTo.a) {
+			to = parsedTo.d;
 		}
-		if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host) {
-			from = parsedFrom.relative;
+		if (parsedLoc.c === parsedFrom.c && parsedLoc.a === parsedFrom.a) {
+			from = parsedFrom.d;
 		}
 		addBreadcrumb({
 			category: "navigation",

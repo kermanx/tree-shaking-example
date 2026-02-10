@@ -4,7 +4,7 @@ import { realpathSync as realpathSync$1, readlinkSync, readdirSync, readdir as r
 import * as actualFS from "node:fs";
 import { realpath, readlink, readdir, lstat } from "node:fs/promises";
 import { EventEmitter } from "node:events";
-import Stream from "node:stream";
+import "node:stream";
 import { StringDecoder } from "node:string_decoder";
 const balanced = (__unused_0D75, __unused_B4AA, str) => {
 	const r = range(0, 0, str);
@@ -3235,19 +3235,6 @@ const proc = typeof process === "object" && process ? process : {
 	stdout: null,
 	stderr: null
 };
-/**
-* Return true if the argument is a Minipass stream, Node stream, or something
-* else that Minipass can interact with.
-*/
-const isStream = (s) => !!s && typeof s === "object" && (s instanceof Minipass || s instanceof Stream || isReadable(s) || isWritable(s));
-/**
-* Return true if the argument is a valid {@link Minipass.Readable}
-*/
-const isReadable = (s) => !!s && typeof s === "object" && s instanceof EventEmitter && typeof s.pipe === "function" && s.pipe !== Stream.Writable.prototype.pipe;
-/**
-* Return true if the argument is a valid {@link Minipass.Writable}
-*/
-const isWritable = (s) => !!s && typeof s === "object" && s instanceof EventEmitter && typeof s.write === "function" && typeof s.end === "function";
 const EOF = Symbol("EOF");
 const MAYBE_EMIT_END = Symbol("maybeEmitEnd");
 const EMITTED_END = Symbol("emittedEnd");
@@ -3328,8 +3315,6 @@ class PipeProxyErrors extends Pipe {
 		src.on("error", this.proxyErrors);
 	}
 }
-const isObjectModeOptions = (o) => !!o.objectMode;
-const isEncodingOptions = (o) => !o.objectMode && !!o.encoding && o.encoding !== "buffer";
 /**
 * Main export, the Minipass class
 *
@@ -3376,32 +3361,17 @@ class Minipass extends EventEmitter {
 	* {@link Minipass.SharedOptions.encoding}, as appropriate.
 	*/
 	constructor(...args) {
-		const options = args[0] || {};
+		const options = args[0];
 		super();
-		if (options.objectMode && typeof options.encoding === "string") {
-			throw new TypeError("Encoding and objectMode may not be used together");
+		{
+			{
+				this[OBJECTMODE] = true;
+				this[ENCODING] = null;
+			}
 		}
-		if (isObjectModeOptions(options)) {
-			this[OBJECTMODE] = true;
-			this[ENCODING] = null;
-		} else if (isEncodingOptions(options)) {
-			this[ENCODING] = options.encoding;
-			this[OBJECTMODE] = false;
-		} else {
-			this[OBJECTMODE] = false;
-			this[ENCODING] = null;
-		}
-		this[ASYNC] = !!options.async;
+		this[ASYNC] = false;
 		this[DECODER] = this[ENCODING] ? new StringDecoder(this[ENCODING]) : null;
-		//@ts-ignore - private option for debugging and testing
-		if (options.debugExposeBuffer === true) {
-			Object.defineProperty(this, "buffer", { get: () => this[BUFFER] });
-		}
-		//@ts-ignore - private option for debugging and testing
-		if (options.debugExposePipes === true) {
-			Object.defineProperty(this, "pipes", { get: () => this[PIPES] });
-		}
-		const { signal } = options;
+		const { a: signal } = options;
 		if (signal) {
 			this[SIGNAL] = signal;
 			if (signal.aborted) {
@@ -4116,16 +4086,6 @@ while (this[FLUSHCHUNK](this[BUFFERSHIFT]()) && this[BUFFER].length);
 		if (er) this.emit("error", er);
 		else this.emit(DESTROYED);
 		return this;
-	}
-	/**
-	* Alias for {@link isStream}
-	*
-	* Former export location, maintained for backwards compatibility.
-	*
-	* @deprecated
-	*/
-	static get isStream() {
-		return isStream;
 	}
 }
 const realpathSync = realpathSync$1.native;
@@ -5718,7 +5678,7 @@ class PathScurryBase {
 			entry = this.cwd;
 		}
 		const { withFileTypes = true, follow = false, filter, walkFilter } = opts;
-		const results = new Minipass({ objectMode: true });
+		const results = new Minipass({});
 		if (!filter || filter(entry)) {
 			results.write(withFileTypes ? entry : entry.fullpath());
 		}
@@ -5788,7 +5748,7 @@ class PathScurryBase {
 			entry = this.cwd;
 		}
 		const { withFileTypes = true, follow = false, filter, walkFilter } = opts;
-		const results = new Minipass({ objectMode: true });
+		const results = new Minipass({});
 		const dirs = new Set();
 		if (!filter || filter(entry)) {
 			results.write(withFileTypes ? entry : entry.fullpath());
@@ -6773,10 +6733,7 @@ class GlobStream extends GlobUtil {
 	results;
 	constructor(patterns, path, opts) {
 		super(patterns, path, opts);
-		this.results = new Minipass({
-			signal: this.signal,
-			objectMode: true
-		});
+		this.results = new Minipass({ a: this.signal });
 		this.results.on("drain", () => this.resume());
 		this.results.on("resume", () => this.resume());
 	}

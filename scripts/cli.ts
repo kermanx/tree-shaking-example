@@ -1,7 +1,8 @@
 import { parseArgs } from 'node:util';
 import { run } from './run.ts';
 import { existsSync, } from 'node:fs';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
+import { getTestCaseNames, getTestCaseConfig } from './config.ts';
 
 export const summary: any = {};
 
@@ -20,25 +21,25 @@ async function main() {
   const [name] = args.positionals;
   const { bundler, optimizers, zip, cjs } = args.values;
 
-  const allNames = (await readdir('./src'))
-    .filter(file => file.endsWith('.js'))
-    .map(file => file.replace('.js', ''));
-
+  const allNames = getTestCaseNames();
   const names = !name ? allNames : [name];
 
   const resolvedOptimizers = resolveOptimizers(optimizers);
   for (const optimizers of resolvedOptimizers) {
     const sizes: Record<string, number> = {};
-    await Promise.all(names.map(name => run({
-      name,
-      entry: `./src/${name}.js`,
-      env: ['glob'].includes(name) ? 'node' : 'browser',
-      bundler: bundler || 'rollup',
-      optimizers,
-      zip,
-      sizes,
-      cjs: cjs || false,
-    })));
+    await Promise.all(names.map(name => {
+      const config = getTestCaseConfig(name);
+      return run({
+        name,
+        entry: `./src/${name}.js`,
+        env: config.env,
+        bundler: bundler || 'rollup',
+        optimizers,
+        zip,
+        sizes,
+        cjs: cjs || false,
+      });
+    }));
 
     const oldSizes = existsSync('./sizes.json') ? JSON.parse(await readFile('./sizes.json', 'utf-8')) : {};
     await writeFile('./sizes.json', JSON.stringify(

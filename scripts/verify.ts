@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util';
-import { readdir } from 'node:fs/promises';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
+import { getTestCaseNames } from './config.ts';
 
 async function main() {
   const args = parseArgs({
@@ -15,10 +15,7 @@ async function main() {
   const [name] = args.positionals;
   const { bundler, optimizers } = args.values;
 
-  const allNames = (await readdir('./src'))
-    .filter(file => file.endsWith('.js'))
-    .map(file => file.replace('.js', ''));
-
+  const allNames = getTestCaseNames();
   const names = !name ? allNames : [name];
   const resolvedOptimizers = resolveOptimizers(optimizers);
 

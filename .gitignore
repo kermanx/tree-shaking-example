@@ -6,3 +6,5 @@ dist
 sizes.json
 maxRecursionDepth.json
 time.json
+ablation.json
+*.png

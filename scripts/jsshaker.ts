@@ -10,7 +10,10 @@ export async function jsshaker({ name, code }: OptimizeOptions, options: Partial
     // rememberExhaustedVariables: false,
     // eagerExhaustiveCallbacks: true,
     // enableFnCache: false,
-  });
+
+    // constantFolding: 'enabled',
+    // propertyMangling: 'enabled',
+  } satisfies Partial<Options>);
 
   console.log(`[${name}] Running jsshaker...`);
 

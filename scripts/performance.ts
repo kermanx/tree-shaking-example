@@ -5,6 +5,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { gccWithTiming } from './cc.ts';
+import { getTestCaseConfig } from './config.ts';
 
 const WARMUP_RUNS = 1;
 const BENCHMARK_RUNS = 3;
@@ -58,8 +59,8 @@ async function benchmarkJsshaker() {
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
       results[depth][name] = avgTime;
 
-      const env = name === 'glob' ? 'node' : 'browser';
-      const minified = await Optimizers.terser({ name, code: finalCode, env });
+      const config = getTestCaseConfig(name);
+      const minified = await Optimizers.terser({ name, code: finalCode, env: config.env });
       const size = minified.length;
 
       console.log(`  [${name}] Time: ${avgTime.toFixed(2)}ms, Size: ${size}B`);
@@ -88,17 +89,17 @@ async function benchmarkTerser() {
   for (const [name, code] of Object.entries(bundled)) {
     console.log(`[${name}] Warming up...`);
 
-    const env = name === 'glob' ? 'node' : 'browser';
+    const config = getTestCaseConfig(name);
 
     for (let i = 0; i < WARMUP_RUNS; i++) {
-      await Optimizers.terser({ name, code, env });
+      await Optimizers.terser({ name, code, env: config.env });
     }
 
     const times: number[] = [];
 
     for (let i = 0; i < BENCHMARK_RUNS; i++) {
       const start = performance.now();
-      await Optimizers.terser({ name, code, env });
+      await Optimizers.terser({ name, code, env: config.env });
       times.push(performance.now() - start);
     }
 
@@ -123,19 +124,19 @@ async function benchmarkRollup() {
   for (const file of srcFiles) {
     const name = file.replace('.js', '');
     const entry = join(srcFolder, file);
-    const env = name === 'glob' ? 'node' : 'browser';
+    const config = getTestCaseConfig(name);
 
     console.log(`[${name}] Warming up...`);
 
     for (let i = 0; i < WARMUP_RUNS; i++) {
-      await bundlers.rollup({ name, entry, env, cjs: false });
+      await bundlers.rollup({ name, entry, env: config.env, cjs: false, excludeReact: false });
     }
 
     const times: number[] = [];
 
     for (let i = 0; i < BENCHMARK_RUNS; i++) {
       const start = performance.now();
-      await bundlers.rollup({ name, entry, env, cjs: false });
+      await bundlers.rollup({ name, entry, env: config.env, cjs: false, excludeReact: false });
       times.push(performance.now() - start);
     }
 
@@ -232,11 +233,11 @@ async function benchmarkLacuna() {
   for (const [name, code] of Object.entries(bundled)) {
     console.log(`[${name}] Warming up...`);
 
-    const env = name === 'glob' ? 'node' : 'browser';
+    const config = getTestCaseConfig(name);
 
     for (let i = 0; i < WARMUP_RUNS; i++) {
       try {
-        await Optimizers.lacuna({ name, code, env });
+        await Optimizers.lacuna({ name, code, env: config.env });
       } catch (e) {
         console.log(`[${name}] Warmup failed, skipping...`);
         continue;
@@ -248,7 +249,7 @@ async function benchmarkLacuna() {
     for (let i = 0; i < BENCHMARK_RUNS; i++) {
       try {
         const start = performance.now();
-        await Optimizers.lacuna({ name, code, env });
+        await Optimizers.lacuna({ name, code, env: config.env });
         times.push(performance.now() - start);
       } catch (e) {
         console.log(`[${name}] Benchmark failed, skipping...`);

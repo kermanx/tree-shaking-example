@@ -8579,10 +8579,538 @@ const PC2 = [
 	27,
 	28
 ];
+const SP1 = [
+	16843776,
+	0,
+	65536,
+	16843780,
+	16842756,
+	66564,
+	4,
+	65536,
+	1024,
+	16843776,
+	16843780,
+	1024,
+	16778244,
+	16842756,
+	16777216,
+	4,
+	1028,
+	16778240,
+	16778240,
+	66560,
+	66560,
+	16842752,
+	16842752,
+	16778244,
+	65540,
+	16777220,
+	16777220,
+	65540,
+	0,
+	1028,
+	66564,
+	16777216,
+	65536,
+	16843780,
+	4,
+	16842752,
+	16843776,
+	16777216,
+	16777216,
+	1024,
+	16842756,
+	65536,
+	66560,
+	16777220,
+	1024,
+	4,
+	16778244,
+	66564,
+	16843780,
+	65540,
+	16842752,
+	16778244,
+	16777220,
+	1028,
+	66564,
+	16843776,
+	1028,
+	16778240,
+	16778240,
+	0,
+	65540,
+	66560,
+	0,
+	16842756
+];
+const SP2 = [
+	-2146402272,
+	-2147450880,
+	32768,
+	1081376,
+	1048576,
+	32,
+	-2146435040,
+	-2147450848,
+	-2147483616,
+	-2146402272,
+	-2146402304,
+	-2147483648,
+	-2147450880,
+	1048576,
+	32,
+	-2146435040,
+	1081344,
+	1048608,
+	-2147450848,
+	0,
+	-2147483648,
+	32768,
+	1081376,
+	-2146435072,
+	1048608,
+	-2147483616,
+	0,
+	1081344,
+	32800,
+	-2146402304,
+	-2146435072,
+	32800,
+	0,
+	1081376,
+	-2146435040,
+	1048576,
+	-2147450848,
+	-2146435072,
+	-2146402304,
+	32768,
+	-2146435072,
+	-2147450880,
+	32,
+	-2146402272,
+	1081376,
+	32,
+	32768,
+	-2147483648,
+	32800,
+	-2146402304,
+	1048576,
+	-2147483616,
+	1048608,
+	-2147450848,
+	-2147483616,
+	1048608,
+	1081344,
+	0,
+	-2147450880,
+	32800,
+	-2147483648,
+	-2146435040,
+	-2146402272,
+	1081344
+];
+const SP3 = [
+	520,
+	134349312,
+	0,
+	134348808,
+	134218240,
+	0,
+	131592,
+	134218240,
+	131080,
+	134217736,
+	134217736,
+	131072,
+	134349320,
+	131080,
+	134348800,
+	520,
+	134217728,
+	8,
+	134349312,
+	512,
+	131584,
+	134348800,
+	134348808,
+	131592,
+	134218248,
+	131584,
+	131072,
+	134218248,
+	8,
+	134349320,
+	512,
+	134217728,
+	134349312,
+	134217728,
+	131080,
+	520,
+	131072,
+	134349312,
+	134218240,
+	0,
+	512,
+	131080,
+	134349320,
+	134218240,
+	134217736,
+	512,
+	0,
+	134348808,
+	134218248,
+	131072,
+	134217728,
+	134349320,
+	8,
+	131592,
+	131584,
+	134217736,
+	134348800,
+	134218248,
+	520,
+	134348800,
+	131592,
+	8,
+	134348808,
+	131584
+];
+const SP4 = [
+	8396801,
+	8321,
+	8321,
+	128,
+	8396928,
+	8388737,
+	8388609,
+	8193,
+	0,
+	8396800,
+	8396800,
+	8396929,
+	129,
+	0,
+	8388736,
+	8388609,
+	1,
+	8192,
+	8388608,
+	8396801,
+	128,
+	8388608,
+	8193,
+	8320,
+	8388737,
+	1,
+	8320,
+	8388736,
+	8192,
+	8396928,
+	8396929,
+	129,
+	8388736,
+	8388609,
+	8396800,
+	8396929,
+	129,
+	0,
+	0,
+	8396800,
+	8320,
+	8388736,
+	8388737,
+	1,
+	8396801,
+	8321,
+	8321,
+	128,
+	8396929,
+	129,
+	1,
+	8192,
+	8388609,
+	8193,
+	8396928,
+	8388737,
+	8193,
+	8320,
+	8388608,
+	8396801,
+	128,
+	8388608,
+	8192,
+	8396928
+];
+const SP5 = [
+	256,
+	34078976,
+	34078720,
+	1107296512,
+	524288,
+	256,
+	1073741824,
+	34078720,
+	1074266368,
+	524288,
+	33554688,
+	1074266368,
+	1107296512,
+	1107820544,
+	524544,
+	1073741824,
+	33554432,
+	1074266112,
+	1074266112,
+	0,
+	1073742080,
+	1107820800,
+	1107820800,
+	33554688,
+	1107820544,
+	1073742080,
+	0,
+	1107296256,
+	34078976,
+	33554432,
+	1107296256,
+	524544,
+	524288,
+	1107296512,
+	256,
+	33554432,
+	1073741824,
+	34078720,
+	1107296512,
+	1074266368,
+	33554688,
+	1073741824,
+	1107820544,
+	34078976,
+	1074266368,
+	256,
+	33554432,
+	1107820544,
+	1107820800,
+	524544,
+	1107296256,
+	1107820800,
+	34078720,
+	0,
+	1074266112,
+	1107296256,
+	524544,
+	33554688,
+	1073742080,
+	524288,
+	0,
+	1074266112,
+	34078976,
+	1073742080
+];
+const SP6 = [
+	536870928,
+	541065216,
+	16384,
+	541081616,
+	541065216,
+	16,
+	541081616,
+	4194304,
+	536887296,
+	4210704,
+	4194304,
+	536870928,
+	4194320,
+	536887296,
+	536870912,
+	16400,
+	0,
+	4194320,
+	536887312,
+	16384,
+	4210688,
+	536887312,
+	16,
+	541065232,
+	541065232,
+	0,
+	4210704,
+	541081600,
+	16400,
+	4210688,
+	541081600,
+	536870912,
+	536887296,
+	16,
+	541065232,
+	4210688,
+	541081616,
+	4194304,
+	16400,
+	536870928,
+	4194304,
+	536887296,
+	536870912,
+	16400,
+	536870928,
+	541081616,
+	4210688,
+	541065216,
+	4210704,
+	541081600,
+	0,
+	541065232,
+	16,
+	16384,
+	541065216,
+	4210704,
+	16384,
+	4194320,
+	536887312,
+	0,
+	541081600,
+	536870912,
+	4194320,
+	536887312
+];
+const SP7 = [
+	2097152,
+	69206018,
+	67110914,
+	0,
+	2048,
+	67110914,
+	2099202,
+	69208064,
+	69208066,
+	2097152,
+	0,
+	67108866,
+	2,
+	67108864,
+	69206018,
+	2050,
+	67110912,
+	2099202,
+	2097154,
+	67110912,
+	67108866,
+	69206016,
+	69208064,
+	2097154,
+	69206016,
+	2048,
+	2050,
+	69208066,
+	2099200,
+	2,
+	67108864,
+	2099200,
+	67108864,
+	2099200,
+	2097152,
+	67110914,
+	67110914,
+	69206018,
+	69206018,
+	2,
+	2097154,
+	67108864,
+	67110912,
+	2097152,
+	69208064,
+	2050,
+	2099202,
+	69208064,
+	2050,
+	67108866,
+	69208066,
+	69206016,
+	2099200,
+	0,
+	2,
+	69208066,
+	0,
+	2099202,
+	69206016,
+	2048,
+	67108866,
+	67110912,
+	2048,
+	2097154
+];
+const SP8 = [
+	268439616,
+	4096,
+	262144,
+	268701760,
+	268435456,
+	268439616,
+	64,
+	268435456,
+	262208,
+	268697600,
+	268701760,
+	266240,
+	268701696,
+	266304,
+	4096,
+	64,
+	268697600,
+	268435520,
+	268439552,
+	4160,
+	266240,
+	262208,
+	268697664,
+	268701696,
+	4160,
+	0,
+	0,
+	268697664,
+	268435520,
+	268439552,
+	266304,
+	262144,
+	266304,
+	262144,
+	268701696,
+	4096,
+	64,
+	268697664,
+	4096,
+	266304,
+	268439552,
+	64,
+	268435520,
+	268697600,
+	268697664,
+	268435456,
+	262144,
+	268439616,
+	0,
+	268701760,
+	262208,
+	268435520,
+	268697600,
+	268439552,
+	268439616,
+	0,
+	268701760,
+	266240,
+	266240,
+	4160,
+	4160,
+	262208,
+	268435456,
+	268701696
+];
 /* eslint-enable comma-spacing */
 class DES {
 	constructor(password) {
-		this.a = [];
+		this.keys = [];
 		// Set the key.
 		const pc1m = [], pcr = [], kn = [];
 		for (let j = 0, l = 56; j < 56; ++j, l -= 8) {
@@ -8613,17 +9141,94 @@ class DES {
 		for (let i = 0, rawi = 0, KnLi = 0; i < 16; ++i) {
 			const raw0 = kn[rawi++];
 			const raw1 = kn[rawi++];
-			this.a[KnLi] = (raw0 & 16515072) << 6;
-			this.a[KnLi] |= (raw0 & 4032) << 10;
-			this.a[KnLi] |= (raw1 & 16515072) >>> 10;
-			this.a[KnLi] |= (raw1 & 4032) >>> 6;
+			this.keys[KnLi] = (raw0 & 16515072) << 6;
+			this.keys[KnLi] |= (raw0 & 4032) << 10;
+			this.keys[KnLi] |= (raw1 & 16515072) >>> 10;
+			this.keys[KnLi] |= (raw1 & 4032) >>> 6;
 			++KnLi;
-			this.a[KnLi] = (raw0 & 258048) << 12;
-			this.a[KnLi] |= (raw0 & 63) << 16;
-			this.a[KnLi] |= (raw1 & 258048) >>> 4;
-			this.a[KnLi] |= raw1 & 63;
+			this.keys[KnLi] = (raw0 & 258048) << 12;
+			this.keys[KnLi] |= (raw0 & 63) << 16;
+			this.keys[KnLi] |= (raw1 & 258048) >>> 4;
+			this.keys[KnLi] |= raw1 & 63;
 			++KnLi;
 		}
+	}
+	// Encrypt 8 bytes of text
+	enc8(text) {
+		const b = text.slice();
+		let i = 0, l, r, x;
+		// Squash 8 bytes to 2 ints
+		l = b[i++] << 24 | b[i++] << 16 | b[i++] << 8 | b[i++];
+		r = b[i++] << 24 | b[i++] << 16 | b[i++] << 8 | b[+i];
+		x = (l >>> 4 ^ r) & 252645135;
+		r ^= x;
+		l ^= x << 4;
+		x = (l >>> 16 ^ r) & 65535;
+		r ^= x;
+		l ^= x << 16;
+		x = (r >>> 2 ^ l) & 858993459;
+		l ^= x;
+		r ^= x << 2;
+		x = (r >>> 8 ^ l) & 16711935;
+		l ^= x;
+		r ^= x << 8;
+		r = r << 1 | r >>> 31 & 1;
+		x = (l ^ r) & 2863311530;
+		l ^= x;
+		r ^= x;
+		l = l << 1 | l >>> 31 & 1;
+		for (let i = 0, keysi = 0; i < 8; ++i) {
+			x = r << 28 | r >>> 4;
+			x ^= this.keys[keysi++];
+			let fval = SP7[x & 63];
+			fval |= SP5[x >>> 8 & 63];
+			fval |= SP3[x >>> 16 & 63];
+			fval |= SP1[x >>> 24 & 63];
+			x = r ^ this.keys[keysi++];
+			fval |= SP8[x & 63];
+			fval |= SP6[x >>> 8 & 63];
+			fval |= SP4[x >>> 16 & 63];
+			fval |= SP2[x >>> 24 & 63];
+			l ^= fval;
+			x = l << 28 | l >>> 4;
+			x ^= this.keys[keysi++];
+			fval = SP7[x & 63];
+			fval |= SP5[x >>> 8 & 63];
+			fval |= SP3[x >>> 16 & 63];
+			fval |= SP1[x >>> 24 & 63];
+			x = l ^ this.keys[keysi++];
+			fval |= SP8[x & 63];
+			fval |= SP6[x >>> 8 & 63];
+			fval |= SP4[x >>> 16 & 63];
+			fval |= SP2[x >>> 24 & 63];
+			r ^= fval;
+		}
+		r = r << 31 | r >>> 1;
+		x = (l ^ r) & 2863311530;
+		l ^= x;
+		r ^= x;
+		l = l << 31 | l >>> 1;
+		x = (l >>> 8 ^ r) & 16711935;
+		r ^= x;
+		l ^= x << 8;
+		x = (l >>> 2 ^ r) & 858993459;
+		r ^= x;
+		l ^= x << 2;
+		x = (r >>> 16 ^ l) & 65535;
+		l ^= x;
+		r ^= x << 16;
+		x = (r >>> 4 ^ l) & 252645135;
+		l ^= x;
+		r ^= x << 4;
+		// Spread ints to bytes
+		x = [r, l];
+		for (i = 0; i < 8; i++) {
+			b[i] = (x[i >>> 2] >>> 8 * (3 - i % 4)) % 256;
+			if (b[i] < 0) {
+				b[i] += 256;
+			}
+		}
+		return b;
 	}
 }
 class DESECBCipher {
@@ -8632,11 +9237,22 @@ class DESECBCipher {
 	}
 	static a(key) {
 		const cipher = new DESECBCipher();
-		cipher._importKey(key);
+		cipher.a(key);
 		return cipher;
 	}
-	_importKey(key) {
-		new DES(key);
+	a(key) {
+		this.b = new DES(key);
+	}
+	encrypt(__unused_17BE, plaintext) {
+		const x = new Uint8Array(plaintext);
+		if (x.length % 8 !== 0 || this.b === null) {
+			return null;
+		}
+		const n = x.length / 8;
+		for (let i = 0; i < n; i++) {
+			x.set(this.b.enc8(x.slice(i * 8, i * 8 + 8)), i * 8);
+		}
+		return x;
 	}
 }
 class DESCBCCipher {
@@ -8645,11 +9261,27 @@ class DESCBCCipher {
 	}
 	static a(key) {
 		const cipher = new DESCBCCipher();
-		cipher._importKey(key);
+		cipher.a(key);
 		return cipher;
 	}
-	_importKey(key) {
-		new DES(key);
+	a(key) {
+		this.b = new DES(key);
+	}
+	encrypt(algorithm, plaintext) {
+		const x = new Uint8Array(plaintext);
+		let y = new Uint8Array(algorithm.a);
+		if (x.length % 8 !== 0 || this.b === null) {
+			return null;
+		}
+		const n = x.length / 8;
+		for (let i = 0; i < n; i++) {
+			for (let j = 0; j < 8; j++) {
+				y[j] ^= plaintext[i * 8 + j];
+			}
+			y = this.b.enc8(y);
+			x.set(y, i * 8);
+		}
+		return x;
 	}
 }
 function modPow(b, e, m) {
@@ -8918,13 +9550,13 @@ function rol(d, g) {
 class LegacyCrypto {
 	constructor() {
 		this.a = {
-			"AES-ECB": AESECBCipher,
-			"AES-EAX": AESEAXCipher,
-			"DES-ECB": DESECBCipher,
-			"DES-CBC": DESCBCCipher,
+			"a": AESECBCipher,
+			"b": AESEAXCipher,
+			"c": DESECBCipher,
+			"d": DESCBCCipher,
 			"RSA-PKCS1-v1_5": RSACipher,
-			"DH": DHCipher,
-			"MD5": MD5
+			"e": DHCipher,
+			"f": MD5
 		};
 	}
 	b(algorithm, key, data) {
@@ -8960,7 +9592,7 @@ class LegacyCrypto {
 		return key.exportKey();
 	}
 	g(__unused_11EB, data) {
-		const alg = this.a["MD5"];
+		const alg = this.a["f"];
 		return alg(data);
 	}
 	h(algorithm, key, length) {
@@ -8980,7 +9612,7 @@ class RA2Cipher {
 		this.b = new Uint8Array(16);
 	}
 	async c(key) {
-		this.a = await legacyCrypto.d(0, key, { a: "AES-EAX" });
+		this.a = await legacyCrypto.d(0, key, { a: "b" });
 	}
 	async d(message) {
 		const ad = new Uint8Array([(message.length & 65280) >>> 8, message.length & 255]);
@@ -11899,8 +12531,12 @@ class RFB extends EventTargetMixin {
 			return false;
 		}
 		// TODO(directxman12): make genDES not require an Array
-		const __unused_D352 = Array.prototype.slice.call(this._sock.rQshiftBytes(16));
-		const __unused_57F6 = RFB.d(this._rfbCredentials.password);
+		const challenge = Array.prototype.slice.call(this._sock.rQshiftBytes(16));
+		const response = RFB.d(this._rfbCredentials.password, challenge);
+		this._sock.sQpushBytes(response);
+		this._sock.flush();
+		this._rfbInitState = "SecurityResult";
+		return true;
 	}
 	_negotiateARDAuth() {
 		if (this._rfbCredentials.username === void 0 || this._rfbCredentials.password === void 0) {
@@ -11929,7 +12565,7 @@ class RFB extends EventTargetMixin {
 		let prime = this._sock.rQshiftBytes(keyLength);
 		let serverPublicKey = this._sock.rQshiftBytes(keyLength);
 		let clientKey = legacyCrypto.e({
-			name: "DH",
+			name: "e",
 			g: generator,
 			p: prime
 		});
@@ -11954,7 +12590,7 @@ class RFB extends EventTargetMixin {
 		}
 		credentials[64 + password.length] = 0;
 		const key = await legacyCrypto.g(0, sharedKey);
-		const cipher = await legacyCrypto.d(0, key, { a: "AES-ECB" }, 0, ["encrypt"]);
+		const cipher = await legacyCrypto.d(0, key, { a: "a" }, 0, ["encrypt"]);
 		const encrypted = await legacyCrypto.b({ name: "AES-ECB" }, cipher, credentials);
 		this._rfbCredentials.ardCredentials = encrypted;
 		this._rfbCredentials.ardPublicKey = clientPublicKey;
@@ -12110,13 +12746,13 @@ class RFB extends EventTargetMixin {
 		const p = this._sock.rQshiftBytes(8);
 		const A = this._sock.rQshiftBytes(8);
 		const dhKey = legacyCrypto.e({
-			name: "DH",
+			name: "e",
 			g,
 			p
 		});
-		const __unused_E59C = dhKey.publicKey;
+		const B = legacyCrypto.f(0, dhKey.publicKey);
 		const secret = legacyCrypto.h({ public: A }, dhKey.privateKey, 64);
-		const key = legacyCrypto.d(0, secret, { a: "DES-CBC" });
+		const key = legacyCrypto.d(0, secret, { a: "d" });
 		const username = encodeUTF8(this._rfbCredentials.username).substring(0, 255);
 		const password = encodeUTF8(this._rfbCredentials.password).substring(0, 63);
 		let usernameBytes = new Uint8Array(256);
@@ -12131,7 +12767,20 @@ class RFB extends EventTargetMixin {
 			passwordBytes[i] = password.charCodeAt(i);
 		}
 		passwordBytes[password.length] = 0;
-		legacyCrypto.b({ name: "a" }, key);
+		usernameBytes = legacyCrypto.b({
+			name: "a",
+			a: secret
+		}, key, usernameBytes);
+		passwordBytes = legacyCrypto.b({
+			name: "a",
+			a: secret
+		}, key, passwordBytes);
+		this._sock.sQpushBytes(B);
+		this._sock.sQpushBytes(usernameBytes);
+		this._sock.sQpushBytes(passwordBytes);
+		this._sock.flush();
+		this._rfbInitState = "SecurityResult";
+		return true;
 	}
 	_negotiateAuthentication() {
 		switch (this._rfbAuthScheme) {
@@ -12907,10 +13556,10 @@ class RFB extends EventTargetMixin {
 		const image = this._shouldShowDotCursor() ? RFB.a.b : this._cursorImage;
 		this._cursor.change(image.rgbaPixels, image.hotx, image.hoty, image.w, image.h);
 	}
-	static d(password) {
+	static d(password, challenge) {
 		const passwordChars = password.split("").map((c) => c.charCodeAt(0));
-		const key = legacyCrypto.d(0, passwordChars, { a: "DES-ECB" });
-		return legacyCrypto.b({ name: "a" }, key);
+		const key = legacyCrypto.d(0, passwordChars, { a: "c" });
+		return legacyCrypto.b({ name: "a" }, key, challenge);
 	}
 }
 // Class Methods
@@ -13418,10 +14067,10 @@ function readSetting(name, defaultValue) {
 	return value;
 }
 let loggedMsgs = [];
-function logOnce(msg, level = "warn") {
+function logOnce(msg, level = "a") {
 	if (!loggedMsgs.includes(msg)) {
 		switch (level) {
-			case "warn":
+			case "a":
 				Warn(msg);
 				break;
 			case "debug":
@@ -13793,7 +14442,7 @@ const UI = {
 	q(text, statusType) {
 		const statusElem = document.getElementById("noVNC_status");
 		if (typeof statusType === "undefined") {
-			statusType = "normal";
+			statusType = "a";
 		}
 		// Don't overwrite more severe visible statuses and never
 		// errors. Only shows the first error.
@@ -13801,7 +14450,7 @@ const UI = {
 			if (statusElem.classList.contains("noVNC_status_error")) {
 				return;
 			}
-			if (statusElem.classList.contains("noVNC_status_warn") && statusType === "normal") {
+			if (statusElem.classList.contains("noVNC_status_warn") && statusType === "a") {
 				return;
 			}
 		}
@@ -13812,7 +14461,7 @@ const UI = {
 				statusElem.classList.remove("noVNC_status_normal");
 				statusElem.classList.add("noVNC_status_error");
 				break;
-			case "warning":
+			case "b":
 				statusElem.classList.remove("noVNC_status_error");
 				statusElem.classList.remove("noVNC_status_normal");
 				statusElem.classList.add("noVNC_status_warn");
@@ -14317,7 +14966,7 @@ const UI = {
 			return;
 		} else {
 			UI.D("e");
-			UI.q(_("Disconnected"), "normal");
+			UI.q(_("Disconnected"), "a");
 		}
 		UI.eb();
 		document.title = "noVNC";
@@ -14391,7 +15040,7 @@ const UI = {
 		document.getElementById("noVNC_credentials_dlg").classList.add("noVNC_open");
 		setTimeout(() => document.getElementById(inputFocus).focus(), 100);
 		Warn("Server asked for credentials");
-		UI.q(_("Credentials are required"), "warning");
+		UI.q(_("Credentials are required"), "b");
 	},
 	na(e) {
 		// Prevent actually submitting the form

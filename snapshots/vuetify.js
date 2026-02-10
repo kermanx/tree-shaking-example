@@ -8141,50 +8141,50 @@ function weekInfo(locale) {
 	switch (true) {
 		case locale === "GB-alt-variant": {
 			return {
-				firstDay: 0,
-				firstWeekSize: 4
+				a: 0,
+				b: 4
 			};
 		}
 		case locale === "001": {
 			return {
-				firstDay: 1,
-				firstWeekSize: 1
+				a: 1,
+				b: 1
 			};
 		}
 		case "AG AS BD BR BS BT BW BZ CA CO DM DO ET GT GU HK HN ID IL IN JM JP KE\n    KH KR LA MH MM MO MT MX MZ NI NP PA PE PH PK PR PY SA SG SV TH TT TW UM US\n    VE VI WS YE ZA ZW".includes(code): {
 			return {
-				firstDay: 0,
-				firstWeekSize: 1
+				a: 0,
+				b: 1
 			};
 		}
 		case "AI AL AM AR AU AZ BA BM BN BY CL CM CN CR CY EC GE HR KG KZ LB LK LV\n    MD ME MK MN MY NZ RO RS SI TJ TM TR UA UY UZ VN XK".includes(code): {
 			return {
-				firstDay: 1,
-				firstWeekSize: 1
+				a: 1,
+				b: 1
 			};
 		}
 		case "AD AN AT AX BE BG CH CZ DE DK EE ES FI FJ FO FR GB GF GP GR HU IE IS\n    IT LI LT LU MC MQ NL NO PL RE RU SE SK SM VA".includes(code): {
 			return {
-				firstDay: 1,
-				firstWeekSize: 4
+				a: 1,
+				b: 4
 			};
 		}
 		case "AE AF BH DJ DZ EG IQ IR JO KW LY OM QA SD SY".includes(code): {
 			return {
-				firstDay: 6,
-				firstWeekSize: 1
+				a: 6,
+				b: 1
 			};
 		}
 		case code === "MV": {
 			return {
-				firstDay: 5,
-				firstWeekSize: 1
+				a: 5,
+				b: 1
 			};
 		}
 		case code === "PT": {
 			return {
-				firstDay: 0,
-				firstWeekSize: 4
+				a: 0,
+				b: 4
 			};
 		}
 		default: return null;
@@ -8195,7 +8195,7 @@ function getWeekArray(date, locale, firstDayOfWeek) {
 	let currentWeek = [];
 	const firstDayOfMonth = startOfMonth(date);
 	const lastDayOfMonth = endOfMonth(date);
-	const first = firstDayOfWeek ?? weekInfo(locale)?.firstDay ?? 0;
+	const first = firstDayOfWeek ?? weekInfo(locale)?.a ?? 0;
 	const firstDayWeekIndex = (firstDayOfMonth.getDay() - first + 7) % 7;
 	const lastDayWeekIndex = (lastDayOfMonth.getDay() - first + 7) % 7;
 	for (let i = 0; i < firstDayWeekIndex; i++) {
@@ -8224,7 +8224,7 @@ function getWeekArray(date, locale, firstDayOfWeek) {
 	return weeks;
 }
 function startOfWeek(date, locale, firstDayOfWeek) {
-	let day = (firstDayOfWeek ?? weekInfo(locale)?.firstDay ?? 0) % 7;
+	let day = (firstDayOfWeek ?? weekInfo(locale)?.a ?? 0) % 7;
 	// prevent infinite loop
 	if (![
 		0,
@@ -8245,7 +8245,7 @@ function startOfWeek(date, locale, firstDayOfWeek) {
 }
 function endOfWeek(date, locale) {
 	const d = new Date(date);
-	const lastDay = ((weekInfo(locale)?.firstDay ?? 0) + 6) % 7;
+	const lastDay = ((weekInfo(locale)?.a ?? 0) + 6) % 7;
 	while (d.getDay() !== lastDay) {
 		d.setDate(d.getDate() + 1);
 	}
@@ -8279,7 +8279,7 @@ function date(value) {
 }
 const sundayJanuarySecond2000 = new Date(2e3, 0, 2);
 function getWeekdays(locale, firstDayOfWeek, weekdayFormat) {
-	const daysFromSunday = firstDayOfWeek ?? weekInfo(locale)?.firstDay ?? 0;
+	const daysFromSunday = firstDayOfWeek ?? weekInfo(locale)?.a ?? 0;
 	return createRange(7).map((i) => {
 		const weekday = new Date(sundayJanuarySecond2000);
 		weekday.setDate(sundayJanuarySecond2000.getDate() + daysFromSunday + i);
@@ -8509,8 +8509,8 @@ function getMonth(date) {
 }
 function getWeek(date, locale, firstDayOfWeek, firstDayOfYear) {
 	const weekInfoFromLocale = weekInfo(locale);
-	const weekStart = firstDayOfWeek ?? weekInfoFromLocale?.firstDay ?? 0;
-	const minWeekSize = weekInfoFromLocale?.firstWeekSize ?? 1;
+	const weekStart = firstDayOfWeek ?? weekInfoFromLocale?.a ?? 0;
+	const minWeekSize = weekInfoFromLocale?.b ?? 1;
 	return firstDayOfYear !== void 0 ? calculateWeekWithFirstDayOfYear(date, locale, weekStart, firstDayOfYear) : calculateWeekWithMinWeekSize(date, locale, weekStart, minWeekSize);
 }
 function calculateWeekWithFirstDayOfYear(date, locale, weekStart, firstDayOfYear) {
