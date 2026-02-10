@@ -136,8 +136,7 @@ function normalizeClass(value) {
 	}
 	return res.trim();
 }
-const specialBooleanAttrs = "itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly";
-const isSpecialBooleanAttr = makeMap(specialBooleanAttrs);
+const isSpecialBooleanAttr = makeMap("itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly");
 function includeBooleanAttr(value) {
 	return !!value || value === "";
 }
@@ -4445,8 +4444,6 @@ if (tt) {
 	} catch {}
 }
 const unsafeToTrustedHTML = policy ? (val) => policy.createHTML(val) : (val) => val;
-const svgNS = "http://www.w3.org/2000/svg";
-const mathmlNS = "http://www.w3.org/1998/Math/MathML";
 const doc = typeof document !== "undefined" ? document : null;
 const templateContainer = doc && doc.createElement("template");
 const nodeOps = {
@@ -4460,7 +4457,7 @@ const nodeOps = {
 		}
 	},
 	createElement: (tag, namespace, is, props) => {
-		const el = namespace === "svg" ? doc.createElementNS(svgNS, tag) : namespace === "mathml" ? doc.createElementNS(mathmlNS, tag) : is ? doc.createElement(tag, { is }) : doc.createElement(tag);
+		const el = namespace === "svg" ? doc.createElementNS("http://www.w3.org/2000/svg", tag) : namespace === "mathml" ? doc.createElementNS("http://www.w3.org/1998/Math/MathML", tag) : is ? doc.createElement(tag, { is }) : doc.createElement(tag);
 		if (tag === "select" && props && props.multiple != null) {
 			el.setAttribute("multiple", props.multiple);
 		}
@@ -4610,13 +4607,12 @@ function autoPrefix(style, rawName) {
 	}
 	return rawName;
 }
-const xlinkNS = "http://www.w3.org/1999/xlink";
 function patchAttr(el, key, value, isSVG, __unused_0579, isBoolean = isSpecialBooleanAttr(key)) {
 	if (isSVG && key.startsWith("xlink:")) {
 		if (value == null) {
-			el.removeAttributeNS(xlinkNS, key.slice(6, key.length));
+			el.removeAttributeNS("http://www.w3.org/1999/xlink", key.slice(6, key.length));
 		} else {
-			el.setAttributeNS(xlinkNS, key, value);
+			el.setAttributeNS("http://www.w3.org/1999/xlink", key, value);
 		}
 	} else {
 		if (value == null || isBoolean && !includeBooleanAttr(value)) {
@@ -5135,81 +5131,45 @@ function toPhysical(str, isRtl) {
 	if (str === "end") return isRtl ? "left" : "right";
 	return str;
 }
-/**
-* WCAG 3.0 APCA perceptual contrast algorithm from https://github.com/Myndex/SAPC-APCA
-* @licence https://www.w3.org/Consortium/Legal/2015/copyright-software-and-document
-* @see https://www.w3.org/WAI/GL/task-forces/silver/wiki/Visual_Contrast_of_Text_Subgroup
-*/
-// Types
-// MAGICAL NUMBERS
-// sRGB Conversion to Relative Luminance (Y)
-// Transfer Curve (aka "Gamma") for sRGB linearization
-// Simple power curve vs piecewise described in docs
-// Essentially, 2.4 best models actual display
-// characteristics in combination with the total method
-const mainTRC = 2.4;
-const Rco = .2126729;
-const Gco = .7151522;
-const Bco = .072175;
-// For Finding Raw SAPC Contrast from Relative Luminance (Y)
-// Constants for SAPC Power Curve Exponents
-// One pair for normal text, and one for reverse
-// These are the "beating heart" of SAPC
-const normBG = .55;
-const normTXT = .58;
-const revTXT = .57;
-const revBG = .62;
-// For Clamping and Scaling Values
-const blkThrs = .03;
-const blkClmp = 1.45;
-const deltaYmin = 5e-4;
-const scaleBoW = 1.25;
-const scaleWoB = 1.25;
-const loConThresh = .078;
-const loConFactor = 12.82051282051282;
-const loConOffset = .06;
-const loClip = .001;
 function APCAcontrast(text, background) {
 	// Linearize sRGB
-	const Rtxt = (text.r / 255) ** mainTRC;
-	const Gtxt = (text.g / 255) ** mainTRC;
-	const Btxt = (text.b / 255) ** mainTRC;
-	const Rbg = (background.r / 255) ** mainTRC;
-	const Gbg = (background.g / 255) ** mainTRC;
-	const Bbg = (background.b / 255) ** mainTRC;
+	const Rtxt = (text.r / 255) ** 2.4;
+	const Gtxt = (text.g / 255) ** 2.4;
+	const Btxt = (text.b / 255) ** 2.4;
+	const Rbg = (background.r / 255) ** 2.4;
+	const Gbg = (background.g / 255) ** 2.4;
+	const Bbg = (background.b / 255) ** 2.4;
 	// Apply the standard coefficients and sum to Y
-	let Ytxt = Rtxt * Rco + Gtxt * Gco + Btxt * Bco;
-	let Ybg = Rbg * Rco + Gbg * Gco + Bbg * Bco;
+	let Ytxt = Rtxt * .2126729 + Gtxt * .7151522 + Btxt * .072175;
+	let Ybg = Rbg * .2126729 + Gbg * .7151522 + Bbg * .072175;
 	// Soft clamp Y when near black.
 	// Now clamping all colors to prevent crossover errors
-	if (Ytxt <= blkThrs) Ytxt += (blkThrs - Ytxt) ** blkClmp;
-	if (Ybg <= blkThrs) Ybg += (blkThrs - Ybg) ** blkClmp;
+	if (Ytxt <= .03) Ytxt += .006191926882699629;
+	if (Ybg <= .03) Ybg += (.03 - Ybg) ** 1.45;
 	// Return 0 Early for extremely low ∆Y (lint trap #1)
-	if (Math.abs(Ybg - Ytxt) < deltaYmin) return 0;
+	if (Math.abs(Ybg - Ytxt) < 5e-4) return 0;
 	// SAPC CONTRAST
 	let outputContrast;
 	if (Ybg > Ytxt) {
 		// For normal polarity, black text on white
 		// Calculate the SAPC contrast value and scale
-		const SAPC = (Ybg ** normBG - Ytxt ** normTXT) * scaleBoW;
+		const SAPC = (Ybg ** .55 - Ytxt ** .58) * 1.25;
 		// NEW! SAPC SmoothScale™
 		// Low Contrast Smooth Scale Rollout to prevent polarity reversal
 		// and also a low clip for very low contrasts (lint trap #2)
 		// much of this is for very low contrasts, less than 10
 		// therefore for most reversing needs, only loConOffset is important
-		outputContrast = SAPC < loClip ? 0 : SAPC < loConThresh ? SAPC - SAPC * loConFactor * loConOffset : SAPC - loConOffset;
+		outputContrast = SAPC < .001 ? 0 : SAPC < .078 ? SAPC - SAPC * 12.82051282051282 * .06 : SAPC - .06;
 	} else {
 		// For reverse polarity, light text on dark
 		// WoB should always return negative value.
-		const SAPC = (Ybg ** revBG - Ytxt ** revTXT) * scaleWoB;
-		outputContrast = SAPC > -loClip ? 0 : SAPC > -loConThresh ? SAPC - SAPC * loConFactor * loConOffset : SAPC + loConOffset;
+		const SAPC = (Ybg ** .62 - Ytxt ** .57) * 1.25;
+		outputContrast = SAPC > -.001 ? 0 : SAPC > -.078 ? SAPC - SAPC * 12.82051282051282 * .06 : SAPC + .06;
 	}
 	return outputContrast * 100;
 }
-// Types
-const delta = .20689655172413793;
-const cielabForwardTransform = (t) => t > delta ** 3 ? Math.cbrt(t) : t / (3 * delta ** 2) + 4 / 29;
-const cielabReverseTransform = (t) => t > delta ? t ** 3 : 3 * delta ** 2 * (t - 4 / 29);
+const cielabForwardTransform = (t) => t > .008856451679035631 ? Math.cbrt(t) : t / .12841854934601665 + .13793103448275862;
+const cielabReverseTransform = (t) => t > .20689655172413793 ? t ** 3 : .12841854934601665 * (t - .13793103448275862);
 function fromXYZ$1(xyz) {
 	const transform = cielabForwardTransform;
 	const transformedY = transform(xyz[1]);
@@ -5248,7 +5208,7 @@ const srgbForwardMatrix = [
 	]
 ];
 // Forward gamma adjust
-const srgbForwardTransform = (C) => C <= .0031308 ? C * 12.92 : 1.055 * C ** (1 / 2.4) - .055;
+const srgbForwardTransform = (C) => C <= .0031308 ? C * 12.92 : 1.055 * C ** .4166666666666667 - .055;
 // For converting sRGB to XYZ
 const srgbReverseMatrix = [
 	[
@@ -8641,9 +8601,9 @@ function getDiff(date, comparing, unit) {
 		case "years": return d.getFullYear() - c.getFullYear();
 		case "quarters": return Math.floor((d.getMonth() - c.getMonth() + (d.getFullYear() - c.getFullYear()) * 12) / 4);
 		case "months": return d.getMonth() - c.getMonth() + (d.getFullYear() - c.getFullYear()) * 12;
-		case "weeks": return Math.floor((d.getTime() - c.getTime()) / (6e4 * 60 * 24 * 7));
-		case "days": return Math.floor((d.getTime() - c.getTime()) / (6e4 * 60 * 24));
-		case "hours": return Math.floor((d.getTime() - c.getTime()) / (6e4 * 60));
+		case "weeks": return Math.floor((d.getTime() - c.getTime()) / 6048e5);
+		case "days": return Math.floor((d.getTime() - c.getTime()) / 864e5);
+		case "hours": return Math.floor((d.getTime() - c.getTime()) / 36e5);
 		case "minutes": return Math.floor((d.getTime() - c.getTime()) / 6e4);
 		case "seconds": return Math.floor((d.getTime() - c.getTime()) / 1e3);
 		default: {

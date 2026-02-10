@@ -428,11 +428,6 @@ const types = new Set([
 	"@"
 ]);
 const isExtglobType = (c) => types.has(c);
-// Patterns that get prepended to bind to the start of either the
-// entire string, or just a single path portion, to prevent dots
-// and/or traversal patterns, when needed.
-// Exts don't need the ^ or / bit, because the root binds that already.
-const startNoTraversal = "(?!(?:^|/)\\.\\.?(?:$|/))";
 // characters that indicate a start of pattern needs the "no dots" bit,
 // because a dot *might* be matched. ( is not in the list, because in
 // the case of a child extglob, it will handle the prevention itself.
@@ -816,7 +811,7 @@ class AST {
 						// no need to prevent dots if it can't match a dot, or if a
 						// sub-pattern will be preventing it anyway.
 						const needNoDot = !dot && !allowDot && aps.has(src.charAt(0));
-						start = needNoTrav ? startNoTraversal : needNoDot ? "(?!\\.)" : "";
+						start = needNoTrav ? "(?!(?:^|/)\\.\\.?(?:$|/))" : needNoDot ? "(?!\\.)" : "";
 					}
 				}
 			}
@@ -992,13 +987,6 @@ const qmarksTestNoExtDot = ([$0]) => {
 /* c8 ignore start */
 const defaultPlatform$2 = typeof process === "object" && process ? typeof process.env === "object" && process.env && process.env.__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
 const GLOBSTAR = Symbol("globstar **");
-// ** when dots are allowed.  Anything goes, except .. and .
-// not (^ or / followed by one or two dots followed by $ or /),
-// followed by anything, any number of times.
-const twoStarDot = "(?:(?!(?:\\/|^)(?:\\.{1,2})($|\\/)).)*?";
-// not a ^ or / followed by a dot,
-// followed by anything, any number of times.
-const twoStarNoDot = "(?:(?!(?:\\/|^)\\.).)*?";
 // Brace expansion:
 // a{b,c}d -> abd acd
 // a{b,}c -> abc ac
@@ -1613,7 +1601,7 @@ class Minimatch {
 			return this.regexp;
 		}
 		const options = this.options;
-		const twoStar = options.noglobstar ? "[^/]*?" : options.dot ? twoStarDot : twoStarNoDot;
+		const twoStar = options.noglobstar ? "[^/]*?" : options.dot ? "(?:(?!(?:\\/|^)(?:\\.{1,2})($|\\/)).)*?" : "(?:(?!(?:\\/|^)\\.).)*?";
 		const flags = new Set(options.nocase ? ["i"] : []);
 		// regexpify non-globstar patterns
 		// if ** is only item, then we just do one twoStar
@@ -1799,7 +1787,7 @@ if (typeof AC === "undefined") {
 	const warnACPolyfill = () => {
 		if (!printACPolyfillWarning) return;
 		printACPolyfillWarning = false;
-		emitWarning("AbortController is not defined. If using lru-cache in " + "node 14, load an AbortController polyfill from the " + "`node-abort-controller` package. A minimal polyfill is " + "provided for use by LRUCache.fetch(), but it should not be " + "relied upon in other contexts (eg, passing it to other APIs that " + "use AbortController/AbortSignal might have undesirable effects). " + "You may disable this with LRU_CACHE_IGNORE_AC_WARNING=1 in the env.", "NO_ABORT_CONTROLLER", "ENOTSUP", warnACPolyfill);
+		emitWarning("AbortController is not defined. If using lru-cache in node 14, load an AbortController polyfill from the `node-abort-controller` package. A minimal polyfill is provided for use by LRUCache.fetch(), but it should not be relied upon in other contexts (eg, passing it to other APIs that use AbortController/AbortSignal might have undesirable effects). You may disable this with LRU_CACHE_IGNORE_AC_WARNING=1 in the env.", "NO_ABORT_CONTROLLER", "ENOTSUP", warnACPolyfill);
 	};
 }
 /* c8 ignore stop */
@@ -2150,8 +2138,7 @@ class LRUCache {
 			const code = "LRU_CACHE_UNBOUNDED";
 			if (shouldWarn(code)) {
 				warned.add(code);
-				const msg = "TTL caching without ttlAutopurge, max, or maxSize can " + "result in unbounded memory consumption.";
-				emitWarning(msg, "UnboundedCacheWarning", code, LRUCache);
+				emitWarning("TTL caching without ttlAutopurge, max, or maxSize can result in unbounded memory consumption.", "UnboundedCacheWarning", code, LRUCache);
 			}
 		}
 	}
@@ -2275,7 +2262,7 @@ class LRUCache {
 						throw new TypeError("sizeCalculation return invalid (expect positive integer)");
 					}
 				} else {
-					throw new TypeError("invalid size value (must be positive integer). " + "When maxSize or maxEntrySize is used, sizeCalculation " + "or size must be set.");
+					throw new TypeError("invalid size value (must be positive integer). When maxSize or maxEntrySize is used, sizeCalculation or size must be set.");
 				}
 			}
 			return size;
@@ -6521,8 +6508,7 @@ class GlobUtil {
 		if (opts.ignore || !this.includeChildMatches) {
 			this.#ignore = makeIgnore(opts.ignore ?? [], opts);
 			if (!this.includeChildMatches && typeof this.#ignore.add !== "function") {
-				const m = "cannot ignore child matches, ignore lacks add() method.";
-				throw new Error(m);
+				throw new Error("cannot ignore child matches, ignore lacks add() method.");
 			}
 		}
 		// ignore, always set with maxDepth, but it's optional on the

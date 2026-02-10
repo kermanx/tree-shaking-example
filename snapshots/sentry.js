@@ -58,8 +58,6 @@ const CONSOLE_LEVELS = [
 	"assert",
 	"trace"
 ];
-/** Prefix for logging strings */
-const PREFIX = "Sentry Logger ";
 /** This may be mutated by the console instrumentation. */
 const originalConsoleMethods = {};
 /**
@@ -108,7 +106,7 @@ function _maybeLog(level, ...args) {
 	}
 	if (isEnabled()) {
 		consoleSandbox(() => {
-			GLOBAL_OBJ.console[level](`${PREFIX}[${level}]:`, ...args);
+			GLOBAL_OBJ.console[level](`${"Sentry Logger "}[${level}]:`, ...args);
 		});
 	}
 }
@@ -349,9 +347,8 @@ let _oldOnUnhandledRejectionHandler = null;
 * @hidden
 */
 function addGlobalUnhandledRejectionInstrumentationHandler(handler) {
-	const type = "unhandledrejection";
-	addHandler(type, handler);
-	maybeInstrument(type, instrumentUnhandledRejection);
+	addHandler("unhandledrejection", handler);
+	maybeInstrument("unhandledrejection", instrumentUnhandledRejection);
 }
 function instrumentUnhandledRejection() {
 	_oldOnUnhandledRejectionHandler = GLOBAL_OBJ.onunhandledrejection;
@@ -2106,45 +2103,6 @@ function getTraceContextFromScope(scope) {
 	}
 	return traceContext;
 }
-/**
-* Use this attribute to represent the source of a span.
-* Should be one of: custom, url, route, view, component, task, unknown
-*
-*/
-const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = "sentry.source";
-/**
-* Attributes that holds the sample rate that was locally applied to a span.
-* If this attribute is not defined, it means that the span inherited a sampling decision.
-*
-* NOTE: Is only defined on root spans.
-*/
-const SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE = "sentry.sample_rate";
-/**
-* Attribute holding the sample rate of the previous trace.
-* This is used to sample consistently across subsequent traces in the browser SDK.
-*
-* Note: Only defined on root spans, if opted into consistent sampling
-*/
-const SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE = "sentry.previous_trace_sample_rate";
-/**
-* The id of the profile that this span occurred in.
-*/
-const SEMANTIC_ATTRIBUTE_PROFILE_ID = "sentry.profile_id";
-const SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME = "sentry.exclusive_time";
-/**
-* =============================================================================
-* GEN AI ATTRIBUTES
-* Based on OpenTelemetry Semantic Conventions for Generative AI
-* @see https://opentelemetry.io/docs/specs/semconv/gen-ai/
-* =============================================================================
-*/
-/**
-* The conversation ID for linking messages across API calls.
-* For OpenAI Assistants API: thread_id
-* For LangGraph: configurable.thread_id
-*/
-const GEN_AI_CONVERSATION_ID_ATTRIBUTE = "gen_ai.conversation.id";
-const ISOLATION_SCOPE_ON_START_SPAN_FIELD = "_sentryIsolationScope";
 /** Try to unwrap a scope from a potential WeakRef wrapper. */
 function unwrapScopeFromWeakRef(scopeRef) {
 	if (!scopeRef) {
@@ -2168,7 +2126,7 @@ function getCapturedScopesOnSpan(span) {
 	const spanWithScopes = span;
 	return {
 		a: spanWithScopes["_sentryScope"],
-		b: unwrapScopeFromWeakRef(spanWithScopes[ISOLATION_SCOPE_ON_START_SPAN_FIELD])
+		b: unwrapScopeFromWeakRef(spanWithScopes["_sentryIsolationScope"])
 	};
 }
 const SENTRY_BAGGAGE_KEY_PREFIX_REGEX = /^sentry-/;
@@ -2276,13 +2234,13 @@ function dsnToString(dsn) {
 * @param str A Dsn as string
 * @returns Dsn as DsnComponents or undefined if @param str is not a valid DSN string
 */
-function dsnFromString(str) {
-	const match = DSN_REGEX.exec(str);
+function dsnFromString() {
+	const match = DSN_REGEX.exec("https://9523a043c1a34ad1b261c558b4d6a352@o383174.ingest.sentry.io/5273572");
 	if (!match) {
 		// This should be logged to the console
 		consoleSandbox(() => {
 			// eslint-disable-next-line no-console
-			console.error(`Invalid Sentry Dsn: ${str}`);
+			console.error(`Invalid Sentry Dsn: ${"https://9523a043c1a34ad1b261c558b4d6a352@o383174.ingest.sentry.io/5273572"}`);
 		});
 		return void 0;
 	}
@@ -2386,8 +2344,8 @@ function extractOrgIdFromClient(client) {
 * Creates a valid Sentry Dsn object, identifying a Sentry instance and project.
 * @returns a valid DsnComponents object or `undefined` if @param from is an invalid DSN source
 */
-function makeDsn(from) {
-	const components = dsnFromString(from);
+function makeDsn() {
+	const components = dsnFromString();
 	if (!components || !validateDsn(components)) {
 		return void 0;
 	}
@@ -2517,12 +2475,11 @@ function spanIsSampled(span) {
 	const { traceFlags } = span.spanContext();
 	return traceFlags === 1;
 }
-const ROOT_SPAN_FIELD = "_sentryRootSpan";
 /**
 * Returns the root span of a given span.
 */
 function getRootSpan(span) {
-	return span[ROOT_SPAN_FIELD] || span;
+	return span["_sentryRootSpan"] || span;
 }
 /**
 * Logs a warning once if `beforeSendSpan` is used to drop spans.
@@ -2660,7 +2617,7 @@ function getDynamicSamplingContextFromSpan(span) {
 	const traceState = rootSpan.spanContext().traceState;
 	// The span sample rate that was locally applied to the root span should also always be applied to the DSC, even if the DSC is frozen.
 	// This is so that the downstream traces/services can use parentSampleRate in their `tracesSampler` to make consistent sampling decisions across the entire trace.
-	const rootSpanSampleRate = traceState?.get("sentry.sample_rate") ?? rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] ?? rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE];
+	const rootSpanSampleRate = traceState?.get("sentry.sample_rate") ?? rootSpanAttributes["sentry.sample_rate"] ?? rootSpanAttributes["sentry.previous_trace_sample_rate"];
 	function applyLocalSampleRateToDsc(dsc) {
 		if (typeof rootSpanSampleRate === "number" || typeof rootSpanSampleRate === "string") {
 			dsc.sample_rate = `${rootSpanSampleRate}`;
@@ -2682,7 +2639,7 @@ function getDynamicSamplingContextFromSpan(span) {
 	// Else, we generate it from the span
 	const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
 	// We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-	const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+	const source = rootSpanAttributes["sentry.source"];
 	// after JSON conversion, txn.name becomes jsonSpan.description
 	const name = rootSpanJson.description;
 	if (source !== "url" && name) {
@@ -3814,7 +3771,7 @@ function _getIngestEndpoint(dsn) {
 	return `${getBaseApiEndpoint(dsn)}${dsn.projectId}/envelope/`;
 }
 /** Returns a URL-encoded string with auth config suitable for a query string. */
-function _encodedAuth(dsn, sdkInfo) {
+function _encodedAuth(dsn) {
 	const params = { sentry_version: "7" };
 	if (dsn.publicKey) {
 		// We send only the minimum set of required information. See
@@ -3823,7 +3780,7 @@ function _encodedAuth(dsn, sdkInfo) {
 	}
 	{
 		{
-			params.sentry_client = `${sdkInfo.name}/${"10.38.0"}`;
+			params.sentry_client = `${"sentry.javascript.browser"}/${"10.38.0"}`;
 		}
 	}
 	return new URLSearchParams(params).toString();
@@ -3833,8 +3790,8 @@ function _encodedAuth(dsn, sdkInfo) {
 *
 * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
 */
-function getEnvelopeEndpointWithUrlEncodedAuth(dsn, __unused_0306, sdkInfo) {
-	return `${_getIngestEndpoint(dsn)}?${_encodedAuth(dsn, sdkInfo)}`;
+function getEnvelopeEndpointWithUrlEncodedAuth(dsn) {
+	return `${_getIngestEndpoint(dsn)}?${_encodedAuth(dsn)}`;
 }
 const installedIntegrations = [];
 /** Map of integrations assigned to a client */
@@ -4352,8 +4309,8 @@ function convertTransactionEventToSpanJson(event) {
 		timestamp: event.timestamp,
 		trace_id: trace_id ?? "",
 		origin,
-		profile_id: data?.[SEMANTIC_ATTRIBUTE_PROFILE_ID],
-		exclusive_time: data?.[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME],
+		profile_id: data?.["sentry.profile_id"],
+		exclusive_time: data?.["sentry.exclusive_time"],
 		measurements: event.measurements,
 		is_segment: true
 	};
@@ -4376,16 +4333,13 @@ function convertSpanJsonToTransactionEvent(span) {
 			origin: span.origin,
 			data: {
 				...span.data,
-				...span.profile_id && { [SEMANTIC_ATTRIBUTE_PROFILE_ID]: span.profile_id },
-				...span.exclusive_time && { [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: span.exclusive_time }
+				...span.profile_id && { ["sentry.profile_id"]: span.profile_id },
+				...span.exclusive_time && { ["sentry.exclusive_time"]: span.exclusive_time }
 			}
 		} },
 		measurements: span.measurements
 	};
 }
-/* eslint-disable max-lines */
-const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
-const MISSING_RELEASE_FOR_SESSION_ERROR = "Discarded session because of missing or non-string release";
 const INTERNAL_ERROR_SYMBOL = Symbol.for("SentryInternalError");
 const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for("SentryDoNotSendEventError");
 function _makeInternalError(message) {
@@ -4415,7 +4369,7 @@ function _isDoNotSendEventError(error) {
 *
 * Uses closure variables to track weight and timeout state.
 */
-function setupWeightBasedFlushing(client, afterCaptureHook, __unused_5CD5, estimateSizeFn, flushFn) {
+function setupWeightBasedFlushing(client, __unused_7932, __unused_135A, estimateSizeFn, flushFn) {
 	// Track weight and timeout in closure variables
 	let weight = 0;
 	let flushTimeout;
@@ -4427,7 +4381,7 @@ function setupWeightBasedFlushing(client, afterCaptureHook, __unused_5CD5, estim
 		isTimerActive = false;
 	});
 	// @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
-	client.on(afterCaptureHook, (item) => {
+	client.on("afterCaptureMetric", (item) => {
 		weight += estimateSizeFn(item);
 		// We flush the buffer if it exceeds 0.8 MB
 		// The weight is a rough estimate, so we flush way before the payload gets too big.
@@ -4502,11 +4456,11 @@ class Client {
 		this._promiseBuffer = makePromiseBuffer(64);
 		{
 			{
-				this._dsn = makeDsn(options.dsn);
+				this._dsn = makeDsn();
 			}
 		}
 		if (this._dsn) {
-			const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, 0, options._metadata.sdk);
+			const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn);
 			this._transport = options.transport({
 				recordDroppedEvent: this.recordDroppedEvent.bind(this),
 				...void 0,
@@ -4520,7 +4474,7 @@ class Client {
 		// Setup metric flushing with weight and timeout tracking
 		{
 			{
-				setupWeightBasedFlushing(this, "afterCaptureMetric", 0, estimateMetricSizeInBytes, _INTERNAL_flushMetricsBuffer);
+				setupWeightBasedFlushing(this, 0, 0, estimateMetricSizeInBytes, _INTERNAL_flushMetricsBuffer);
 			}
 		}
 	}
@@ -4533,7 +4487,7 @@ class Client {
 		const eventId = uuid4();
 		// ensure we haven't captured this very object before
 		if (checkOrSetAlreadyCaught(exception)) {
-			DEBUG_BUILD$2 && debug.a(ALREADY_SEEN_ERROR);
+			DEBUG_BUILD$2 && debug.a("Not capturing exception because it's already been captured.");
 			return eventId;
 		}
 		const hintWithEventId = {
@@ -4568,7 +4522,7 @@ class Client {
 		const eventId = uuid4();
 		// ensure we haven't captured this very object before
 		if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
-			DEBUG_BUILD$2 && debug.a(ALREADY_SEEN_ERROR);
+			DEBUG_BUILD$2 && debug.a("Not capturing exception because it's already been captured.");
 			return eventId;
 		}
 		const hintWithEventId = {
@@ -4726,7 +4680,7 @@ class Client {
 		if ("aggregates" in session) {
 			const sessionAttrs = session.attrs || {};
 			if (!sessionAttrs.release && !clientReleaseOption) {
-				DEBUG_BUILD$2 && debug.b(MISSING_RELEASE_FOR_SESSION_ERROR);
+				DEBUG_BUILD$2 && debug.b("Discarded session because of missing or non-string release");
 				return;
 			}
 			sessionAttrs.release = sessionAttrs.release || clientReleaseOption;
@@ -4734,7 +4688,7 @@ class Client {
 			session.attrs = sessionAttrs;
 		} else {
 			if (!session.release && !clientReleaseOption) {
-				DEBUG_BUILD$2 && debug.b(MISSING_RELEASE_FOR_SESSION_ERROR);
+				DEBUG_BUILD$2 && debug.b("Discarded session because of missing or non-string release");
 				return;
 			}
 			session.release = session.release || clientReleaseOption;
@@ -5408,11 +5362,10 @@ function addBreadcrumb(breadcrumb, hint) {
 	isolationScope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
 }
 let originalFunctionToString;
-const INTEGRATION_NAME$7 = "FunctionToString";
 const SETUP_CLIENTS = new WeakMap();
 const _functionToStringIntegration = () => {
 	return {
-		name: INTEGRATION_NAME$7,
+		name: "FunctionToString",
 		setupOnce() {
 			// eslint-disable-next-line @typescript-eslint/unbound-method
 			originalFunctionToString = Function.prototype.toString;
@@ -5848,17 +5801,16 @@ function _isSameFingerprint(currentEvent, previousEvent) {
 function _getExceptionFromEvent(event) {
 	return event.exception?.values?.[0];
 }
-const INTEGRATION_NAME$4 = "ConversationId";
 const _conversationIdIntegration = () => {
 	return {
-		name: INTEGRATION_NAME$4,
+		name: "ConversationId",
 		setup(client) {
 			client.on("spanStart", (span) => {
 				const scopeData = getCurrentScope().getScopeData();
 				const isolationScopeData = getIsolationScope().getScopeData();
 				const conversationId = scopeData.conversationId || isolationScopeData.conversationId;
 				if (conversationId) {
-					span.setAttribute(GEN_AI_CONVERSATION_ID_ATTRIBUTE, conversationId);
+					span.setAttribute("gen_ai.conversation.id", conversationId);
 				}
 			});
 		}
@@ -7432,10 +7384,9 @@ const DEFAULT_EVENT_TARGET = [
 	"XMLHttpRequestEventTarget",
 	"XMLHttpRequestUpload"
 ];
-const INTEGRATION_NAME$2 = "BrowserApiErrors";
 const _browserApiErrorsIntegration = () => {
 	return {
-		name: INTEGRATION_NAME$2,
+		name: "BrowserApiErrors",
 		setupOnce() {
 			{
 				{
@@ -7622,10 +7573,9 @@ const browserSessionIntegration = defineIntegration(() => {
 		}
 	};
 });
-const INTEGRATION_NAME$1 = "GlobalHandlers";
 const _globalHandlersIntegration = () => {
 	return {
-		name: INTEGRATION_NAME$1,
+		name: "GlobalHandlers",
 		setupOnce() {
 			Error.stackTraceLimit = 50;
 		},

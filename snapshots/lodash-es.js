@@ -62,8 +62,6 @@ var nativeObjectToString = objectProto$c.toString;
 function objectToString(value) {
 	return nativeObjectToString.call(value);
 }
-/** `Object#toString` result references. */
-var nullTag = "[object Null]", undefinedTag = "[object Undefined]";
 /** Built-in value references. */
 var symToStringTag = Symbol$1 ? Symbol$1.toStringTag : void 0;
 /**
@@ -75,7 +73,7 @@ var symToStringTag = Symbol$1 ? Symbol$1.toStringTag : void 0;
 */
 function baseGetTag(value) {
 	if (value == null) {
-		return value === void 0 ? undefinedTag : nullTag;
+		return value === void 0 ? "[object Undefined]" : "[object Null]";
 	}
 	return symToStringTag && symToStringTag in Object(value) ? getRawTag(value) : objectToString(value);
 }
@@ -106,8 +104,6 @@ function baseGetTag(value) {
 function isObjectLike(value) {
 	return value != null && typeof value == "object";
 }
-/** `Object#toString` result references. */
-var symbolTag$1 = "[object Symbol]";
 /**
 * Checks if `value` is classified as a `Symbol` primitive or object.
 *
@@ -126,7 +122,7 @@ var symbolTag$1 = "[object Symbol]";
 * // => false
 */
 function isSymbol(value) {
-	return typeof value == "symbol" || isObjectLike(value) && baseGetTag(value) == symbolTag$1;
+	return typeof value == "symbol" || isObjectLike(value) && baseGetTag(value) == "[object Symbol]";
 }
 /**
 * Checks if `value` is classified as an `Array` object.
@@ -258,8 +254,6 @@ function toNumber(value) {
 	var isBinary = reIsBinary.test(value);
 	return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NaN : +value;
 }
-/** Used as references for various `Number` constants. */
-var MAX_INTEGER = 17976931348623157e292;
 /**
 * Converts `value` to a finite number.
 *
@@ -290,7 +284,7 @@ function toFinite(value) {
 	value = toNumber(value);
 	if (value === Infinity || value === -Infinity) {
 		var sign = value < 0 ? -1 : 1;
-		return sign * MAX_INTEGER;
+		return sign * 17976931348623157e292;
 	}
 	return value === value ? value : 0;
 }
@@ -313,8 +307,6 @@ function toFinite(value) {
 function identity(value) {
 	return value;
 }
-/** `Object#toString` result references. */
-var asyncTag = "[object AsyncFunction]", funcTag$1 = "[object Function]", genTag = "[object GeneratorFunction]", proxyTag = "[object Proxy]";
 /**
 * Checks if `value` is classified as a `Function` object.
 *
@@ -339,7 +331,7 @@ function isFunction(value) {
 	// The use of `Object#toString` avoids issues with the `typeof` operator
 	// in Safari 9 which returns 'object' for typed arrays and other constructors.
 	var tag = baseGetTag(value);
-	return tag == funcTag$1 || tag == genTag || tag == asyncTag || tag == proxyTag;
+	return tag == "[object Function]" || tag == "[object GeneratorFunction]" || tag == "[object AsyncFunction]" || tag == "[object Proxy]";
 }
 /** Used to detect overreaching core-js shims. */
 var coreJsData = root$1["__core-js_shared__"];
@@ -488,8 +480,6 @@ function apply(func, thisArg, args) {
 * @private
 */
 function baseLodash() {}
-/** Used as references for the maximum length and index of an array. */
-var MAX_ARRAY_LENGTH = 4294967295;
 /**
 * Creates a lazy wrapper object which wraps `value` to enable lazy evaluation.
 *
@@ -503,7 +493,7 @@ function LazyWrapper(value) {
 	this.__dir__ = 1;
 	this.__filtered__ = false;
 	this.__iteratees__ = [];
-	this.__takeCount__ = MAX_ARRAY_LENGTH;
+	this.__takeCount__ = 4294967295;
 	this.__views__ = [];
 }
 // Ensure `LazyWrapper` is an instance of `baseLodash`.
@@ -834,8 +824,6 @@ var baseSetToString$1 = baseSetToString;
 */
 var setToString = shortOut(baseSetToString$1);
 var setToString$1 = setToString;
-/** Used as references for various `Number` constants. */
-var MAX_SAFE_INTEGER$1 = 9007199254740991;
 /** Used to detect unsigned integer values. */
 var reIsUint = /^(?:0|[1-9]\d*)$/;
 /**
@@ -848,7 +836,7 @@ var reIsUint = /^(?:0|[1-9]\d*)$/;
 */
 function isIndex(value, length) {
 	var type = typeof value;
-	length = length == null ? MAX_SAFE_INTEGER$1 : length;
+	length = length == null ? 9007199254740991 : length;
 	return !!length && (type == "number" || type != "symbol" && reIsUint.test(value)) && value > -1 && value % 1 == 0 && value < length;
 }
 /* Built-in method references for those with the same name as other `lodash` methods. */
@@ -878,8 +866,6 @@ function overRest(func, start, transform) {
 		return apply(func, this, otherArgs);
 	};
 }
-/** Used as references for various `Number` constants. */
-var MAX_SAFE_INTEGER = 9007199254740991;
 /**
 * Checks if `value` is a valid array-like length.
 *
@@ -907,7 +893,7 @@ var MAX_SAFE_INTEGER = 9007199254740991;
 * // => false
 */
 function isLength(value) {
-	return typeof value == "number" && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+	return typeof value == "number" && value > -1 && value % 1 == 0 && value <= 9007199254740991;
 }
 /**
 * Checks if `value` is array-like. A value is considered array-like if it's
@@ -966,8 +952,6 @@ function baseTimes(n, iteratee) {
 	}
 	return result;
 }
-/** `Object#toString` result references. */
-var argsTag$2 = "[object Arguments]";
 /**
 * The base implementation of `_.isArguments`.
 *
@@ -976,7 +960,7 @@ var argsTag$2 = "[object Arguments]";
 * @returns {boolean} Returns `true` if `value` is an `arguments` object,
 */
 function baseIsArguments(value) {
-	return isObjectLike(value) && baseGetTag(value) == argsTag$2;
+	return isObjectLike(value) && baseGetTag(value) == "[object Arguments]";
 }
 /** Used for built-in method references. */
 var objectProto$7 = Object.prototype;
@@ -1053,13 +1037,10 @@ var nativeIsBuffer = Buffer ? Buffer.isBuffer : void 0;
 */
 var isBuffer = nativeIsBuffer || stubFalse;
 var isBuffer$1 = isBuffer;
-/** `Object#toString` result references. */
-var argsTag$1 = "[object Arguments]", arrayTag$1 = "[object Array]", boolTag$1 = "[object Boolean]", dateTag$1 = "[object Date]", errorTag$1 = "[object Error]", funcTag = "[object Function]", numberTag$1 = "[object Number]", objectTag$2 = "[object Object]", regexpTag$1 = "[object RegExp]", stringTag$1 = "[object String]", weakMapTag$1 = "[object WeakMap]";
-var arrayBufferTag$1 = "[object ArrayBuffer]", dataViewTag$2 = "[object DataView]", float32Tag = "[object Float32Array]", float64Tag = "[object Float64Array]", int8Tag = "[object Int8Array]", int16Tag = "[object Int16Array]", int32Tag = "[object Int32Array]", uint8Tag = "[object Uint8Array]", uint8ClampedTag = "[object Uint8ClampedArray]", uint16Tag = "[object Uint16Array]", uint32Tag = "[object Uint32Array]";
 /** Used to identify `toStringTag` values of typed arrays. */
 var typedArrayTags = {};
-typedArrayTags[float32Tag] = typedArrayTags[float64Tag] = typedArrayTags[int8Tag] = typedArrayTags[int16Tag] = typedArrayTags[int32Tag] = typedArrayTags[uint8Tag] = typedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] = typedArrayTags[uint32Tag] = true;
-typedArrayTags[argsTag$1] = typedArrayTags[arrayTag$1] = typedArrayTags[arrayBufferTag$1] = typedArrayTags[boolTag$1] = typedArrayTags[dataViewTag$2] = typedArrayTags[dateTag$1] = typedArrayTags[errorTag$1] = typedArrayTags[funcTag] = typedArrayTags["[object Map]"] = typedArrayTags[numberTag$1] = typedArrayTags[objectTag$2] = typedArrayTags[regexpTag$1] = typedArrayTags["[object Set]"] = typedArrayTags[stringTag$1] = typedArrayTags[weakMapTag$1] = false;
+typedArrayTags["[object Float32Array]"] = typedArrayTags["[object Float64Array]"] = typedArrayTags["[object Int8Array]"] = typedArrayTags["[object Int16Array]"] = typedArrayTags["[object Int32Array]"] = typedArrayTags["[object Uint8Array]"] = typedArrayTags["[object Uint8ClampedArray]"] = typedArrayTags["[object Uint16Array]"] = typedArrayTags["[object Uint32Array]"] = true;
+typedArrayTags["[object Arguments]"] = typedArrayTags["[object Array]"] = typedArrayTags["[object ArrayBuffer]"] = typedArrayTags["[object Boolean]"] = typedArrayTags["[object DataView]"] = typedArrayTags["[object Date]"] = typedArrayTags["[object Error]"] = typedArrayTags["[object Function]"] = typedArrayTags["[object Map]"] = typedArrayTags["[object Number]"] = typedArrayTags["[object Object]"] = typedArrayTags["[object RegExp]"] = typedArrayTags["[object Set]"] = typedArrayTags["[object String]"] = typedArrayTags["[object WeakMap]"] = false;
 /**
 * The base implementation of `_.isTypedArray` without Node.js optimizations.
 *
@@ -1430,9 +1411,6 @@ var Promise$2 = Promise$1;
 /* Built-in method references that are verified to be native. */
 var Set = getNative(root$1, "Set");
 var Set$1 = Set;
-/** `Object#toString` result references. */
-var promiseTag = "[object Promise]";
-var dataViewTag$1 = "[object DataView]";
 /** Used to detect maps, sets, and weakmaps. */
 toSource(DataView$1);
 toSource(Map$1);
@@ -1449,7 +1427,7 @@ toSource(WeakMap$1);
 var getTag = baseGetTag;
 // Fallback for data views, maps, sets, and weak maps in IE 11 and promises in Node.js < 6.
 {
-	DataView$1 && getTag(new DataView$1(new ArrayBuffer(1))) != dataViewTag$1 || Map$1 && getTag(new Map$1()) != "[object Map]" || Promise$2 && getTag(Promise$2.resolve()) != promiseTag || Set$1 && getTag(new Set$1()) != "[object Set]" || WeakMap$1 && getTag(new WeakMap$1());
+	DataView$1 && getTag(new DataView$1(new ArrayBuffer(1))) != "[object DataView]" || Map$1 && getTag(new Map$1()) != "[object Map]" || Promise$2 && getTag(Promise$2.resolve()) != "[object Promise]" || Set$1 && getTag(new Set$1()) != "[object Set]" || WeakMap$1 && getTag(new WeakMap$1());
 }
 /**
 * The base implementation of `_.iteratee`.
@@ -1607,8 +1585,6 @@ function filter(collection, predicate) {
 	var func = isArray$1(collection) ? arrayFilter : baseFilter;
 	return func(collection, baseIteratee(predicate));
 }
-/** Error message constants. */
-var FUNC_ERROR_TEXT = "Expected a function";
 /**
 * Creates a `_.flow` or `_.flowRight` function.
 *
@@ -1625,7 +1601,7 @@ function createFlow() {
 		while (index--) {
 			var func = funcs[index];
 			if (typeof func != "function") {
-				throw new TypeError(FUNC_ERROR_TEXT);
+				throw new TypeError("Expected a function");
 			}
 			if (prereq && !wrapper && getFuncName(func) == "wrapper") {
 				var wrapper = new LodashWrapper([], true);

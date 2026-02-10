@@ -511,7 +511,7 @@ async function _checkWebCodecsH264DecodeSupport() {
 	// Firefox incorrectly reports supports for H.264 under some
 	// circumstances, so we need to actually test a real frame
 	// https://bugzilla.mozilla.org/show_bug.cgi?id=1932392
-	const data = new Uint8Array(Base64.d("AAAAAWdCwBTZnpuAgICgAAADACAAAAZB4oVNAAAAAWjJYyyAAAABBgX//4Hc" + "Rem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY0IHIzMTA4IDMxZTE5Zjkg" + "LSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDIz" + "IC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9u" + "czogY2FiYWM9MCByZWY9NSBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgxOjB4" + "MTExIG1lPWhleCBzdWJtZT04IHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4" + "ZWRfcmVmPTEgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0yIDh4" + "OGRjdD0wIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJv" + "bWFfcXBfb2Zmc2V0PS0yIHRocmVhZHM9MSBsb29rYWhlYWRfdGhyZWFkcz0x" + "IHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9" + "MCBibHVyYXlfY29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVz" + "PTAgd2VpZ2h0cD0wIGtleWludD1pbmZpbml0ZSBrZXlpbnRfbWluPTI1IHNj" + "ZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NTAgcmM9" + "YWJyIG1idHJlZT0xIGJpdHJhdGU9NDAwIHJhdGV0b2w9MS4wIHFjb21wPTAu" + "NjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFx" + "PTE6MS4wMACAAAABZYiEBrxmKAAPVccAAS044AA5DRJMnkycJk4TPw=="));
+	const data = new Uint8Array(Base64.d("AAAAAWdCwBTZnpuAgICgAAADACAAAAZB4oVNAAAAAWjJYyyAAAABBgX//4HcRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY0IHIzMTA4IDMxZTE5ZjkgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDIzIC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MCByZWY9NSBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgxOjB4MTExIG1lPWhleCBzdWJtZT04IHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4ZWRfcmVmPTEgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0yIDh4OGRjdD0wIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PS0yIHRocmVhZHM9MSBsb29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlfY29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTAgd2VpZ2h0cD0wIGtleWludD1pbmZpbml0ZSBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NTAgcmM9YWJyIG1idHJlZT0xIGJpdHJhdGU9NDAwIHJhdGV0b2w9MS4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFx" + "PTE6MS4wMACAAAABZYiEBrxmKAAPVccAAS044AA5DRJMnkycJk4TPw=="));
 	let gotframe = false;
 	let error = null;
 	let decoder = new VideoDecoder({
@@ -687,68 +687,6 @@ function releaseCapture() {
 		window.removeEventListener("mouseup", _captureProxy);
 	}
 }
-/* eslint-disable key-spacing */
-var KeyTable = {
-	a: 269025026,
-	b: 269025027,
-	c: 269025040,
-	d: 269025041,
-	e: 269025042,
-	f: 269025043,
-	g: 269025044,
-	h: 269025045,
-	i: 269025046,
-	j: 269025047,
-	k: 269025048,
-	l: 269025049,
-	m: 269025051,
-	n: 269025052,
-	o: 269025053,
-	p: 269025056,
-	q: 269025057,
-	r: 269025062,
-	s: 269025063,
-	t: 269025064,
-	u: 269025065,
-	v: 269025066,
-	w: 269025067,
-	x: 269025068,
-	y: 269025069,
-	z: 269025070,
-	A: 269025072,
-	B: 269025073,
-	C: 269025074,
-	D: 269025075,
-	E: 269025083,
-	F: 269025086,
-	G: 269025110,
-	H: 269025111,
-	I: 269025112,
-	J: 269025116,
-	K: 269025121,
-	L: 269025128,
-	M: 269025131,
-	N: 269025133,
-	O: 269025134,
-	P: 269025138,
-	Q: 269025143,
-	R: 269025147,
-	S: 269025148,
-	T: 269025149,
-	U: 269025161,
-	V: 269025163,
-	W: 269025164,
-	X: 269025167,
-	Y: 269025168,
-	Z: 269025170,
-	$: 269025175,
-	_: 269025177,
-	aa: 269025178,
-	ba: 269025179,
-	ca: 269025192,
-	da: 269025202,
-	ea: 269024802
-};
 /*
 * Mapping from Unicode codepoints to X11/RFB keysyms
 *
@@ -1721,14 +1659,14 @@ addStandard("Backspace", 65288);
 // Windows uses VK_Clear for that key. But Unix expects KP_Begin for
 // that scenario.
 addNumpad("Clear", 65291, 65437);
-addStandard("Copy", KeyTable.H);
+addStandard("Copy", 269025111);
 // - CrSel
-addStandard("Cut", KeyTable.I);
+addStandard("Cut", 269025112);
 addNumpad("Delete", 65535, 65439);
 // - EraseEof
 // - ExSel
 addNumpad("Insert", 65379, 65438);
-addStandard("Paste", KeyTable.N);
+addStandard("Paste", 269025133);
 addStandard("Redo", 65382);
 addStandard("Undo", 65381);
 // 3.6. UI Keys
@@ -1745,19 +1683,19 @@ addStandard("Pause", 65299);
 // - Play
 // - Props
 addStandard("Select", 65376);
-addStandard("ZoomIn", KeyTable.V);
-addStandard("ZoomOut", KeyTable.W);
+addStandard("ZoomIn", 269025163);
+addStandard("ZoomOut", 269025164);
 // 3.7. Device Keys
-addStandard("BrightnessDown", KeyTable.b);
-addStandard("BrightnessUp", KeyTable.a);
-addStandard("Eject", KeyTable.x);
-addStandard("LogOff", KeyTable.K);
-addStandard("Power", KeyTable.v);
-addStandard("PowerOff", KeyTable.q);
+addStandard("BrightnessDown", 269025027);
+addStandard("BrightnessUp", 269025026);
+addStandard("Eject", 269025068);
+addStandard("LogOff", 269025121);
+addStandard("Power", 269025066);
+addStandard("PowerOff", 269025057);
 addStandard("PrintScreen", 65377);
-addStandard("Hibernate", KeyTable.ca);
-addStandard("Standby", KeyTable.c);
-addStandard("WakeUp", KeyTable.w);
+addStandard("Hibernate", 269025192);
+addStandard("Standby", 269025040);
+addStandard("WakeUp", 269025067);
 // 3.8. IME and Composition Keys
 addStandard("AllCandidates", 65341);
 addStandard("Alphanumeric", 65328);
@@ -1829,25 +1767,25 @@ addStandard("F35", 65504);
 // 3.10. Multimedia Keys
 // - ChannelDown
 // - ChannelUp
-addStandard("Close", KeyTable.G);
-addStandard("MailForward", KeyTable.Y);
-addStandard("MailReply", KeyTable.P);
-addStandard("MailSend", KeyTable.R);
+addStandard("Close", 269025110);
+addStandard("MailForward", 269025168);
+addStandard("MailReply", 269025138);
+addStandard("MailSend", 269025147);
 // - MediaClose
-addStandard("MediaFastForward", KeyTable.$);
-addStandard("MediaPause", KeyTable.B);
-addStandard("MediaPlay", KeyTable.g);
+addStandard("MediaFastForward", 269025175);
+addStandard("MediaPause", 269025073);
+addStandard("MediaPlay", 269025044);
 // - MediaPlayPause
-addStandard("MediaRecord", KeyTable.n);
-addStandard("MediaRewind", KeyTable.F);
-addStandard("MediaStop", KeyTable.h);
-addStandard("MediaTrackNext", KeyTable.j);
-addStandard("MediaTrackPrevious", KeyTable.i);
-addStandard("New", KeyTable.L);
-addStandard("Open", KeyTable.M);
+addStandard("MediaRecord", 269025052);
+addStandard("MediaRewind", 269025086);
+addStandard("MediaStop", 269025045);
+addStandard("MediaTrackNext", 269025047);
+addStandard("MediaTrackPrevious", 269025046);
+addStandard("New", 269025128);
+addStandard("Open", 269025131);
 addStandard("Print", 65377);
-addStandard("Save", KeyTable.Q);
-addStandard("SpellCheck", KeyTable.S);
+addStandard("Save", 269025143);
+addStandard("SpellCheck", 269025148);
 // 3.11. Multimedia Numpad Keys
 // - Key11
 // - Key12
@@ -1862,50 +1800,50 @@ addStandard("SpellCheck", KeyTable.S);
 // - AudioSurroundModeNext
 // - AudioTrebleDown
 // - AudioTrebleUp
-addStandard("AudioVolumeDown", KeyTable.d);
-addStandard("AudioVolumeUp", KeyTable.f);
-addStandard("AudioVolumeMute", KeyTable.e);
+addStandard("AudioVolumeDown", 269025041);
+addStandard("AudioVolumeUp", 269025043);
+addStandard("AudioVolumeMute", 269025042);
 // - MicrophoneToggle
 // - MicrophoneVolumeDown
 // - MicrophoneVolumeUp
-addStandard("MicrophoneVolumeMute", KeyTable.da);
+addStandard("MicrophoneVolumeMute", 269025202);
 // 3.13. Speech Keys
 // - SpeechCorrectionList
 // - SpeechInputToggle
 // 3.14. Application Keys
-addStandard("LaunchApplication1", KeyTable.D);
-addStandard("LaunchApplication2", KeyTable.o);
-addStandard("LaunchCalendar", KeyTable.p);
+addStandard("LaunchApplication1", 269025075);
+addStandard("LaunchApplication2", 269025053);
+addStandard("LaunchCalendar", 269025056);
 // - LaunchContacts
-addStandard("LaunchMail", KeyTable.l);
-addStandard("LaunchMediaPlayer", KeyTable.C);
-addStandard("LaunchMusicPlayer", KeyTable.Z);
-addStandard("LaunchPhone", KeyTable.O);
-addStandard("LaunchScreenSaver", KeyTable.y);
-addStandard("LaunchSpreadsheet", KeyTable.J);
-addStandard("LaunchWebBrowser", KeyTable.z);
-addStandard("LaunchWebCam", KeyTable.X);
-addStandard("LaunchWordProcessor", KeyTable.U);
+addStandard("LaunchMail", 269025049);
+addStandard("LaunchMediaPlayer", 269025074);
+addStandard("LaunchMusicPlayer", 269025170);
+addStandard("LaunchPhone", 269025134);
+addStandard("LaunchScreenSaver", 269025069);
+addStandard("LaunchSpreadsheet", 269025116);
+addStandard("LaunchWebBrowser", 269025070);
+addStandard("LaunchWebCam", 269025167);
+addStandard("LaunchWordProcessor", 269025161);
 // 3.15. Browser Keys
-addStandard("BrowserBack", KeyTable.r);
-addStandard("BrowserFavorites", KeyTable.A);
-addStandard("BrowserForward", KeyTable.s);
-addStandard("BrowserHome", KeyTable.k);
-addStandard("BrowserRefresh", KeyTable.u);
-addStandard("BrowserSearch", KeyTable.m);
-addStandard("BrowserStop", KeyTable.t);
+addStandard("BrowserBack", 269025062);
+addStandard("BrowserFavorites", 269025072);
+addStandard("BrowserForward", 269025063);
+addStandard("BrowserHome", 269025048);
+addStandard("BrowserRefresh", 269025065);
+addStandard("BrowserSearch", 269025051);
+addStandard("BrowserStop", 269025064);
 // 3.16. Mobile Phone Keys
 // - A whole bunch...
 // 3.17. TV Keys
 // - A whole bunch...
 // 3.18. Media Controller Keys
 // - A whole bunch...
-addStandard("Dimmer", KeyTable.E);
-addStandard("MediaAudioTrack", KeyTable.ba);
-addStandard("RandomToggle", KeyTable._);
-addStandard("SplitScreenToggle", KeyTable.T);
-addStandard("Subtitle", KeyTable.aa);
-addStandard("VideoModeNext", KeyTable.ea);
+addStandard("Dimmer", 269025083);
+addStandard("MediaAudioTrack", 269025179);
+addStandard("RandomToggle", 269025177);
+addStandard("SplitScreenToggle", 269025149);
+addStandard("Subtitle", 269025178);
+addStandard("VideoModeNext", 269024802);
 // Extra: Numpad
 addNumpad("=", 61, 65469);
 addNumpad("+", 43, 65451);
@@ -3479,11 +3417,11 @@ function inflate_table(type, lens, lens_index, codes, table, table_index, work, 
 		//table.op[opts.table_index] = 64;  //here.op = (var char)64;    /* invalid code marker */
 		//table.bits[opts.table_index] = 1;   //here.bits = (var char)1;
 		//table.val[opts.table_index++] = 0;   //here.val = (var short)0;
-		table[table_index++, 0] = 1 << 24 | 64 << 16 | 0;
+		table[table_index++, 0] = 20971520;
 		//table.op[opts.table_index] = 64;
 		//table.bits[opts.table_index] = 1;
 		//table.val[opts.table_index++] = 0;
-		table[table_index++] = 1 << 24 | 64 << 16 | 0;
+		table[table_index++] = 20971520;
 		opts.bits = 1;
 		return 0;
 	}
@@ -3659,7 +3597,7 @@ function inflate_table(type, lens, lens_index, codes, table, table_index, work, 
 		//table.op[next + huff] = 64;            /* invalid code marker */
 		//table.bits[next + huff] = len - drop;
 		//table.val[next + huff] = 0;
-		table[next + huff] = len - drop << 24 | 64 << 16 | 0;
+		table[next + huff] = len - drop << 24 | 4194304 | 0;
 	}
 	/* set return parameters */
 	//opts.table_index += used;
@@ -7842,23 +7780,6 @@ class Cursor {
 		return document.captureElement && document.documentElement.contains(document.captureElement);
 	}
 }
-/*
-* Websock: high-performance buffering wrapper
-* Copyright (C) 2019 The noVNC authors
-* Licensed under MPL 2.0 (see LICENSE.txt)
-*
-* Websock is similar to the standard WebSocket / RTCDataChannel object
-* but with extra buffer handling.
-*
-* Websock has built-in receive queue buffering; the message event
-* does not contain actual data but is simply a notification that
-* there is new data available. Several rQ* methods are available to
-* read binary data off of the receive queue.
-*/
-// this has performance issues in some versions Chromium, and
-// doesn't gain a tremendous amount of performance increase in Firefox
-// at the moment.  It may be valuable to turn it on in the future.
-const MAX_RQ_GROW_SIZE = 40960 * 1024;
 const ReadyStates = {
 	a: [WebSocket.CONNECTING, "connecting"],
 	b: [WebSocket.OPEN, "open"],
@@ -7881,7 +7802,7 @@ class Websock {
 		this._websocket = null;
 		this._rQi = 0;
 		this._rQlen = 0;
-		this._rQbufferSize = 1024 * 1024 * 4;
+		this._rQbufferSize = 4194304;
 		// called in init: this._rQ = new Uint8Array(this._rQbufferSize);
 		this._rQ = null;
 		this._sQbufferSize = 10240;
@@ -8105,10 +8026,10 @@ class Websock {
 			this._rQbufferSize = Math.max(this._rQbufferSize * 2, requiredBufferSize);
 		}
 		// we don't want to grow unboundedly
-		if (this._rQbufferSize > MAX_RQ_GROW_SIZE) {
-			this._rQbufferSize = MAX_RQ_GROW_SIZE;
+		if (this._rQbufferSize > 41943040) {
+			this._rQbufferSize = 41943040;
 			if (this._rQbufferSize - (this._rQlen - this._rQi) < minFit) {
-				throw new Error("Receive queue buffer exceeded " + MAX_RQ_GROW_SIZE + " bytes, and the new message could not fit");
+				throw new Error("Receive queue buffer exceeded 41943040 bytes, and the new message could not fit");
 			}
 		}
 		if (resizeNeeded) {
@@ -8314,17 +8235,6 @@ var XtScancode = {
 	"Tab": 15,
 	"Undo": 57351,
 	"WakeUp": 57443
-};
-/*
-* noVNC: HTML5 VNC client
-* Copyright (C) 2019 The noVNC authors
-* Licensed under MPL 2.0 (see LICENSE.txt)
-*
-* See README.md for usage and integration instructions.
-*/
-const encodings = {
-	a: 1464686180,
-	b: 3231835598
 };
 class AESECBCipher {
 	constructor() {
@@ -10528,14 +10438,6 @@ class H264Decoder {
 		return true;
 	}
 }
-const DEFAULT_BACKGROUND = "rgb(40, 40, 40)";
-/*eslint-enable */
-// Extended clipboard pseudo-encoding actions
-const extendedClipboardActionCaps = 1 << 24;
-const extendedClipboardActionRequest = 1 << 25;
-const extendedClipboardActionPeek = 1 << 26;
-const extendedClipboardActionNotify = 1 << 27;
-const extendedClipboardActionProvide = 1 << 28;
 class RFB extends EventTargetMixin {
 	constructor(target, urlOrChannel, options) {
 		if (!target) {
@@ -10646,7 +10548,7 @@ class RFB extends EventTargetMixin {
 		this._screen.style.width = "100%";
 		this._screen.style.height = "100%";
 		this._screen.style.overflow = "auto";
-		this._screen.style.background = DEFAULT_BACKGROUND;
+		this._screen.style.background = "rgb(40, 40, 40)";
 		this._canvas = document.createElement("canvas");
 		this._canvas.style.margin = "auto";
 		// Some browsers add an outline on focus
@@ -10902,7 +10804,7 @@ class RFB extends EventTargetMixin {
 		if (this._rfbConnectionState !== "connected" || this._viewOnly) {
 			return;
 		}
-		if (this._clipboardServerCapabilitiesFormats[1] && this._clipboardServerCapabilitiesActions[extendedClipboardActionNotify]) {
+		if (this._clipboardServerCapabilitiesFormats[1] && this._clipboardServerCapabilitiesActions[134217728]) {
 			this._clipboardText = text;
 			RFB.b.c(this._sock, [1]);
 		} else {
@@ -11042,7 +10944,7 @@ class RFB extends EventTargetMixin {
 				this._updateConnectionState("disconnected");
 				break;
 			case "disconnected":
-				this._fail("Unexpected server disconnect " + "when already disconnected " + msg);
+				this._fail("Unexpected server disconnect when already disconnected " + msg);
 				break;
 			default:
 				this._fail("Unexpected server disconnect before connecting " + msg);
@@ -11205,25 +11107,25 @@ class RFB extends EventTargetMixin {
 		switch (state) {
 			case "connected":
 				if (oldstate !== "connecting") {
-					Error$1("Bad transition to connected state, " + "previous connection state: " + oldstate);
+					Error$1("Bad transition to connected state, previous connection state: " + oldstate);
 					return;
 				}
 				break;
 			case "disconnected":
 				if (oldstate !== "disconnecting") {
-					Error$1("Bad transition to disconnected state, " + "previous connection state: " + oldstate);
+					Error$1("Bad transition to disconnected state, previous connection state: " + oldstate);
 					return;
 				}
 				break;
 			case "connecting":
 				if (oldstate !== "") {
-					Error$1("Bad transition to connecting state, " + "previous connection state: " + oldstate);
+					Error$1("Bad transition to connecting state, previous connection state: " + oldstate);
 					return;
 				}
 				break;
 			case "disconnecting":
 				if (oldstate !== "connected" && oldstate !== "connecting") {
-					Error$1("Bad transition to disconnecting state, " + "previous connection state: " + oldstate);
+					Error$1("Bad transition to disconnecting state, previous connection state: " + oldstate);
 					return;
 				}
 				break;
@@ -12098,14 +12000,14 @@ class RFB extends EventTargetMixin {
 		// choose the notunnel type
 		if (serverSupportedTunnelTypes[0]) {
 			if (serverSupportedTunnelTypes[0].vendor != "TGHT" || serverSupportedTunnelTypes[0].signature != "NOTUNNEL") {
-				return this._fail("Client's tunnel type had the incorrect " + "vendor or signature");
+				return this._fail("Client's tunnel type had the incorrect vendor or signature");
 			}
 			Debug("Selected tunnel type: " + clientSupportedTunnelTypes[0]);
 			this._sock.sQpush32(0);
 			this._sock.flush();
 			return false;
 		} else {
-			return this._fail("Server wanted tunnels, but doesn't support " + "the notunnel type");
+			return this._fail("Server wanted tunnels, but doesn't support the notunnel type");
 		}
 	}
 	_negotiateTightAuth() {
@@ -12374,10 +12276,10 @@ class RFB extends EventTargetMixin {
 		encs.push(-312);
 		encs.push(-313);
 		encs.push(-307);
-		encs.push(encodings.b);
+		encs.push(3231835598);
 		encs.push(-316);
 		if (this._fbDepth == 24) {
-			encs.push(encodings.a);
+			encs.push(1464686180);
 			encs.push(-239);
 		}
 		RFB.b.j(this._sock, encs);
@@ -12447,7 +12349,7 @@ class RFB extends EventTargetMixin {
 			const flags = this._sock.rQshift32();
 			let formats = flags & 65535;
 			let actions = flags & 4278190080;
-			let isCaps = !!(actions & extendedClipboardActionCaps);
+			let isCaps = !!(actions & 16777216);
 			if (isCaps) {
 				this._clipboardServerCapabilitiesFormats = {};
 				this._clipboardServerCapabilitiesActions = {};
@@ -12470,44 +12372,44 @@ class RFB extends EventTargetMixin {
 				/*  Caps handling done, send caps with the clients
 				capabilities set as a response */
 				let clientActions = [
-					extendedClipboardActionCaps,
-					extendedClipboardActionRequest,
-					extendedClipboardActionPeek,
-					extendedClipboardActionNotify,
-					extendedClipboardActionProvide
+					16777216,
+					33554432,
+					67108864,
+					134217728,
+					268435456
 				];
 				RFB.b.k(this._sock, clientActions, { extendedClipboardFormatText: 0 });
-			} else if (actions === extendedClipboardActionRequest) {
+			} else if (actions === 33554432) {
 				if (this._viewOnly) {
 					return true;
 				}
 				// Check if server has told us it can handle Provide and there is clipboard data to send.
-				if (this._clipboardText != null && this._clipboardServerCapabilitiesActions[extendedClipboardActionProvide]) {
+				if (this._clipboardText != null && this._clipboardServerCapabilitiesActions[268435456]) {
 					if (formats & 1) {
 						RFB.b.l(this._sock, [1], [this._clipboardText]);
 					}
 				}
-			} else if (actions === extendedClipboardActionPeek) {
+			} else if (actions === 67108864) {
 				if (this._viewOnly) {
 					return true;
 				}
-				if (this._clipboardServerCapabilitiesActions[extendedClipboardActionNotify]) {
+				if (this._clipboardServerCapabilitiesActions[134217728]) {
 					if (this._clipboardText != null) {
 						RFB.b.c(this._sock, [1]);
 					} else {
 						RFB.b.c(this._sock, []);
 					}
 				}
-			} else if (actions === extendedClipboardActionNotify) {
+			} else if (actions === 134217728) {
 				if (this._viewOnly) {
 					return true;
 				}
-				if (this._clipboardServerCapabilitiesActions[extendedClipboardActionRequest]) {
+				if (this._clipboardServerCapabilitiesActions[33554432]) {
 					if (formats & 1) {
 						RFB.b.m(this._sock, [1]);
 					}
 				}
-			} else if (actions === extendedClipboardActionProvide) {
+			} else if (actions === 268435456) {
 				if (this._viewOnly) {
 					return true;
 				}
@@ -12580,7 +12482,7 @@ class RFB extends EventTargetMixin {
 		*  (1<<2)  - SyncNext
 		*  (1<<31) - Request
 		*/
-		if (!(flags & 1 << 31)) {
+		if (!(flags & -2147483648)) {
 			return this._fail("Unexpected fence response");
 		}
 		// Filter out unsupported flags
@@ -12702,7 +12604,7 @@ class RFB extends EventTargetMixin {
 			case -224:
 				this._FBU.rects = 1;
 				return true;
-			case encodings.a: return this._handleVMwareCursor();
+			case 1464686180: return this._handleVMwareCursor();
 			case -239: return this._handleCursor();
 			case -258:
 				this._qemuExtKeyEventSupported = true;
@@ -13100,16 +13002,16 @@ RFB.b = {
 		let deflatedData = deflator.c(new Uint8Array(dataToDeflate));
 		// Build data  to send
 		let data = new Uint8Array(4 + deflatedData.length);
-		data.set(RFB.b.q([extendedClipboardActionProvide], formats));
+		data.set(RFB.b.q([268435456], formats));
 		data.set(deflatedData, 4);
 		RFB.b.d(sock, data, true);
 	},
 	c(sock, formats) {
-		let flags = RFB.b.q([extendedClipboardActionNotify], formats);
+		let flags = RFB.b.q([134217728], formats);
 		RFB.b.d(sock, flags, true);
 	},
 	m(sock, formats) {
-		let flags = RFB.b.q([extendedClipboardActionRequest], formats);
+		let flags = RFB.b.q([33554432], formats);
 		RFB.b.d(sock, flags, true);
 	},
 	k(sock, actions, formats) {

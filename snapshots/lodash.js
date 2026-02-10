@@ -7,15 +7,11 @@ function requireLodash() {
 	(function(module, exports$1) {
 		(function() {
 			/** Error message constants. */
-			var CORE_ERROR_TEXT = "Unsupported core-js use. Try https://npms.io/search?q=ponyfill.", FUNC_ERROR_TEXT = "Expected a function", INVALID_TEMPL_VAR_ERROR_TEXT = "Invalid `variable` option passed into `_.template`";
+			var FUNC_ERROR_TEXT = "Expected a function";
 			/** Used to stand-in for `undefined` hash values. */
 			var HASH_UNDEFINED = "__lodash_hash_undefined__";
 			/** Used as the internal argument placeholder. */
 			var PLACEHOLDER = "__lodash_placeholder__";
-			/** Used as references for various `Number` constants. */
-			var MAX_SAFE_INTEGER = 9007199254740991, MAX_INTEGER = 17976931348623157e292;
-			/** Used as references for the maximum length and index of an array. */
-			var MAX_ARRAY_LENGTH = 4294967295, MAX_ARRAY_INDEX = MAX_ARRAY_LENGTH - 1, HALF_MAX_ARRAY_LENGTH = MAX_ARRAY_LENGTH >>> 1;
 			/** Used to associate wrap methods with their bit flags. */
 			var wrapFlags = [
 				["ary", 128],
@@ -29,7 +25,7 @@ function requireLodash() {
 				["rearg", 256]
 			];
 			/** `Object#toString` result references. */
-			var argsTag = "[object Arguments]", arrayTag = "[object Array]", asyncTag = "[object AsyncFunction]", boolTag = "[object Boolean]", dateTag = "[object Date]", domExcTag = "[object DOMException]", errorTag = "[object Error]", funcTag = "[object Function]", genTag = "[object GeneratorFunction]", numberTag = "[object Number]", nullTag = "[object Null]", objectTag = "[object Object]", promiseTag = "[object Promise]", proxyTag = "[object Proxy]", regexpTag = "[object RegExp]", stringTag = "[object String]", symbolTag = "[object Symbol]", undefinedTag = "[object Undefined]", weakMapTag = "[object WeakMap]", weakSetTag = "[object WeakSet]";
+			var argsTag = "[object Arguments]", arrayTag = "[object Array]", boolTag = "[object Boolean]", dateTag = "[object Date]", errorTag = "[object Error]", funcTag = "[object Function]", numberTag = "[object Number]", objectTag = "[object Object]", regexpTag = "[object RegExp]", stringTag = "[object String]", symbolTag = "[object Symbol]", weakMapTag = "[object WeakMap]";
 			var arrayBufferTag = "[object ArrayBuffer]", dataViewTag = "[object DataView]", float32Tag = "[object Float32Array]", float64Tag = "[object Float64Array]", int8Tag = "[object Int8Array]", int16Tag = "[object Int16Array]", int32Tag = "[object Int32Array]", uint8Tag = "[object Uint8Array]", uint8ClampedTag = "[object Uint8ClampedArray]", uint16Tag = "[object Uint16Array]", uint32Tag = "[object Uint32Array]";
 			/** Used to match empty string literals in compiled template source. */
 			var reEmptyStringLeading = /\b__p \+= '';/g, reEmptyStringMiddle = /\b(__p \+=) '' \+/g, reEmptyStringTrailing = /(__e\(.*?\)|\b__t\)) \+\n'';/g;
@@ -88,25 +84,23 @@ function requireLodash() {
 			var reNoMatch = /($^)/;
 			/** Used to match unescaped characters in compiled string literals. */
 			var reUnescapedString = /['\n\r\u2028\u2029\\]/g;
-			/** Used to compose unicode character classes. */
-			var rsAstralRange = "\\ud800-\\udfff", rsComboMarksRange = "\\u0300-\\u036f", reComboHalfMarksRange = "\\ufe20-\\ufe2f", rsComboSymbolsRange = "\\u20d0-\\u20ff", rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange, rsDingbatRange = "\\u2700-\\u27bf", rsLowerRange = "a-z\\xdf-\\xf6\\xf8-\\xff", rsMathOpRange = "\\xac\\xb1\\xd7\\xf7", rsNonCharRange = "\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf", rsPunctuationRange = "\\u2000-\\u206f", rsSpaceRange = " \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000", rsUpperRange = "A-Z\\xc0-\\xd6\\xd8-\\xde", rsBreakRange = rsMathOpRange + rsNonCharRange + rsPunctuationRange + rsSpaceRange;
 			/** Used to compose unicode capture groups. */
-			var rsAstral = "[" + rsAstralRange + "]", rsBreak = "[" + rsBreakRange + "]", rsCombo = "[" + rsComboRange + "]", rsDingbat = "[" + rsDingbatRange + "]", rsLower = "[" + rsLowerRange + "]", rsMisc = "[^" + rsAstralRange + rsBreakRange + "\\d+" + rsDingbatRange + rsLowerRange + rsUpperRange + "]", rsFitz = "\\ud83c[\\udffb-\\udfff]", rsModifier = "(?:" + rsCombo + "|" + rsFitz + ")", rsNonAstral = "[^" + rsAstralRange + "]", rsRegional = "(?:\\ud83c[\\udde6-\\uddff]){2}", rsSurrPair = "[\\ud800-\\udbff][\\udc00-\\udfff]", rsUpper = "[" + rsUpperRange + "]";
+			var rsRegional = "(?:\\ud83c[\\udde6-\\uddff]){2}", rsSurrPair = "[\\ud800-\\udbff][\\udc00-\\udfff]";
 			/** Used to compose unicode regexes. */
-			var rsMiscLower = "(?:" + rsLower + "|" + rsMisc + ")", rsMiscUpper = "(?:" + rsUpper + "|" + rsMisc + ")", rsOptContrLower = "(?:['’]" + "(?:d|ll|m|re|s|t|ve))?", rsOptContrUpper = "(?:['’]" + "(?:D|LL|M|RE|S|T|VE))?", reOptMod = rsModifier + "?", rsOptVar = "[" + "\\ufe0e\\ufe0f" + "]?", rsOptJoin = "(?:\\u200d(?:" + [
-				rsNonAstral,
+			var rsOptJoin = "(?:\\u200d(?:" + [
+				"[^\\ud800-\\udfff]",
 				rsRegional,
 				rsSurrPair
-			].join("|") + ")" + rsOptVar + reOptMod + ")*", rsOrdLower = "\\d*(?:1st|2nd|3rd|(?![123])\\dth)(?=\\b|[A-Z_])", rsOrdUpper = "\\d*(?:1ST|2ND|3RD|(?![123])\\dTH)(?=\\b|[a-z_])", rsSeq = rsOptVar + reOptMod + rsOptJoin, rsEmoji = "(?:" + [
-				rsDingbat,
+			].join("|") + ")" + "[\\ufe0e\\ufe0f]?" + "(?:[\\u0300-\\u036f\\ufe20-\\ufe2f\\u20d0-\\u20ff]|\\ud83c[\\udffb-\\udfff])?" + ")*", rsSeq = "[\\ufe0e\\ufe0f]?(?:[\\u0300-\\u036f\\ufe20-\\ufe2f\\u20d0-\\u20ff]|\\ud83c[\\udffb-\\udfff])?" + rsOptJoin, rsEmoji = "(?:" + [
+				"[\\u2700-\\u27bf]",
 				rsRegional,
 				rsSurrPair
 			].join("|") + ")" + rsSeq, rsSymbol = "(?:" + [
-				rsNonAstral + rsCombo + "?",
-				rsCombo,
+				"[^\\ud800-\\udfff][\\u0300-\\u036f\\ufe20-\\ufe2f\\u20d0-\\u20ff]?",
+				"[\\u0300-\\u036f\\ufe20-\\ufe2f\\u20d0-\\u20ff]",
 				rsRegional,
 				rsSurrPair,
-				rsAstral
+				"[\\ud800-\\udfff]"
 			].join("|") + ")";
 			/** Used to match apostrophes. */
 			var reApos = RegExp("['’]", "g");
@@ -114,30 +108,30 @@ function requireLodash() {
 			* Used to match [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) and
 			* [combining diacritical marks for symbols](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks_for_Symbols).
 			*/
-			var reComboMark = RegExp(rsCombo, "g");
+			var reComboMark = RegExp("[\\u0300-\\u036f\\ufe20-\\ufe2f\\u20d0-\\u20ff]", "g");
 			/** Used to match [string symbols](https://mathiasbynens.be/notes/javascript-unicode). */
-			var reUnicode = RegExp(rsFitz + "(?=" + rsFitz + ")|" + rsSymbol + rsSeq, "g");
+			var reUnicode = RegExp("\\ud83c[\\udffb-\\udfff](?=\\ud83c[\\udffb-\\udfff])|" + rsSymbol + rsSeq, "g");
 			/** Used to match complex or compound words. */
 			var reUnicodeWord = RegExp([
-				rsUpper + "?" + rsLower + "+" + rsOptContrLower + "(?=" + [
-					rsBreak,
-					rsUpper,
+				"[A-Z\\xc0-\\xd6\\xd8-\\xde]?[a-z\\xdf-\\xf6\\xf8-\\xff]+(?:['’](?:d|ll|m|re|s|t|ve))?(?=" + [
+					"[\\xac\\xb1\\xd7\\xf7\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf\\u2000-\\u206f \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000]",
+					"[A-Z\\xc0-\\xd6\\xd8-\\xde]",
 					"$"
 				].join("|") + ")",
-				rsMiscUpper + "+" + rsOptContrUpper + "(?=" + [
-					rsBreak,
-					rsUpper + rsMiscLower,
+				"(?:[A-Z\\xc0-\\xd6\\xd8-\\xde]|[^\\ud800-\\udfff\\xac\\xb1\\xd7\\xf7\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf\\u2000-\\u206f \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000\\d+\\u2700-\\u27bfa-z\\xdf-\\xf6\\xf8-\\xffA-Z\\xc0-\\xd6\\xd8-\\xde])+(?:['’](?:D|LL|M|RE|S|T|VE))?(?=" + [
+					"[\\xac\\xb1\\xd7\\xf7\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf\\u2000-\\u206f \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000]",
+					"[A-Z\\xc0-\\xd6\\xd8-\\xde](?:[a-z\\xdf-\\xf6\\xf8-\\xff]|[^\\ud800-\\udfff\\xac\\xb1\\xd7\\xf7\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf\\u2000-\\u206f \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000\\d+\\u2700-\\u27bfa-z\\xdf-\\xf6\\xf8-\\xffA-Z\\xc0-\\xd6\\xd8-\\xde])",
 					"$"
 				].join("|") + ")",
-				rsUpper + "?" + rsMiscLower + "+" + rsOptContrLower,
-				rsUpper + "+" + rsOptContrUpper,
-				rsOrdUpper,
-				rsOrdLower,
+				"[A-Z\\xc0-\\xd6\\xd8-\\xde]?(?:[a-z\\xdf-\\xf6\\xf8-\\xff]|[^\\ud800-\\udfff\\xac\\xb1\\xd7\\xf7\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\xbf\\u2000-\\u206f \\t\\x0b\\f\\xa0\\ufeff\\n\\r\\u2028\\u2029\\u1680\\u180e\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u202f\\u205f\\u3000\\d+\\u2700-\\u27bfa-z\\xdf-\\xf6\\xf8-\\xffA-Z\\xc0-\\xd6\\xd8-\\xde])+(?:['’](?:d|ll|m|re|s|t|ve))?",
+				"[A-Z\\xc0-\\xd6\\xd8-\\xde]+(?:['’](?:D|LL|M|RE|S|T|VE))?",
+				"\\d*(?:1ST|2ND|3RD|(?![123])\\dTH)(?=\\b|[a-z_])",
+				"\\d*(?:1st|2nd|3rd|(?![123])\\dth)(?=\\b|[A-Z_])",
 				"\\d+",
 				rsEmoji
 			].join("|"), "g");
 			/** Used to detect strings with [zero-width joiners or code points from the astral planes](http://eev.ee/blog/2015/09/12/dark-corners-of-unicode/). */
-			var reHasUnicode = RegExp("[\\u200d" + rsAstralRange + rsComboRange + "\\ufe0e\\ufe0f" + "]");
+			var reHasUnicode = RegExp("[\\u200d\\ud800-\\udfff\\u0300-\\u036f\\ufe20-\\ufe2f\\u20d0-\\u20ff\\ufe0e\\ufe0f]");
 			/** Used to detect strings that need a more robust regexp to match words. */
 			var reHasUnicodeWord = /[a-z][A-Z]|[A-Z]{2}[a-z]|[0-9][a-zA-Z]|[a-zA-Z][0-9]|[^a-zA-Z0-9 ]/;
 			/** Used to assign default `context` object properties. */
@@ -1540,7 +1534,7 @@ function requireLodash() {
 					this.__dir__ = 1;
 					this.__filtered__ = false;
 					this.__iteratees__ = [];
-					this.__takeCount__ = MAX_ARRAY_LENGTH;
+					this.__takeCount__ = 4294967295;
 					this.__views__ = [];
 				}
 				/**
@@ -2262,7 +2256,7 @@ function requireLodash() {
 							return copyArray(value, result);
 						}
 					} else {
-						var tag = getTag(value), isFunc = tag == funcTag || tag == genTag;
+						var tag = getTag(value), isFunc = tag == funcTag || tag == "[object GeneratorFunction]";
 						if (isBuffer(value)) {
 							return cloneBuffer(value, isDeep);
 						}
@@ -2630,7 +2624,7 @@ function requireLodash() {
 				*/
 				function baseGetTag(value) {
 					if (value == null) {
-						return value === void 0 ? undefinedTag : nullTag;
+						return value === void 0 ? "[object Undefined]" : "[object Null]";
 					}
 					return symToStringTag && symToStringTag in Object(value) ? getRawTag(value) : objectToString(value);
 				}
@@ -3347,7 +3341,7 @@ function requireLodash() {
 				*/
 				function baseRepeat(string, n) {
 					var result = "";
-					if (!string || n < 1 || n > MAX_SAFE_INTEGER) {
+					if (!string || n < 1 || n > 9007199254740991) {
 						return result;
 					}
 					// Leverage the exponentiation by squaring algorithm for a faster repeat.
@@ -3524,7 +3518,7 @@ function requireLodash() {
 				*/
 				function baseSortedIndex(array, value, retHighest) {
 					var low = 0, high = array == null ? low : array.length;
-					if (typeof value == "number" && value === value && high <= HALF_MAX_ARRAY_LENGTH) {
+					if (typeof value == "number" && value === value && high <= 2147483647) {
 						while (low < high) {
 							var mid = low + high >>> 1, computed = array[mid];
 							if (computed !== null && !isSymbol(computed) && (retHighest ? computed <= value : computed < value)) {
@@ -3578,7 +3572,7 @@ function requireLodash() {
 							high = mid;
 						}
 					}
-					return nativeMin(high, MAX_ARRAY_INDEX);
+					return nativeMin(high, 4294967294);
 				}
 				/**
 				* The base implementation of `_.sortedUniq` and `_.sortedUniqBy` without
@@ -5166,14 +5160,14 @@ function requireLodash() {
 				*/
 				var getTag = baseGetTag;
 				// Fallback for data views, maps, sets, and weak maps in IE 11 and promises in Node.js < 6.
-				if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag || Map && getTag(new Map()) != "[object Map]" || Promise && getTag(Promise.resolve()) != promiseTag || Set && getTag(new Set()) != "[object Set]" || WeakMap && getTag(new WeakMap()) != weakMapTag) {
+				if (DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag || Map && getTag(new Map()) != "[object Map]" || Promise && getTag(Promise.resolve()) != "[object Promise]" || Set && getTag(new Set()) != "[object Set]" || WeakMap && getTag(new WeakMap()) != weakMapTag) {
 					getTag = function(value) {
 						var result = baseGetTag(value), Ctor = result == objectTag ? value.constructor : void 0, ctorString = Ctor ? toSource(Ctor) : "";
 						if (ctorString) {
 							switch (ctorString) {
 								case dataViewCtorString: return dataViewTag;
 								case mapCtorString: return "[object Map]";
-								case promiseCtorString: return promiseTag;
+								case promiseCtorString: return "[object Promise]";
 								case setCtorString: return "[object Set]";
 								case weakMapCtorString: return weakMapTag;
 							}
@@ -5351,7 +5345,7 @@ function requireLodash() {
 				*/
 				function isIndex(value, length) {
 					var type = typeof value;
-					length = length == null ? MAX_SAFE_INTEGER : length;
+					length = length == null ? 9007199254740991 : length;
 					return !!length && (type == "number" || type != "symbol" && reIsUint.test(value)) && value > -1 && value % 1 == 0 && value < length;
 				}
 				/**
@@ -10342,7 +10336,7 @@ function requireLodash() {
 						return false;
 					}
 					var tag = baseGetTag(value);
-					return tag == errorTag || tag == domExcTag || typeof value.message == "string" && typeof value.name == "string" && !isPlainObject(value);
+					return tag == errorTag || tag == "[object DOMException]" || typeof value.message == "string" && typeof value.name == "string" && !isPlainObject(value);
 				}
 				/**
 				* Checks if `value` is a finite primitive number.
@@ -10397,7 +10391,7 @@ function requireLodash() {
 					// The use of `Object#toString` avoids issues with the `typeof` operator
 					// in Safari 9 which returns 'object' for typed arrays and other constructors.
 					var tag = baseGetTag(value);
-					return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
+					return tag == funcTag || tag == "[object GeneratorFunction]" || tag == "[object AsyncFunction]" || tag == "[object Proxy]";
 				}
 				/**
 				* Checks if `value` is an integer.
@@ -10455,7 +10449,7 @@ function requireLodash() {
 				* // => false
 				*/
 				function isLength(value) {
-					return typeof value == "number" && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+					return typeof value == "number" && value > -1 && value % 1 == 0 && value <= 9007199254740991;
 				}
 				/**
 				* Checks if `value` is the
@@ -10660,7 +10654,7 @@ function requireLodash() {
 				*/
 				function isNative(value) {
 					if (isMaskable(value)) {
-						throw new Error(CORE_ERROR_TEXT);
+						throw new Error("Unsupported core-js use. Try https://npms.io/search?q=ponyfill.");
 					}
 					return baseIsNative(value);
 				}
@@ -10821,7 +10815,7 @@ function requireLodash() {
 				* // => false
 				*/
 				function isSafeInteger(value) {
-					return isInteger(value) && value >= -MAX_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
+					return isInteger(value) && value >= -9007199254740991 && value <= 9007199254740991;
 				}
 				/**
 				* Checks if `value` is classified as a `Set` object.
@@ -10957,7 +10951,7 @@ function requireLodash() {
 				* // => false
 				*/
 				function isWeakSet(value) {
-					return isObjectLike(value) && baseGetTag(value) == weakSetTag;
+					return isObjectLike(value) && baseGetTag(value) == "[object WeakSet]";
 				}
 				/**
 				* Checks if `value` is less than `other`.
@@ -11075,7 +11069,7 @@ function requireLodash() {
 					value = toNumber(value);
 					if (value === Infinity || value === -Infinity) {
 						var sign = value < 0 ? -1 : 1;
-						return sign * MAX_INTEGER;
+						return sign * 17976931348623157e292;
 					}
 					return value === value ? value : 0;
 				}
@@ -11137,7 +11131,7 @@ function requireLodash() {
 				* // => 3
 				*/
 				function toLength(value) {
-					return value ? baseClamp(toInteger(value), 0, MAX_ARRAY_LENGTH) : 0;
+					return value ? baseClamp(toInteger(value), 0, 4294967295) : 0;
 				}
 				/**
 				* Converts `value` to a number.
@@ -11232,7 +11226,7 @@ function requireLodash() {
 				* // => 3
 				*/
 				function toSafeInteger(value) {
-					return value ? baseClamp(toInteger(value), -MAX_SAFE_INTEGER, MAX_SAFE_INTEGER) : value === 0 ? value : 0;
+					return value ? baseClamp(toInteger(value), -9007199254740991, 9007199254740991) : value === 0 ? value : 0;
 				}
 				/**
 				* Converts `value` to a string. An empty string is returned for `null`
@@ -13176,7 +13170,7 @@ function requireLodash() {
 					if (limit && typeof limit != "number" && isIterateeCall(string, separator, limit)) {
 						separator = limit = void 0;
 					}
-					limit = limit === void 0 ? MAX_ARRAY_LENGTH : limit >>> 0;
+					limit = limit === void 0 ? 4294967295 : limit >>> 0;
 					if (!limit) {
 						return [];
 					}
@@ -13393,12 +13387,12 @@ function requireLodash() {
 					if (!variable) {
 						source = "with (obj) {\n" + source + "\n}\n";
 					} else if (reForbiddenIdentifierChars.test(variable)) {
-						throw new Error(INVALID_TEMPL_VAR_ERROR_TEXT);
+						throw new Error("Invalid `variable` option passed into `_.template`");
 					}
 					// Cleanup code by stripping empty strings.
 					source = (isEvaluating ? source.replace(reEmptyStringLeading, "") : source).replace(reEmptyStringMiddle, "$1").replace(reEmptyStringTrailing, "$1;");
 					// Frame code as the function body.
-					source = "function(" + (variable || "obj") + ") {\n" + (variable ? "" : "obj || (obj = {});\n") + "var __t, __p = ''" + (isEscaping ? ", __e = _.escape" : "") + (isEvaluating ? ", __j = Array.prototype.join;\n" + "function print() { __p += __j.call(arguments, '') }\n" : ";\n") + source + "return __p\n}";
+					source = "function(" + (variable || "obj") + ") {\n" + (variable ? "" : "obj || (obj = {});\n") + "var __t, __p = ''" + (isEscaping ? ", __e = _.escape" : "") + (isEvaluating ? ", __j = Array.prototype.join;\nfunction print() { __p += __j.call(arguments, '') }\n" : ";\n") + source + "return __p\n}";
 					var result = attempt(function() {
 						return Function(importsKeys, sourceURL + "return " + source).apply(void 0, importsValues);
 					});
@@ -14598,12 +14592,12 @@ function requireLodash() {
 				*/
 				function times(n, iteratee) {
 					n = toInteger(n);
-					if (n < 1 || n > MAX_SAFE_INTEGER) {
+					if (n < 1 || n > 9007199254740991) {
 						return [];
 					}
-					var index = MAX_ARRAY_LENGTH, length = nativeMin(n, MAX_ARRAY_LENGTH);
+					var index = 4294967295, length = nativeMin(n, 4294967295);
 					iteratee = getIteratee(iteratee);
-					n -= MAX_ARRAY_LENGTH;
+					n -= 4294967295;
 					var result = baseTimes(length, iteratee);
 					while (++index < n) {
 						iteratee(index);
@@ -15324,7 +15318,7 @@ function requireLodash() {
 							result.__takeCount__ = nativeMin(n, result.__takeCount__);
 						} else {
 							result.__views__.push({
-								"size": nativeMin(n, MAX_ARRAY_LENGTH),
+								"size": nativeMin(n, 4294967295),
 								"type": methodName + (result.__dir__ < 0 ? "Right" : "")
 							});
 						}
@@ -15406,7 +15400,7 @@ function requireLodash() {
 					return this.reverse().takeWhile(predicate).reverse();
 				};
 				LazyWrapper.prototype.toArray = function() {
-					return this.take(MAX_ARRAY_LENGTH);
+					return this.take(4294967295);
 				};
 				// Add `LazyWrapper` methods to `lodash.prototype`.
 				baseForOwn(LazyWrapper.prototype, function(func, methodName) {
