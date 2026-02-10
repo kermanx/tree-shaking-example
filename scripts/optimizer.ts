@@ -5,6 +5,7 @@ import { gcc } from './cc.ts';
 import assert from 'assert';
 import { heuristic } from './heuristic.ts';
 import { jsshaker } from './jsshaker.ts';
+import { lacuna } from './lacuna.ts';
 
 export interface OptimizeOptions {
   name: string
@@ -159,85 +160,41 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     return res.code;
   },
   async lacuna({ code }) {
-    const lacunaAnalyzers = { jelly: 0.5 }; // e.g., { "static": 0.6, "acg": 0.5 }
-    const lacunaOLevel = 2; // 0-3, optimization level
+    // Dynamic + Jelly version (current)
+    return lacuna({
+      code,
+      analyzers: { dynamic: 0.5, jelly: 0.5 },
+      optimizationLevel: 2
+    });
 
-    const fs = await import('node:fs/promises');
-    const path = await import('node:path');
-    const os = await import('node:os');
-
-    // Create a temporary directory for Lacuna to work with
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'lacuna-'));
-    // Resolve to absolute path to avoid relative path issues
-    const absTmpDir = path.resolve(tmpDir);
-
-    try {
-      // Write the input code as a JS file
-      const scriptFile = path.join(absTmpDir, 'input.js');
-      await fs.writeFile(scriptFile, code, 'utf8');
-
-      // Create a package.json for analyzers that need it (like jelly)
-      const packageJson = {
-        name: 'lacuna-temp',
-        version: '1.0.0',
-        type: 'module'
-      };
-      await fs.writeFile(path.join(absTmpDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
-
-      // Create an HTML entry file that references the JS file
-      // Lacuna requires an HTML entry point
-      const entryHtml = path.join(absTmpDir, 'index.html');
-      const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-  <script src="./input.js"></script>
-</head>
-<body>
-</body>
-</html>`;
-      await fs.writeFile(entryHtml, htmlContent, 'utf8');
-
-      // Import and run Lacuna
-      const { run } = await import('../vendor/Lacuna/lacuna_runner.js');
-
-      // Prepare analyzer configuration
-      const analyzerConfig: Record<string, string> = {};
-      for (const [analyzer, threshold] of Object.entries(lacunaAnalyzers)) {
-        analyzerConfig[analyzer] = threshold.toString();
-      }
-
-      // Run Lacuna with specified options
-      const runOptions = {
-        directory: absTmpDir,
-        entry: 'index.html', // HTML entry file
-        analyzer: JSON.stringify(analyzerConfig),
-        olevel: lacunaOLevel, // 0: no optimization, 1: lazy load, 2: empty body, 3: replace with null
-        force: true,
-        destination: null,
-      };
-
-      // Run Lacuna and wait for completion
-      await new Promise((resolve, reject) => {
-        run(runOptions, (log: any) => {
-          if (log) {
-            resolve(log);
-          } else {
-            reject(new Error('Lacuna optimization failed'));
-          }
-        });
-      });
-
-      // Read the optimized code back from the JS file
-      const optimizedCode = await fs.readFile(scriptFile, 'utf8');
-      return optimizedCode;
-
-    } catch (e) {
-      console.error('[lacuna] Optimization failed:', e);
-      return ''
-    } finally {
-      // Clean up temporary directory
-      await fs.rm(absTmpDir, { recursive: true, force: true });
-    }
+    // Dynamic + TAJS version (commented out)
+    // Note: TAJS only supports ES5, requires ES modules stubbing
+    // return lacuna({
+    //   code,
+    //   analyzers: { dynamic: 1.0, tajs: 0.5 },
+    //   optimizationLevel: 2
+    // });
+  },
+  async lacuna1({ code }) {
+    return lacuna({
+      code,
+      analyzers: { dynamic: 0.5, jelly: 0.5 },
+      optimizationLevel: 1
+    });
+  },
+  async lacuna2({ code }) {
+    return lacuna({
+      code,
+      analyzers: { dynamic: 0.5, jelly: 0.5 },
+      optimizationLevel: 2
+    });
+  },
+  async lacuna3({ code }) {
+    return lacuna({
+      code,
+      analyzers: { dynamic: 0.5, jelly: 0.5 },
+      optimizationLevel: 3
+    });
   },
   heuristic
 }
