@@ -175,5 +175,26 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     //   optimizationLevel: 2
     // });
   },
+  async lacuna1({ code }) {
+    return lacuna({
+      code,
+      analyzers: { dynamic: 0.5, jelly: 0.5 },
+      optimizationLevel: 1
+    });
+  },
+  async lacuna2({ code }) {
+    return lacuna({
+      code,
+      analyzers: { dynamic: 0.5, jelly: 0.5 },
+      optimizationLevel: 2
+    });
+  },
+  async lacuna3({ code }) {
+    return lacuna({
+      code,
+      analyzers: { dynamic: 0.5, jelly: 0.5 },
+      optimizationLevel: 3
+    });
+  },
   heuristic
 }
