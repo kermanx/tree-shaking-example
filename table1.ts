@@ -4,18 +4,18 @@ import * as fs from 'fs';
 const TOOLCHAINS: Record<string, string> = {
   "rollup_terser": "Rollup + Terser",
   "rollup_jsshaker_terser": "JsShaker",
-  "rollup_gcc_terser": "CC",
-  "rollup_gccAdv_terser": "CC (Advanced)",
+  "rollup_gcc_terser": "CC\\textsubscript{Simp.}",
+  "rollup_gccAdv_terser": "CC\\textsubscript{Adv.}",
   "rollup_lacuna_terser": "Lacuna",
 };
 
 // Flags for specific toolchains (optional)
 const FAILS = [
   /^rollup_lacuna_terser:/,
-  /^rollup_gccAdv_terser:(lodash|sentry|react-icons)$/
+  /^rollup_gccAdv_terser:(lodash|sentry|react-icons|material-ui)$/
 ];
 
-const SHOW_GZ = false;
+const SHOW_GZ = true;
 
 interface ToolchainData {
   size: number;

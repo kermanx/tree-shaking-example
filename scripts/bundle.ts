@@ -47,6 +47,8 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
           'process.env.NODE_ENV': '"production"',
           'import.meta.env.PROD': 'true',
           'import.meta.env.DEV': 'false',
+          '__VUE_PROD_DEVTOOLS__': 'false',
+          '__VUE_OPTIONS_API__': 'false',
           preventAssignment: true,
         }),
         nodeResolve({ browser: env === 'browser' }),

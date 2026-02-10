@@ -2,14 +2,16 @@ import type { OptimizeOptions } from './optimizer.ts';
 import { shakeSingleModule, type Options } from 'jsshaker';
 
 
-export async function jsshaker({ name, code }: OptimizeOptions, options: Options = {
-  preset: "smallest",
-  jsx: "react",
-  // maxRecursionDepth: 2,
-  // rememberExhaustedVariables: false,
-  // eagerExhaustiveCallbacks: true,
-  // enableFnCache: false,
-}) {
+export async function jsshaker({ name, code }: OptimizeOptions, options: Partial<Options> = {}) {
+  Object.assign(options, {
+    preset: "smallest",
+    jsx: "react",
+    // maxRecursionDepth: 2,
+    // rememberExhaustedVariables: false,
+    // eagerExhaustiveCallbacks: true,
+    // enableFnCache: false,
+  });
+
   console.log(`[${name}] Running jsshaker...`);
 
   const startTime = performance.now();

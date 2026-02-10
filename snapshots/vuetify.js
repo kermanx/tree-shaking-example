@@ -1597,7 +1597,7 @@ function watch$1(source, cb, options) {
 					}
 				}
 				try {
-					return call ? call(source, 3, [boundCleanup]) : source(boundCleanup);
+					return call ? call(source, 3, [boundCleanup]) : source();
 				} catch {}
 			};
 		}
@@ -1908,76 +1908,6 @@ function flushJobs() {
 		}
 	}
 }
-let devtools$1;
-let buffer = [];
-let devtoolsNotInstalled = false;
-function emit$1(event, ...args) {
-	if (devtools$1) {
-		devtools$1.emit(event, ...args);
-	} else if (!devtoolsNotInstalled) {
-		buffer.push({
-			event,
-			args
-		});
-	}
-}
-function setDevtoolsHook$1(hook, target) {
-	var _a, _b;
-	devtools$1 = hook;
-	if (devtools$1) {
-		devtools$1.enabled = true;
-		buffer.forEach(({ event, args }) => devtools$1.emit(event, ...args));
-		buffer = [];
-	} else if (typeof window !== "undefined" && window.HTMLElement && !((_b = (_a = window.navigator) == null ? void 0 : _a.userAgent) == null ? void 0 : _b.includes("jsdom"))) {
-		const replay = target.__VUE_DEVTOOLS_HOOK_REPLAY__ = target.__VUE_DEVTOOLS_HOOK_REPLAY__ || [];
-		replay.push((newHook) => {
-			setDevtoolsHook$1(newHook, target);
-		});
-		setTimeout(() => {
-			if (!devtools$1) {
-				target.__VUE_DEVTOOLS_HOOK_REPLAY__ = null;
-				devtoolsNotInstalled = true;
-				buffer = [];
-			}
-		}, 3e3);
-	} else {
-		devtoolsNotInstalled = true;
-		buffer = [];
-	}
-}
-function devtoolsInitApp(app) {
-	emit$1("app:init", app, "3.5.27", {
-		Fragment,
-		Text,
-		Comment,
-		Static
-	});
-}
-function devtoolsUnmountApp(app) {
-	emit$1("app:unmount", app);
-}
-const devtoolsComponentAdded = createDevtoolsComponentHook(
-	"component:added"
-	/* COMPONENT_ADDED */
-);
-const devtoolsComponentUpdated = createDevtoolsComponentHook(
-	"component:updated"
-	/* COMPONENT_UPDATED */
-);
-const _devtoolsComponentRemoved = createDevtoolsComponentHook("component:removed");
-const devtoolsComponentRemoved = (component) => {
-	if (devtools$1 && typeof devtools$1.cleanupBuffer === "function" && !devtools$1.cleanupBuffer(component)) {
-		_devtoolsComponentRemoved(component);
-	}
-};
-function createDevtoolsComponentHook(hook) {
-	return (component) => {
-		emit$1(hook, component.appContext.app, component.uid, component.parent ? component.parent.uid : void 0, component);
-	};
-}
-function devtoolsComponentEmit(component, event, params) {
-	emit$1("component:emit", component.appContext.app, component, event, params);
-}
 let currentRenderingInstance = null;
 let currentScopeId = null;
 function setCurrentRenderingInstance(instance) {
@@ -1995,9 +1925,6 @@ function withCtx(fn, ctx = currentRenderingInstance) {
 			res = fn(...args);
 		} finally {
 			setCurrentRenderingInstance(prevInstance);
-		}
-		if (__VUE_PROD_DEVTOOLS__) {
-			devtoolsComponentUpdated(ctx);
 		}
 		return res;
 	};
@@ -2067,7 +1994,7 @@ function provide(key, value) {
 		provides[key] = value;
 	}
 }
-function inject$1(key, defaultValue, treatDefaultAsFactory = false) {
+function inject(key, defaultValue, treatDefaultAsFactory = false) {
 	const instance = getCurrentInstance$1();
 	if (instance || currentApp) {
 		let provides = currentApp ? currentApp._context.provides : instance ? instance.parent == null || instance.ce ? instance.vnode.appContext && instance.vnode.appContext.provides : instance.parent.provides : void 0;
@@ -2081,7 +2008,7 @@ function inject$1(key, defaultValue, treatDefaultAsFactory = false) {
 const ssrContextKey = Symbol.for("v-scx");
 const useSSRContext = () => {
 	{
-		const ctx = inject$1(ssrContextKey);
+		const ctx = inject(ssrContextKey);
 		return ctx;
 	}
 };
@@ -2101,11 +2028,7 @@ function doWatch(source, cb, options = EMPTY_OBJ) {
 			const ctx = useSSRContext();
 			ssrCleanup = ctx.__watcherHandles || (ctx.__watcherHandles = []);
 		} else if (!runsImmediately) {
-			const watchStopHandle = () => {};
-			watchStopHandle.stop = NOOP;
-			watchStopHandle.resume = NOOP;
-			watchStopHandle.pause = NOOP;
-			return watchStopHandle;
+			return;
 		}
 	}
 	const instance = currentInstance;
@@ -2145,32 +2068,7 @@ function doWatch(source, cb, options = EMPTY_OBJ) {
 			watchHandle();
 		}
 	}
-	return watchHandle;
-}
-function instanceWatch(source, value, options) {
-	const publicThis = this.proxy;
-	const getter = isString(source) ? source.includes(".") ? createPathGetter(publicThis, source) : () => publicThis[source] : source.bind(publicThis, publicThis);
-	let cb;
-	if (isFunction(value)) {
-		cb = value;
-	} else {
-		cb = value.handler;
-		options = value;
-	}
-	const reset = setCurrentInstance(this);
-	const res = doWatch(getter, cb.bind(publicThis), options);
-	reset();
-	return res;
-}
-function createPathGetter(ctx, path) {
-	const segments = path.split(".");
-	return () => {
-		let cur = ctx;
-		for (let i = 0; i < segments.length && cur; i++) {
-			cur = cur[segments[i]];
-		}
-		return cur;
-	};
+	return;
 }
 const TeleportEndKey = Symbol("_vte");
 const isTeleport = (type) => type.__isTeleport;
@@ -2307,82 +2205,32 @@ getGlobalThis();
 getGlobalThis();
 const isAsyncWrapper = (i) => !!i.type.__asyncLoader;
 const isKeepAlive = (vnode) => vnode.type.__isKeepAlive;
-function onActivated(hook) {
-	registerKeepAliveHook(hook, "a", void 0);
-}
-function onDeactivated(hook) {
-	registerKeepAliveHook(hook, "da", void 0);
-}
-function registerKeepAliveHook(hook, type, target = currentInstance) {
-	const wrappedHook = hook.__wdc || (hook.__wdc = () => {
-		let current = target;
-		while (current) {
-			if (current.isDeactivated) {
-				return;
-			}
-			current = current.parent;
-		}
-		return hook();
-	});
-	injectHook(type, wrappedHook, target);
-	if (target) {
-		let current = target.parent;
-		while (current && current.parent) {
-			if (isKeepAlive(current.parent.vnode)) {
-				injectToKeepAliveRoot(wrappedHook, type, target, current);
-			}
-			current = current.parent;
-		}
-	}
-}
-function injectToKeepAliveRoot(hook, type, target, keepAliveRoot) {
-	const injected = injectHook(
-		type,
-		hook,
-		keepAliveRoot,
-		true
-		/* prepend */
-	);
-	onUnmounted(() => {
-		remove(keepAliveRoot[type], injected);
-	}, target);
-}
-function injectHook(type, hook, target = currentInstance, prepend = false) {
+function injectHook(type, hook, target = currentInstance) {
 	if (target) {
 		const hooks = target[type] || (target[type] = []);
-		const wrappedHook = hook.__weh || (hook.__weh = (...args) => {
+		const wrappedHook = hook.__weh = (...args) => {
 			pauseTracking();
 			const reset = setCurrentInstance(target);
 			const res = callWithAsyncErrorHandling(hook, target, type, args);
 			reset();
 			resetTracking();
 			return res;
-		});
-		if (prepend) {
-			hooks.unshift(wrappedHook);
-		} else {
-			hooks.push(wrappedHook);
+		};
+		{
+			{
+				hooks.push(wrappedHook);
+			}
 		}
-		return wrappedHook;
+		return;
 	}
 }
 const createHook = (lifecycle) => (hook, target = currentInstance) => {
-	if (!isInSSRComponentSetup || lifecycle === "sp") {
-		injectHook(lifecycle, (...args) => hook(...args), target);
+	if (!isInSSRComponentSetup || false) {
+		injectHook(lifecycle, () => (hook(), void 0), target);
 	}
 };
-const onBeforeMount = createHook("bm");
 const onMounted = createHook("m");
-const onBeforeUpdate = createHook("bu");
-const onUpdated = createHook("u");
 const onBeforeUnmount = createHook("bum");
-const onUnmounted = createHook("um");
-const onServerPrefetch = createHook("sp");
-const onRenderTriggered = createHook("rtg");
-const onRenderTracked = createHook("rtc");
-function onErrorCaptured(hook, target = currentInstance) {
-	injectHook("ec", hook, target);
-}
 const NULL_DYNAMIC_COMPONENT = Symbol.for("v-ndc");
 function resolveDynamicComponent() {
 	{
@@ -2425,12 +2273,12 @@ const publicPropertiesMap = extend(Object.create(null), {
 	$root: (i) => getPublicInstance(i.root),
 	$host: (i) => i.ce,
 	$emit: (i) => i.emit,
-	$options: (i) => __VUE_OPTIONS_API__ ? resolveMergedOptions(i) : i.type,
+	$options: (i) => i.type,
 	$forceUpdate: (i) => i.f || (i.f = () => {
 		queueJob(i.update);
 	}),
 	$nextTick: (i) => i.n || (i.n = nextTick.bind(i.proxy)),
-	$watch: (i) => __VUE_OPTIONS_API__ ? instanceWatch.bind(i) : NOOP
+	$watch: () => NOOP
 });
 const hasSetupBinding = (state, key) => state !== EMPTY_OBJ && !state.__isScriptSetup && hasOwn(state, key);
 const PublicInstanceProxyHandlers = {
@@ -2451,16 +2299,13 @@ const PublicInstanceProxyHandlers = {
 			} else if (hasSetupBinding(setupState, key)) {
 				accessCache[key] = 1;
 				return setupState[key];
-			} else if (__VUE_OPTIONS_API__ && data !== EMPTY_OBJ && hasOwn(data, key)) {
-				accessCache[key] = 2;
-				return data[key];
 			} else if (hasOwn(props, key)) {
 				accessCache[key] = 3;
 				return props[key];
 			} else if (ctx !== EMPTY_OBJ && hasOwn(ctx, key)) {
 				accessCache[key] = 4;
 				return ctx[key];
-			} else if (!__VUE_OPTIONS_API__ || shouldCacheAccess) {
+			} else {
 				accessCache[key] = 0;
 			}
 		}
@@ -2483,12 +2328,9 @@ const PublicInstanceProxyHandlers = {
 		}
 	},
 	set({ _: instance }, key, value) {
-		const { data, setupState, ctx } = instance;
+		const { setupState, ctx } = instance;
 		if (hasSetupBinding(setupState, key)) {
 			setupState[key] = value;
-			return true;
-		} else if (__VUE_OPTIONS_API__ && data !== EMPTY_OBJ && hasOwn(data, key)) {
-			data[key] = value;
 			return true;
 		} else if (hasOwn(instance.props, key)) {
 			return false;
@@ -2502,9 +2344,9 @@ const PublicInstanceProxyHandlers = {
 		}
 		return true;
 	},
-	has({ _: { data, setupState, accessCache, ctx, appContext, props, type } }, key) {
+	has({ _: { setupState, accessCache, ctx, appContext, props, type } }, key) {
 		let cssModules;
-		return !!(accessCache[key] || __VUE_OPTIONS_API__ && data !== EMPTY_OBJ && key[0] !== "$" && hasOwn(data, key) || hasSetupBinding(setupState, key) || hasOwn(props, key) || hasOwn(ctx, key) || hasOwn(publicPropertiesMap, key) || hasOwn(appContext.config.globalProperties, key) || (cssModules = type.__cssModules) && cssModules[key]);
+		return !!(accessCache[key] || false || hasSetupBinding(setupState, key) || hasOwn(props, key) || hasOwn(ctx, key) || hasOwn(publicPropertiesMap, key) || hasOwn(appContext.config.globalProperties, key) || (cssModules = type.__cssModules) && cssModules[key]);
 	},
 	defineProperty(target, key, descriptor) {
 		if (descriptor.get != null) {
@@ -2515,285 +2357,6 @@ const PublicInstanceProxyHandlers = {
 		return Reflect.defineProperty(target, key, descriptor);
 	}
 };
-function normalizePropsOrEmits(props) {
-	return isArray(props) ? props.reduce((normalized, p) => (normalized[p] = null, normalized), {}) : props;
-}
-let shouldCacheAccess = true;
-function applyOptions(instance) {
-	const options = resolveMergedOptions(instance);
-	const publicThis = instance.proxy;
-	const ctx = instance.ctx;
-	shouldCacheAccess = false;
-	if (options.beforeCreate) {
-		callHook(options.beforeCreate, instance, "bc");
-	}
-	const { data: dataOptions, computed: computedOptions, methods, watch: watchOptions, provide: provideOptions, inject: injectOptions, created, beforeMount, mounted, beforeUpdate, updated, activated, deactivated, beforeUnmount, unmounted, render, renderTracked, renderTriggered, errorCaptured, serverPrefetch, expose, inheritAttrs, components, directives } = options;
-	if (injectOptions) {
-		resolveInjections(injectOptions, ctx);
-	}
-	if (methods) {
-		for (const key in methods) {
-			const methodHandler = methods[key];
-			if (isFunction(methodHandler)) {
-				{
-					ctx[key] = methodHandler.bind(publicThis);
-				}
-			}
-		}
-	}
-	if (dataOptions) {
-		const data = dataOptions.call(publicThis, publicThis);
-		if (!!isObject$1(data)) {
-			instance.data = reactive(data);
-		}
-	}
-	shouldCacheAccess = true;
-	if (computedOptions) {
-		for (const key in computedOptions) {
-			const opt = computedOptions[key];
-			const get = isFunction(opt) ? opt.bind(publicThis, publicThis) : isFunction(opt.get) ? opt.get.bind(publicThis, publicThis) : NOOP;
-			const set = !isFunction(opt) && isFunction(opt.set) ? opt.set.bind(publicThis) : NOOP;
-			const c = computed({
-				a: get,
-				b: set
-			});
-			Object.defineProperty(ctx, key, {
-				enumerable: true,
-				configurable: true,
-				get: () => c.value,
-				set: (v) => c.value = v
-			});
-		}
-	}
-	if (watchOptions) {
-		for (const key in watchOptions) {
-			createWatcher(watchOptions[key], ctx, publicThis, key);
-		}
-	}
-	if (provideOptions) {
-		const provides = isFunction(provideOptions) ? provideOptions.call(publicThis) : provideOptions;
-		Reflect.ownKeys(provides).forEach((key) => {
-			provide(key, provides[key]);
-		});
-	}
-	if (created) {
-		callHook(created, instance, "c");
-	}
-	function registerLifecycleHook(register, hook) {
-		if (isArray(hook)) {
-			hook.forEach((_hook) => (register(_hook.bind(publicThis)), void 0));
-		} else if (hook) {
-			register(hook.bind(publicThis));
-		}
-	}
-	registerLifecycleHook(onBeforeMount, beforeMount);
-	registerLifecycleHook(onMounted, mounted);
-	registerLifecycleHook(onBeforeUpdate, beforeUpdate);
-	registerLifecycleHook(onUpdated, updated);
-	registerLifecycleHook(onActivated, activated);
-	registerLifecycleHook(onDeactivated, deactivated);
-	registerLifecycleHook(onErrorCaptured, errorCaptured);
-	registerLifecycleHook(onRenderTracked, renderTracked);
-	registerLifecycleHook(onRenderTriggered, renderTriggered);
-	registerLifecycleHook(onBeforeUnmount, beforeUnmount);
-	registerLifecycleHook(onUnmounted, unmounted);
-	registerLifecycleHook(onServerPrefetch, serverPrefetch);
-	if (isArray(expose)) {
-		if (expose.length) {
-			const exposed = instance.exposed || (instance.exposed = {});
-			expose.forEach((key) => {
-				Object.defineProperty(exposed, key, {
-					get: () => publicThis[key],
-					set: (val) => publicThis[key] = val,
-					enumerable: true
-				});
-			});
-		} else if (!instance.exposed) {
-			instance.exposed = {};
-		}
-	}
-	if (render && instance.render === NOOP) {
-		instance.render = render;
-	}
-	if (inheritAttrs != null) {
-		instance.inheritAttrs = inheritAttrs;
-	}
-	if (components) instance.components = components;
-	if (directives) instance.directives = directives;
-	if (serverPrefetch) {
-		markAsyncBoundary(instance);
-	}
-}
-function resolveInjections(injectOptions, ctx) {
-	if (isArray(injectOptions)) {
-		injectOptions = normalizeInject(injectOptions);
-	}
-	for (const key in injectOptions) {
-		const opt = injectOptions[key];
-		let injected;
-		if (isObject$1(opt)) {
-			if ("default" in opt) {
-				injected = inject$1(opt.from || key, opt.default, true);
-			} else {
-				injected = inject$1(opt.from || key);
-			}
-		} else {
-			injected = inject$1(opt);
-		}
-		if (isRef(injected)) {
-			Object.defineProperty(ctx, key, {
-				enumerable: true,
-				configurable: true,
-				get: () => injected.value,
-				set: (v) => injected.value = v
-			});
-		} else {
-			ctx[key] = injected;
-		}
-	}
-}
-function callHook(hook, instance, type) {
-	callWithAsyncErrorHandling(isArray(hook) ? hook.map((h) => h.bind(instance.proxy)) : hook.bind(instance.proxy), instance, type);
-}
-function createWatcher(raw, ctx, publicThis, key) {
-	let getter = key.includes(".") ? createPathGetter(publicThis, key) : () => publicThis[key];
-	if (isString(raw)) {
-		const handler = ctx[raw];
-		if (isFunction(handler)) {
-			{
-				watch(getter, handler);
-			}
-		}
-	} else if (isFunction(raw)) {
-		{
-			watch(getter, raw.bind(publicThis));
-		}
-	} else if (isObject$1(raw)) {
-		if (isArray(raw)) {
-			raw.forEach((r) => createWatcher(r, ctx, publicThis, key));
-		} else {
-			const handler = isFunction(raw.handler) ? raw.handler.bind(publicThis) : ctx[raw.handler];
-			if (isFunction(handler)) {
-				watch(getter, handler, raw);
-			}
-		}
-	}
-}
-function resolveMergedOptions(instance) {
-	const base = instance.type;
-	const { mixins, extends: extendsOptions } = base;
-	const { mixins: globalMixins, optionsCache: cache, config: { optionMergeStrategies } } = instance.appContext;
-	const cached = cache.get(base);
-	let resolved;
-	if (cached) {
-		resolved = cached;
-	} else if (!globalMixins.length && !mixins && !extendsOptions) {
-		{
-			resolved = base;
-		}
-	} else {
-		resolved = {};
-		if (globalMixins.length) {
-			globalMixins.forEach((m) => mergeOptions(resolved, m, optionMergeStrategies, true));
-		}
-		mergeOptions(resolved, base, optionMergeStrategies);
-	}
-	if (isObject$1(base)) {
-		cache.set(base, resolved);
-	}
-	return resolved;
-}
-function mergeOptions(to, from, strats, asMixin = false) {
-	const { mixins, extends: extendsOptions } = from;
-	if (extendsOptions) {
-		mergeOptions(to, extendsOptions, strats, true);
-	}
-	if (mixins) {
-		mixins.forEach((m) => mergeOptions(to, m, strats, true));
-	}
-	for (const key in from) {
-		if (!(asMixin && key === "expose")) {
-			const strat = internalOptionMergeStrats[key] || strats && strats[key];
-			to[key] = strat ? strat(to[key], from[key]) : from[key];
-		}
-	}
-	return to;
-}
-const internalOptionMergeStrats = {
-	data: mergeDataFn,
-	props: mergeEmitsOrPropsOptions,
-	emits: mergeEmitsOrPropsOptions,
-	methods: mergeObjectOptions,
-	computed: mergeObjectOptions,
-	beforeCreate: mergeAsArray,
-	created: mergeAsArray,
-	beforeMount: mergeAsArray,
-	mounted: mergeAsArray,
-	beforeUpdate: mergeAsArray,
-	updated: mergeAsArray,
-	beforeDestroy: mergeAsArray,
-	beforeUnmount: mergeAsArray,
-	destroyed: mergeAsArray,
-	unmounted: mergeAsArray,
-	activated: mergeAsArray,
-	deactivated: mergeAsArray,
-	errorCaptured: mergeAsArray,
-	serverPrefetch: mergeAsArray,
-	components: mergeObjectOptions,
-	directives: mergeObjectOptions,
-	watch: mergeWatchOptions,
-	provide: mergeDataFn,
-	inject: mergeInject
-};
-function mergeDataFn(to, from) {
-	if (!from) {
-		return to;
-	}
-	if (!to) {
-		return from;
-	}
-	return function() {
-		return extend(isFunction(to) ? to.call(this, this) : to, isFunction(from) ? from.call(this, this) : from);
-	};
-}
-function mergeInject(to, from) {
-	return mergeObjectOptions(normalizeInject(to), normalizeInject(from));
-}
-function normalizeInject(raw) {
-	if (isArray(raw)) {
-		const res = {};
-		for (let i = 0; i < raw.length; i++) {
-			res[raw[i]] = raw[i];
-		}
-		return res;
-	}
-	return raw;
-}
-function mergeAsArray(to, from) {
-	return to ? [...new Set([].concat(to, from))] : from;
-}
-function mergeObjectOptions(to, from) {
-	return to ? extend(Object.create(null), to, from) : from;
-}
-function mergeEmitsOrPropsOptions(to, from) {
-	if (to) {
-		if (isArray(to) && isArray(from)) {
-			return [...new Set([...to, ...from])];
-		}
-		return extend(Object.create(null), normalizePropsOrEmits(to), normalizePropsOrEmits(from != null ? from : {}));
-	} else {
-		return from;
-	}
-}
-function mergeWatchOptions(to, from) {
-	if (!to) return from;
-	if (!from) return to;
-	const merged = extend(Object.create(null), to);
-	for (const key in from) {
-		merged[key] = mergeAsArray(to[key], from[key]);
-	}
-	return merged;
-}
 function createAppContext() {
 	return {
 		app: null,
@@ -2850,12 +2413,7 @@ function createAppAPI(render) {
 				}
 				return app;
 			},
-			mixin(mixin) {
-				if (__VUE_OPTIONS_API__) {
-					if (!context.mixins.includes(mixin)) {
-						context.mixins.push(mixin);
-					}
-				}
+			mixin() {
 				return app;
 			},
 			component(name, component) {
@@ -2882,10 +2440,6 @@ function createAppAPI(render) {
 					isMounted = true;
 					app._container = rootContainer;
 					rootContainer.__vue_app__ = app;
-					if (__VUE_PROD_DEVTOOLS__) {
-						app._instance = vnode.component;
-						devtoolsInitApp(app);
-					}
 					return getComponentPublicInstance(vnode.component);
 				}
 			},
@@ -2896,10 +2450,6 @@ function createAppAPI(render) {
 				if (isMounted) {
 					callWithAsyncErrorHandling(pluginCleanupFns, app._instance, 16);
 					render(null, app._container);
-					if (__VUE_PROD_DEVTOOLS__) {
-						app._instance = null;
-						devtoolsUnmountApp(app);
-					}
 					delete app._container.__vue_app__;
 				}
 			},
@@ -2938,9 +2488,6 @@ function emit(instance, event, ...rawArgs) {
 			args = rawArgs.map(looseToNumber);
 		}
 	}
-	if (__VUE_PROD_DEVTOOLS__) {
-		devtoolsComponentEmit(instance, event, args);
-	}
 	let handlerName;
 	let handler = props[handlerName = toHandlerKey(event)] || props[handlerName = toHandlerKey(camelize(event))];
 	if (!handler && isModelListener) {
@@ -2960,35 +2507,15 @@ function emit(instance, event, ...rawArgs) {
 		callWithAsyncErrorHandling(onceHandler, instance, 6, args);
 	}
 }
-const mixinEmitsCache = new WeakMap();
-function normalizeEmitsOptions(comp, appContext, asMixin = false) {
-	const cache = __VUE_OPTIONS_API__ && asMixin ? mixinEmitsCache : appContext.emitsCache;
+function normalizeEmitsOptions(comp, appContext) {
+	const cache = appContext.emitsCache;
 	const cached = cache.get(comp);
 	if (cached !== void 0) {
 		return cached;
 	}
 	const raw = comp.emits;
 	let normalized = {};
-	let hasExtends = false;
-	if (__VUE_OPTIONS_API__ && !isFunction(comp)) {
-		const extendEmits = (raw2) => {
-			const normalizedFromExtend = normalizeEmitsOptions(raw2, appContext, true);
-			if (normalizedFromExtend) {
-				hasExtends = true;
-				extend(normalized, normalizedFromExtend);
-			}
-		};
-		if (!asMixin && appContext.mixins.length) {
-			appContext.mixins.forEach(extendEmits);
-		}
-		if (comp.extends) {
-			extendEmits(comp.extends);
-		}
-		if (comp.mixins) {
-			comp.mixins.forEach(extendEmits);
-		}
-	}
-	if (!raw && !hasExtends) {
+	if (!raw && true) {
 		if (isObject$1(comp)) {
 			cache.set(comp, null);
 		}
@@ -3302,9 +2829,8 @@ function resolvePropValue(options, props, key, value, instance, isAbsent) {
 	}
 	return value;
 }
-const mixinPropsCache = new WeakMap();
-function normalizePropsOptions(comp, appContext, asMixin = false) {
-	const cache = __VUE_OPTIONS_API__ && asMixin ? mixinPropsCache : appContext.propsCache;
+function normalizePropsOptions(comp, appContext) {
+	const cache = appContext.propsCache;
 	const cached = cache.get(comp);
 	if (cached) {
 		return cached;
@@ -3312,25 +2838,7 @@ function normalizePropsOptions(comp, appContext, asMixin = false) {
 	const raw = comp.props;
 	const normalized = {};
 	const needCastKeys = [];
-	let hasExtends = false;
-	if (__VUE_OPTIONS_API__ && !isFunction(comp)) {
-		const extendProps = (raw2) => {
-			hasExtends = true;
-			const [props, keys] = normalizePropsOptions(raw2, appContext, true);
-			extend(normalized, props);
-			if (keys) needCastKeys.push(...keys);
-		};
-		if (!asMixin && appContext.mixins.length) {
-			appContext.mixins.forEach(extendProps);
-		}
-		if (comp.extends) {
-			extendProps(comp.extends);
-		}
-		if (comp.mixins) {
-			comp.mixins.forEach(extendProps);
-		}
-	}
-	if (!raw && !hasExtends) {
+	if (!raw && true) {
 		if (isObject$1(comp)) {
 			cache.set(comp, EMPTY_ARR);
 		}
@@ -3468,12 +2976,6 @@ const updateSlots = (instance, children, optimized) => {
 	}
 };
 function initFeatureFlags() {
-	if (typeof __VUE_OPTIONS_API__ !== "boolean") {
-		getGlobalThis().__VUE_OPTIONS_API__ = true;
-	}
-	if (typeof __VUE_PROD_DEVTOOLS__ !== "boolean") {
-		getGlobalThis().__VUE_PROD_DEVTOOLS__ = false;
-	}
 	if (typeof __VUE_PROD_HYDRATION_MISMATCH_DETAILS__ !== "boolean") {
 		getGlobalThis().__VUE_PROD_HYDRATION_MISMATCH_DETAILS__ = false;
 	}
@@ -3488,9 +2990,6 @@ function baseCreateRenderer(options) {
 	}
 	const target = getGlobalThis();
 	target.__VUE__ = true;
-	if (__VUE_PROD_DEVTOOLS__) {
-		setDevtoolsHook$1(target.__VUE_DEVTOOLS_GLOBAL_HOOK__, target);
-	}
 	const { insert: hostInsert, remove: hostRemove, patchProp: hostPatchProp, createElement: hostCreateElement, createText: hostCreateText, createComment: hostCreateComment, setText: hostSetText, setElementText: hostSetElementText, parentNode: hostParentNode, nextSibling: hostNextSibling, setScopeId: hostSetScopeId, insertStaticContent: hostInsertStaticContent } = options;
 	const patch = (n1, n2, container, anchor = null, parentComponent = null, parentSuspense = null, namespace = void 0, slotScopeIds = null, optimized = !!n2.dynamicChildren) => {
 		if (n1 === n2) {
@@ -3626,10 +3125,6 @@ function baseCreateRenderer(options) {
 				invokeVNodeHook(vnodeHook, parentComponent, vnode);
 			}
 		}
-		if (__VUE_PROD_DEVTOOLS__) {
-			def(el, "__vnode", vnode, true);
-			def(el, "__vueParentComponent", parentComponent, true);
-		}
 		if (dirs) {
 			invokeDirectiveHook(vnode, null, parentComponent, "beforeMount");
 		}
@@ -3671,9 +3166,6 @@ function baseCreateRenderer(options) {
 	};
 	const patchElement = (n1, n2, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => {
 		const el = n2.el = n1.el;
-		if (__VUE_PROD_DEVTOOLS__) {
-			el.__vnode = n2;
-		}
 		let { patchFlag, dynamicChildren, dirs } = n2;
 		patchFlag |= n1.patchFlag & 16;
 		const oldProps = n1.props || EMPTY_OBJ;
@@ -3883,9 +3375,6 @@ function baseCreateRenderer(options) {
 					instance.a && queuePostRenderEffect(instance.a, parentSuspense);
 				}
 				instance.isMounted = true;
-				if (__VUE_PROD_DEVTOOLS__) {
-					devtoolsComponentAdded(instance);
-				}
 				initialVNode = container = anchor = null;
 			} else {
 				let { next, bu, u, parent, vnode } = instance;
@@ -3943,9 +3432,6 @@ function baseCreateRenderer(options) {
 				}
 				if (vnodeHook = next.props && next.props.onVnodeUpdated) {
 					queuePostRenderEffect(() => (invokeVNodeHook(vnodeHook, parent, next, vnode), void 0), parentSuspense);
-				}
-				if (__VUE_PROD_DEVTOOLS__) {
-					devtoolsComponentUpdated(instance);
 				}
 			}
 		};
@@ -4303,9 +3789,6 @@ function baseCreateRenderer(options) {
 		queuePostRenderEffect(() => {
 			instance.isUnmounted = true;
 		}, parentSuspense);
-		if (__VUE_PROD_DEVTOOLS__) {
-			devtoolsComponentRemoved(instance);
-		}
 	};
 	const unmountChildren = (children, parentComponent, parentSuspense, doRemove = false, optimized = false, start = 0) => {
 		for (let i = start; i < children.length; i++) {
@@ -4872,9 +4355,6 @@ function handleSetupResult(instance, setupResult) {
 			instance.render = setupResult;
 		}
 	} else if (isObject$1(setupResult)) {
-		if (__VUE_PROD_DEVTOOLS__) {
-			instance.devtoolsRawSetupState = setupResult;
-		}
 		instance.setupState = proxyRefs(setupResult);
 	}
 	finishComponentSetup(instance);
@@ -4883,16 +4363,6 @@ function finishComponentSetup(instance) {
 	const Component = instance.type;
 	if (!instance.render) {
 		instance.render = Component.render || NOOP;
-	}
-	if (__VUE_OPTIONS_API__ && true) {
-		const reset = setCurrentInstance(instance);
-		pauseTracking();
-		try {
-			applyOptions(instance);
-		} finally {
-			resetTracking();
-			reset();
-		}
 	}
 }
 const attrsProxyHandlers = { get(target, key) {
@@ -6065,7 +5535,7 @@ function createDefaults(options) {
 	return ref(options);
 }
 function injectDefaults() {
-	const defaults = inject$1(DefaultsSymbol);
+	const defaults = inject(DefaultsSymbol);
 	if (!defaults) throw new Error("[Vuetify] Could not find defaults instance");
 	return defaults;
 }
@@ -6319,7 +5789,7 @@ const generateLayers = (layout, positions, layoutSizes, activeItems) => {
 	return layers;
 };
 function createLayout(props) {
-	const parentLayout = inject$1(VuetifyLayoutKey, null);
+	const parentLayout = inject(VuetifyLayoutKey, null);
 	const rootZIndex = computed(() => parentLayout ? parentLayout.rootZIndex.value - 100 : 1e3);
 	const registered = ref([]);
 	const positions = reactive(new Map());
@@ -6854,7 +6324,7 @@ function createRtl(i18n, options) {
 	};
 }
 function useRtl() {
-	const locale = inject$1(LocaleSymbol);
+	const locale = inject(LocaleSymbol);
 	if (!locale) throw new Error("[Vuetify] Could not find injected rtl instance");
 	return {
 		a: locale.isRtl,
@@ -7226,7 +6696,7 @@ function createTheme(options) {
 }
 function provideTheme(props) {
 	getCurrentInstance("provideTheme");
-	const theme = inject$1(ThemeSymbol, null);
+	const theme = inject(ThemeSymbol, null);
 	if (!theme) throw new Error("Could not find Vuetify theme injection");
 	const name = toRef(() => props.theme ?? theme.name.value);
 	const current = toRef(() => theme.themes.value[name.value]);
@@ -7242,7 +6712,7 @@ function provideTheme(props) {
 }
 function useTheme() {
 	getCurrentInstance("useTheme");
-	const theme = inject$1(ThemeSymbol, null);
+	const theme = inject(ThemeSymbol, null);
 	if (!theme) throw new Error("Could not find Vuetify theme injection");
 	return theme;
 }
@@ -7572,7 +7042,7 @@ function useGroupItem(props, injectKey) {
 	}
 	const id = useId();
 	provide(Symbol.for(`${injectKey.description}:id`), id);
-	const group = inject$1(injectKey, null);
+	const group = inject(injectKey, null);
 	if (!group) {
 		if (!required) return group;
 		throw new Error(`[Vuetify] Could not find useGroup injection with symbol ${injectKey.description}`);
@@ -7590,7 +7060,7 @@ function useGroupItem(props, injectKey) {
 		group?.unregister(id);
 	}
 	register();
-	onBeforeUnmount(() => (unregister(), void 0));
+	onBeforeUnmount(() => unregister());
 	const isSelected = computed(() => {
 		return group.isSelected(id);
 	});
@@ -7694,7 +7164,7 @@ const VClassIcon = defineComponent({
 	}
 });
 const useIcon = (props) => {
-	const icons = inject$1(IconSymbol);
+	const icons = inject(IconSymbol);
 	if (!icons) throw new Error("Missing Vuetify Icons provide!");
 	const iconData = computed(() => {
 		const iconAlias = toValue(props);
@@ -9565,18 +9035,6 @@ function createVuetify() {
 					};
 				}
 			}
-			if (typeof __VUE_OPTIONS_API__ !== "boolean" || __VUE_OPTIONS_API__) {
-				app.mixin({ computed: { $vuetify() {
-					return reactive({
-						defaults: inject.call(this, DefaultsSymbol),
-						display: inject.call(this, DisplaySymbol),
-						theme: inject.call(this, ThemeSymbol),
-						icons: inject.call(this, IconSymbol),
-						locale: inject.call(this, LocaleSymbol),
-						date: inject.call(this, DateAdapterSymbol)
-					});
-				} } });
-			}
 		}
 		function unmount() {
 			scope.stop();
@@ -9593,14 +9051,6 @@ function createVuetify() {
 			goTo
 		};
 	});
-}
-// Vue's inject() can only be used in setup
-function inject(key) {
-	const vm = this.$;
-	const provides = vm.parent?.provides ?? vm.vnode.appContext?.provides;
-	if (provides && key in provides) {
-		return provides[key];
-	}
 }
 const App = defineComponent$1({ render() {
 	return h(VApp, [h(VBtn, "Hello World")]);
