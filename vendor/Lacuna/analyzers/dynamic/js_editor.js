@@ -92,12 +92,15 @@ module.exports = function()
 
 		let last_function = null;
 
-		const ast = espree.parse(source, {ecmaVersion: 14,
-			range: true, 
+		const ast = espree.parse(source, {
+			ecmaVersion: 14,
+			sourceType: 'module', // Support ES modules (import/export)
+			range: true,
 			ecmaFeatures: {
 			   jsx: true,
 			   globalReturn: true
-			}});
+			}
+		});
 
 		traverseAST(ast, (node) => {
 			// Process each node here
