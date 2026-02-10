@@ -6,16 +6,11 @@ const TOOLCHAINS: Record<string, string> = {
   "rollup_jsshaker_terser": "JsShaker",
   "rollup_gcc_terser": "CC\\textsubscript{Simp.}",
   "rollup_gccAdv_terser": "CC\\textsubscript{Adv.}",
-  "rollup_lacuna_terser": "Lacuna",
+  "rollup_lacuna2_terser": "Lacuna\\textsubscript{O2}",
+  "rollup_lacuna3_terser": "Lacuna\\textsubscript{O3}",
 };
 
-// Flags for specific toolchains (optional)
-const FAILS = [
-  /^rollup_lacuna_terser:(?!react-icons)/,
-  /^rollup_gccAdv_terser:(lodash|sentry|react-icons|material-ui)$/
-];
-
-const SHOW_GZ = false;
+const SHOW_GZ = true;
 
 interface ToolchainData {
   size: number;
@@ -30,9 +25,22 @@ interface ParsedData {
   [testcase: string]: TestCaseData;
 }
 
+interface FailedTests {
+  [optimizer: string]: string[];
+}
+
 function loadSizes(filename: string = "sizes.json"): Record<string, number> {
   const content = fs.readFileSync(filename, 'utf-8');
   return JSON.parse(content);
+}
+
+function loadFailedTests(filename: string = "failed.json"): FailedTests {
+  try {
+    const content = fs.readFileSync(filename, 'utf-8');
+    return JSON.parse(content);
+  } catch (e) {
+    return {};
+  }
 }
 
 function parseData(sizes: Record<string, number>, toolchains: Record<string, string>): ParsedData {
@@ -66,7 +74,7 @@ function parseData(sizes: Record<string, number>, toolchains: Record<string, str
   return data;
 }
 
-function generateLatexTable(data: ParsedData, toolchains: Record<string, string>): string {
+function generateLatexTable(data: ParsedData, toolchains: Record<string, string>, failedTests: FailedTests): string {
   const testcases = Object.keys(data).sort();
   const toolchainKeys = Object.keys(toolchains);
   const baselineToolchain = toolchainKeys[0];
@@ -110,8 +118,13 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
     const reductions: Array<{ index: number; value: number; failed: boolean; allFail: boolean }> = [];
     for (let i = 1; i < toolchainKeys.length; i++) {
       const toolchain = toolchainKeys[i];
-      const combinedKey = `${toolchain}:${testcase}`;
-      const isAllFail = FAILS.some(pattern => pattern.test(combinedKey));
+
+      // Check if this toolchain has been tested
+      if (failedTests[toolchain] === undefined) {
+        throw new Error(`Toolchain "${toolchain}" not found in failed.json. Please run verify for this toolchain first.`);
+      }
+
+      const isAllFail = failedTests[toolchain].includes(testcase);
 
       if (!testcaseData[toolchain]) {
         reductions.push({ index: i, value: -Infinity, failed: false, allFail: isAllFail });
@@ -186,12 +199,13 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
 function main() {
   // Load data
   const sizes = loadSizes();
+  const failedTests = loadFailedTests();
 
   // Parse data
   const data = parseData(sizes, TOOLCHAINS);
 
   // Generate LaTeX table
-  const latexTable = generateLatexTable(data, TOOLCHAINS);
+  const latexTable = generateLatexTable(data, TOOLCHAINS, failedTests);
 
   // Output to console
   console.log(latexTable);

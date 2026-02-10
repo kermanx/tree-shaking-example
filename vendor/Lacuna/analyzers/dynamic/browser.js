@@ -12,7 +12,7 @@ const logger = require("../../_logger");
 
 const express = require('express');
 var app = express();
-const port = 8012;
+let portCounter = 8012;
 
 module.exports = function()
 {
@@ -37,7 +37,7 @@ module.exports = function()
 		}
 		app.use(express.static(dir));
 		
-		
+		const port = portCounter++;
 		this.server = app.listen(port, () => {
 			logger.info(`Analyzer[dynamic] localhost:${port}`)
 			logger.debug(`Hosting: ${dir}/${entry}`);

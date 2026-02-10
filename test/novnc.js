@@ -5,6 +5,7 @@
 
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import { JSDOM } from 'jsdom';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,13 +18,55 @@ if (!bundlePath) {
   process.exit(1);
 }
 
+function getInitialHTML() {
+  // Read vnc.html and extract body content
+  const vncHtmlPath = path.join(__dirname, '../vendor/noVNC/vnc.html');
+  const vncHtml = readFileSync(vncHtmlPath, 'utf-8');
+
+  // Parse the HTML to extract body content
+  const tempDom = new JSDOM(vncHtml);
+  return tempDom.window.document.body.innerHTML;
+}
+
+function serializeDOM(document) {
+  // Serialize the DOM tree to a comparable string
+  return document.body.innerHTML;
+}
+
+function waitForDOMChanges(window, timeout = 1000) {
+  return new Promise((resolve) => {
+    let timeoutId;
+    const observer = new window.MutationObserver(() => {
+      // Reset timeout on each mutation
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        observer.disconnect();
+        resolve();
+      }, 100); // Wait 100ms after last mutation
+    });
+
+    observer.observe(window.document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
+    });
+
+    // Fallback timeout
+    setTimeout(() => {
+      observer.disconnect();
+      resolve();
+    }, timeout);
+  });
+}
+
 async function runInDom(modulePath) {
+  const initialHTML = getInitialHTML();
+
   const dom = new JSDOM(`<!DOCTYPE html>
 <html>
 <body>
-  <div id="noVNC_control_bar"></div>
-  <div id="noVNC_status"></div>
-  <canvas id="noVNC_canvas"></canvas>
+${initialHTML}
 </body>
 </html>`, {
     url: 'http://localhost',
@@ -35,6 +78,7 @@ async function runInDom(modulePath) {
   const navigatorDescriptor = Object.getOwnPropertyDescriptor(global, 'navigator');
   const originalWebSocket = global.WebSocket;
   const originalMutationObserver = global.MutationObserver;
+  const originalLocalStorage = global.localStorage;
 
   try {
     global.window = dom.window;
@@ -45,17 +89,25 @@ async function runInDom(modulePath) {
       configurable: true
     });
     global.WebSocket = class MockWebSocket {};
+    global.MutationObserver = dom.window.MutationObserver;
 
-    // Mock MutationObserver for noVNC
-    global.MutationObserver = class MockMutationObserver {
-      constructor() {}
-      observe() {}
-      disconnect() {}
+    // Mock localStorage
+    const storage = new Map();
+    global.localStorage = {
+      getItem: (key) => storage.get(key) || null,
+      setItem: (key, value) => storage.set(key, value),
+      removeItem: (key) => storage.delete(key),
+      clear: () => storage.clear(),
+      get length() { return storage.size; },
+      key: (index) => Array.from(storage.keys())[index] || null,
     };
 
     await import(modulePath);
 
-    return true;
+    // Wait for DOM changes to complete
+    await waitForDOMChanges(dom.window);
+
+    return serializeDOM(dom.window.document);
   } finally {
     if (originalWindow !== undefined) global.window = originalWindow;
     else delete global.window;
@@ -70,18 +122,30 @@ async function runInDom(modulePath) {
     else delete global.WebSocket;
     if (originalMutationObserver !== undefined) global.MutationObserver = originalMutationObserver;
     else delete global.MutationObserver;
+    if (originalLocalStorage !== undefined) global.localStorage = originalLocalStorage;
+    else delete global.localStorage;
   }
 }
 
 try {
   // Run the original source file
-  await runInDom(path.join(__dirname, '../src/novnc.js'));
+  const originalDOM = await runInDom(path.join(__dirname, '../src/novnc.js'));
 
   // Run the bundled file
-  await runInDom(path.resolve(bundlePath));
+  const bundledDOM = await runInDom(path.resolve(bundlePath));
 
-  console.log('✅ Test passed: Both original and bundled files loaded successfully');
-  process.exit(0);
+  // Compare DOM trees
+  if (originalDOM === bundledDOM) {
+    console.log('✅ Test passed: DOM trees match');
+    process.exit(0);
+  } else {
+    console.error('❌ Test failed: DOM trees do not match');
+    console.error('\n=== Original DOM ===');
+    console.error(originalDOM.substring(0, 500));
+    console.error('\n=== Bundled DOM ===');
+    console.error(bundledDOM.substring(0, 500));
+    process.exit(1);
+  }
 } catch (error) {
   console.error('❌ Test failed with error:', error.message);
   console.error(error.stack);

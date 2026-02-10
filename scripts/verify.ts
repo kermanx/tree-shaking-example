@@ -1,7 +1,26 @@
 import { parseArgs } from 'node:util';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { getTestCaseNames } from './config.ts';
+
+interface FailedTests {
+  [optimizer: string]: string[];
+}
+
+function loadFailedTests(): FailedTests {
+  const failedPath = path.join(process.cwd(), 'failed.json');
+  if (existsSync(failedPath)) {
+    const content = readFileSync(failedPath, 'utf-8');
+    return JSON.parse(content);
+  }
+  return {};
+}
+
+function saveFailedTests(failed: FailedTests): void {
+  const failedPath = path.join(process.cwd(), 'failed.json');
+  writeFileSync(failedPath, JSON.stringify(failed, null, 2));
+}
 
 async function main() {
   const args = parseArgs({
@@ -19,15 +38,22 @@ async function main() {
   const names = !name ? allNames : [name];
   const resolvedOptimizers = resolveOptimizers(optimizers);
 
+  // Load existing failed tests
+  const failedTests = loadFailedTests();
+
   for (const optimizers of resolvedOptimizers) {
     const optimizerStr = optimizers.join('_');
     const bundlerName = bundler || 'rollup';
+    const toolchainKey = `${bundlerName}${optimizerStr ? '_' + optimizerStr : ''}`;
+
+    // Initialize or clear the failed list for this optimizer
+    failedTests[toolchainKey] = [];
 
     for (const testName of names) {
       const bundledPath = path.join(
         process.cwd(),
         'dist',
-        `${testName}_${bundlerName}${optimizerStr ? '_' + optimizerStr : ''}.js`
+        `${testName}_${toolchainKey}.js`
       );
 
       const testPath = path.join(process.cwd(), 'test', `${testName}.js`);
@@ -40,15 +66,20 @@ async function main() {
         console.log(`✅ ${bundledPath}`);
       } catch (error: any) {
         console.log(`❌ ${bundledPath}`);
-        // if (error.stdout) {
-        //   console.log('   ' + error.stdout.trim().replace(/\n/g, '\n   '));
-        // }
-        // if (error.stderr) {
-        //   console.log('   ' + error.stderr.trim().replace(/\n/g, '\n   '));
-        // }
+        failedTests[toolchainKey].push(testName);
+        if (error.stdout) {
+          console.log('   ' + error.stdout.trim().replace(/\n/g, '\n   '));
+        }
+        if (error.stderr) {
+          console.log('   ' + error.stderr.trim().replace(/\n/g, '\n   '));
+        }
       }
     }
   }
+
+  // Save updated failed tests
+  saveFailedTests(failedTests);
+  console.log('\nFailed tests saved to failed.json');
 }
 
 main();

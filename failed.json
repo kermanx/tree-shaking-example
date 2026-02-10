@@ -1,0 +1,63 @@
+{
+  "rollup_lacuna2_terser": [
+    "glob",
+    "novnc",
+    "vuetify",
+    "js-yaml",
+    "sentry",
+    "material-ui",
+    "rxjs",
+    "antd"
+  ],
+  "rollup_terser": [],
+  "rollup_jsshaker_terser": [],
+  "rollup_gcc_terser": [
+    "glob"
+  ],
+  "rollup_gccAdv_terser": [
+    "glob",
+    "novnc",
+    "js-yaml",
+    "react-icons",
+    "sentry",
+    "material-ui",
+    "lodash",
+    "lodash-es",
+    "antd"
+  ],
+  "rollup_lacuna3_terser": [
+    "glob",
+    "novnc",
+    "vuetify",
+    "js-yaml",
+    "react-icons",
+    "remeda",
+    "sentry",
+    "material-ui",
+    "lodash",
+    "lodash-es",
+    "rxjs",
+    "antd"
+  ],
+  "rollup": [],
+  "rollup_lacuna1": [
+    "glob",
+    "novnc",
+    "vuetify",
+    "js-yaml",
+    "sentry",
+    "material-ui",
+    "rxjs",
+    "antd"
+  ],
+  "rollup_lacuna1_terser": [
+    "glob",
+    "novnc",
+    "vuetify",
+    "js-yaml",
+    "sentry",
+    "material-ui",
+    "rxjs",
+    "antd"
+  ]
+}

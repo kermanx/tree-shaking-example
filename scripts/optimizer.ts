@@ -159,22 +159,6 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     })
     return res.code;
   },
-  async lacuna({ code }) {
-    // Dynamic + Jelly version (current)
-    return lacuna({
-      code,
-      analyzers: { dynamic: 0.5, jelly: 0.5 },
-      optimizationLevel: 2
-    });
-
-    // Dynamic + TAJS version (commented out)
-    // Note: TAJS only supports ES5, requires ES modules stubbing
-    // return lacuna({
-    //   code,
-    //   analyzers: { dynamic: 1.0, tajs: 0.5 },
-    //   optimizationLevel: 2
-    // });
-  },
   async lacuna1({ code }) {
     return lacuna({
       code,

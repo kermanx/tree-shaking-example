@@ -1,4 +1,5 @@
 {
   "diffEditor.renderIndicators": false,
-  "diffEditor.diffAlgorithm": "legacy"
+  "diffEditor.diffAlgorithm": "legacy",
+  "remote.autoForwardPorts": false,
 }
