@@ -1,28 +1,28 @@
 import { bundlers } from './bundle.ts';
 import { Optimizers } from './optimizer.ts';
 import { shakeSingleModule } from 'jsshaker';
-import { readdirSync, readFileSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { gccWithTiming } from './cc.ts';
 import { getTestCaseConfig } from './config.ts';
 
 const WARMUP_RUNS = 1;
 const BENCHMARK_RUNS = 3;
+const DEFAULT_DEPTH = 2;
 
-type OptimizerType = 'jsshaker' | 'terser' | 'rollup' | 'gcc' | 'lacuna';
+type OptimizerType = 'jsshaker' | 'terser' | 'rollup' | 'gcc' | 'gccAdv' | 'lacuna';
 
 async function benchmarkJsshaker() {
   const distFolder = join(import.meta.dirname, '../dist');
   const srcFolder = join(import.meta.dirname, '../src');
-  const srcFiles = readdirSync(srcFolder).filter(f => f.endsWith('.js'));
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
   for (const file of srcFiles) {
     const name = file.replace('.js', '');
     const bundledPath = join(distFolder, `${name}_rollup.js`);
     console.log(`[${name}] Loading ${bundledPath}...`);
-    bundled[name] = readFileSync(bundledPath, 'utf-8');
+    bundled[name] = await readFile(bundledPath, 'utf-8');
   }
 
   const results: Record<number, Record<string, number>> = {};
@@ -69,19 +69,25 @@ async function benchmarkJsshaker() {
 
   await writeFile(join(import.meta.dirname, '../maxRecursionDepth.json'), JSON.stringify(results, null, 2));
   console.log('\nResults saved to maxRecursionDepth.json');
+
+  // Also save depth=DEFAULT_DEPTH results to time.json
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  timeData.jsshaker = results[DEFAULT_DEPTH];
+  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
+  console.log(`Results for depth=${DEFAULT_DEPTH} saved to time.json`);
 }
 
 async function benchmarkTerser() {
   const distFolder = join(import.meta.dirname, '../dist');
   const srcFolder = join(import.meta.dirname, '../src');
-  const srcFiles = readdirSync(srcFolder).filter(f => f.endsWith('.js'));
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
   for (const file of srcFiles) {
     const name = file.replace('.js', '');
     const bundledPath = join(distFolder, `${name}_rollup_jsshaker.js`);
     console.log(`[${name}] Loading ${bundledPath}...`);
-    bundled[name] = readFileSync(bundledPath, 'utf-8');
+    bundled[name] = await readFile(bundledPath, 'utf-8');
   }
 
   const results: Record<string, number> = {};
@@ -117,7 +123,7 @@ async function benchmarkTerser() {
 
 async function benchmarkRollup() {
   const srcFolder = join(import.meta.dirname, '../src');
-  const srcFiles = readdirSync(srcFolder).filter(f => f.endsWith('.js'));
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
 
   const results: Record<string, number> = {};
 
@@ -155,14 +161,14 @@ async function benchmarkRollup() {
 async function benchmarkGcc() {
   const distFolder = join(import.meta.dirname, '../dist');
   const srcFolder = join(import.meta.dirname, '../src');
-  const srcFiles = readdirSync(srcFolder).filter(f => f.endsWith('.js'));
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
   for (const file of srcFiles) {
     const name = file.replace('.js', '');
     const bundledPath = join(distFolder, `${name}_rollup.js`);
     console.log(`[${name}] Loading ${bundledPath}...`);
-    bundled[name] = readFileSync(bundledPath, 'utf-8');
+    bundled[name] = await readFile(bundledPath, 'utf-8');
   }
 
   const results: Record<string, number> = {};
@@ -196,7 +202,7 @@ async function benchmarkGcc() {
         });
         times.push(result.time);
       } catch (e) {
-        console.log(`[${name}] Benchmark failed, skipping...`);
+        console.log(`[${name}] Benchmark failed, skipping...`, e);
         break;
       }
     }
@@ -215,17 +221,17 @@ async function benchmarkGcc() {
   console.log('\nResults saved to time.json');
 }
 
-async function benchmarkLacuna() {
+async function benchmarkGccAdv() {
   const distFolder = join(import.meta.dirname, '../dist');
   const srcFolder = join(import.meta.dirname, '../src');
-  const srcFiles = readdirSync(srcFolder).filter(f => f.endsWith('.js'));
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
   for (const file of srcFiles) {
     const name = file.replace('.js', '');
     const bundledPath = join(distFolder, `${name}_rollup.js`);
     console.log(`[${name}] Loading ${bundledPath}...`);
-    bundled[name] = readFileSync(bundledPath, 'utf-8');
+    bundled[name] = await readFile(bundledPath, 'utf-8');
   }
 
   const results: Record<string, number> = {};
@@ -233,14 +239,81 @@ async function benchmarkLacuna() {
   for (const [name, code] of Object.entries(bundled)) {
     console.log(`[${name}] Warming up...`);
 
+    for (let i = 0; i < WARMUP_RUNS; i++) {
+      try {
+        await gccWithTiming(code, {
+          compilationLevel: 'ADVANCED',
+          languageIn: 'ECMASCRIPT_NEXT',
+          languageOut: 'ECMASCRIPT_NEXT',
+          chunk_output_type: 'ES_MODULES',
+        });
+      } catch (e) {
+        console.log(`[${name}] Warmup failed, skipping...`);
+        continue;
+      }
+    }
+
+    const times: number[] = [];
+
+    for (let i = 0; i < BENCHMARK_RUNS; i++) {
+      try {
+        const result = await gccWithTiming(code, {
+          compilationLevel: 'ADVANCED',
+          languageIn: 'ECMASCRIPT_NEXT',
+          languageOut: 'ECMASCRIPT_NEXT',
+          chunk_output_type: 'ES_MODULES',
+        });
+        times.push(result.time);
+      } catch (e) {
+        console.log(`[${name}] Benchmark failed, skipping...`);
+        break;
+      }
+    }
+
+    if (times.length === 0) continue;
+
+    const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+    results[name] = avgTime;
+
+    console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
+  }
+
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  timeData.gccAdv = results;
+  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to time.json');
+}
+
+async function benchmarkLacuna() {
+  const distFolder = join(import.meta.dirname, '../dist');
+  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
+  const bundled: Record<string, string> = {};
+
+  for (const file of srcFiles) {
+    const name = file.replace('.js', '');
+    const bundledPath = join(distFolder, `${name}_rollup.js`);
+    console.log(`[${name}] Loading ${bundledPath}...`);
+    bundled[name] = await readFile(bundledPath, 'utf-8');
+  }
+
+  const results: Record<string, number> = {};
+
+  loop: for (const [name, code] of Object.entries(bundled)) {
+    console.log(`[${name}] Warming up...`);
+
     const config = getTestCaseConfig(name);
 
     for (let i = 0; i < WARMUP_RUNS; i++) {
       try {
-        await Optimizers.lacuna({ name, code, env: config.env });
+        const r = await Optimizers.lacuna({ name, code, env: config.env });
+        if (!r) {
+          console.log(`[${name}] Warmup returned no result, skipping...`);
+          continue loop;
+        }
       } catch (e) {
         console.log(`[${name}] Warmup failed, skipping...`);
-        continue;
+        continue loop;
       }
     }
 
@@ -271,10 +344,6 @@ async function benchmarkLacuna() {
   console.log('\nResults saved to time.json');
 }
 
-async function readFile(path: string, encoding: BufferEncoding): Promise<string> {
-  const fs = await import('node:fs/promises');
-  return fs.readFile(path, encoding);
-}
 
 async function main() {
   const optimizer = process.argv[2] as OptimizerType;
@@ -285,6 +354,7 @@ async function main() {
     await benchmarkTerser();
     await benchmarkRollup();
     await benchmarkGcc();
+    await benchmarkGccAdv();
     await benchmarkLacuna();
     console.log('\nAll benchmarks completed!');
     return;
@@ -303,12 +373,15 @@ async function main() {
     case 'gcc':
       await benchmarkGcc();
       break;
+    case 'gccAdv':
+      await benchmarkGccAdv();
+      break;
     case 'lacuna':
       await benchmarkLacuna();
       break;
     default:
       console.error(`Unknown optimizer: ${optimizer}`);
-      console.error('Available: jsshaker, terser, rollup, gcc, lacuna');
+      console.error('Available: jsshaker, terser, rollup, gcc, gccAdv, lacuna');
       console.error('Or run without arguments to test all optimizers');
       process.exit(1);
   }

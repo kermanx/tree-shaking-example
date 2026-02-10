@@ -59,6 +59,7 @@
 		"test": "node --experimental-strip-types scripts/cli.ts",
 		"verify": "node --experimental-strip-types scripts/verify.ts",
 		"performance": "node --experimental-strip-types scripts/performance.ts",
-		"ablation": "node --experimental-strip-types scripts/ablation.ts"
+		"ablation": "node --experimental-strip-types scripts/ablation.ts",
+		"table2": "node --experimental-strip-types table2.ts"
 	}
 }

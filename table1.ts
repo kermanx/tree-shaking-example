@@ -11,11 +11,11 @@ const TOOLCHAINS: Record<string, string> = {
 
 // Flags for specific toolchains (optional)
 const FAILS = [
-  /^rollup_lacuna_terser:/,
+  /^rollup_lacuna_terser:(?!react-icons)/,
   /^rollup_gccAdv_terser:(lodash|sentry|react-icons|material-ui)$/
 ];
 
-const SHOW_GZ = true;
+const SHOW_GZ = false;
 
 interface ToolchainData {
   size: number;

@@ -40,12 +40,12 @@ async function main() {
         console.log(`✅ ${bundledPath}`);
       } catch (error: any) {
         console.log(`❌ ${bundledPath}`);
-        if (error.stdout) {
-          console.log('   ' + error.stdout.trim().replace(/\n/g, '\n   '));
-        }
-        if (error.stderr) {
-          console.log('   ' + error.stderr.trim().replace(/\n/g, '\n   '));
-        }
+        // if (error.stdout) {
+        //   console.log('   ' + error.stdout.trim().replace(/\n/g, '\n   '));
+        // }
+        // if (error.stderr) {
+        //   console.log('   ' + error.stderr.trim().replace(/\n/g, '\n   '));
+        // }
       }
     }
   }

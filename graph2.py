@@ -102,7 +102,7 @@ p2 = ax.barh(y_pos, part3_ratios, left=part2_ratios,
              color='#1f77b4', label='Property Mangling')
 p3 = ax.barh(y_pos, part1_ratios,
              left=np.array(part2_ratios) + np.array(part3_ratios),
-             color='#ff7f0e', label='DCE (Dead Code Elimination)')
+             color='#ff7f0e', label='Base Optimization')
 
 # Customize the plot
 ax.set_yticks(y_pos)
