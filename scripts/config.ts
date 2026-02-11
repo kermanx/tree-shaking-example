@@ -3,6 +3,8 @@ export interface TestCaseConfig {
 }
 
 export const testCases: Record<string, TestCaseConfig> = {
+  'antd': { env: 'browser' },
+  'd3': { env: 'browser' },
   'glob': { env: 'node' },
   'novnc': { env: 'browser' },
   'vuetify': { env: 'browser' },
@@ -11,10 +13,8 @@ export const testCases: Record<string, TestCaseConfig> = {
   'remeda': { env: 'browser' },
   'sentry': { env: 'browser' },
   'material-ui': { env: 'browser' },
-  'lodash': { env: 'browser' },
   'lodash-es': { env: 'browser' },
   'rxjs': { env: 'browser' },
-  'antd': { env: 'browser' },
 };
 
 export function getTestCaseNames(): string[] {

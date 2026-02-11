@@ -37,6 +37,7 @@ export function gccWithTiming(
 ): Promise<{ code: string; time: number }> {
   if (jsSource.includes('const Text = ') || jsSource.includes('var Symbol = root$1.Symbol')
     || jsSource.includes('var escape = (function (str) {')
+    || jsSource.includes('var Selection = selection.prototype.constructor')
     || jsSource.includes('class Keyframe {') || jsSource.includes('const Map = getNative(root,') || jsSource.includes('var dump  ')) {
     jsSource = `(function(){${jsSource}})()`;
   }

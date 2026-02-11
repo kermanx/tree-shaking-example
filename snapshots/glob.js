@@ -3,9 +3,9 @@ import { win32, posix } from "node:path";
 import { realpathSync as realpathSync$1, readlinkSync, readdirSync, readdir as readdir$1, lstatSync } from "fs";
 import * as actualFS from "node:fs";
 import { realpath, readlink, readdir, lstat } from "node:fs/promises";
-import { EventEmitter } from "node:events";
+import "node:events";
 import "node:stream";
-import { StringDecoder } from "node:string_decoder";
+import "node:string_decoder";
 const balanced = (__unused_0D75, __unused_B4AA, str) => {
 	const r = range(0, 0, str);
 	return r && {
@@ -3231,863 +3231,6 @@ class LRUCache {
 		}
 	}
 }
-const proc = typeof process === "object" && process ? process : {
-	stdout: null,
-	stderr: null
-};
-const EOF = Symbol("EOF");
-const MAYBE_EMIT_END = Symbol("maybeEmitEnd");
-const EMITTED_END = Symbol("emittedEnd");
-const EMITTING_END = Symbol("emittingEnd");
-const EMITTED_ERROR = Symbol("emittedError");
-const CLOSED = Symbol("closed");
-const READ = Symbol("read");
-const FLUSH = Symbol("flush");
-const FLUSHCHUNK = Symbol("flushChunk");
-const ENCODING = Symbol("encoding");
-const DECODER = Symbol("decoder");
-const FLOWING = Symbol("flowing");
-const PAUSED = Symbol("paused");
-const RESUME = Symbol("resume");
-const BUFFER = Symbol("buffer");
-const PIPES = Symbol("pipes");
-const BUFFERLENGTH = Symbol("bufferLength");
-const BUFFERPUSH = Symbol("bufferPush");
-const BUFFERSHIFT = Symbol("bufferShift");
-const OBJECTMODE = Symbol("objectMode");
-// internal event when stream is destroyed
-const DESTROYED = Symbol("destroyed");
-// internal event when stream has an error
-const ERROR = Symbol("error");
-const EMITDATA = Symbol("emitData");
-const EMITEND = Symbol("emitEnd");
-const EMITEND2 = Symbol("emitEnd2");
-const ASYNC = Symbol("async");
-const ABORT = Symbol("abort");
-const ABORTED = Symbol("aborted");
-const SIGNAL = Symbol("signal");
-const DATALISTENERS = Symbol("dataListeners");
-const DISCARDED = Symbol("discarded");
-const defer = (fn) => Promise.resolve().then(fn);
-const nodefer = (fn) => fn();
-const isEndish = (ev) => ev === "end" || ev === "finish" || ev === "prefinish";
-const isArrayBufferLike = (b) => b instanceof ArrayBuffer || !!b && typeof b === "object" && b.constructor && b.constructor.name === "ArrayBuffer" && b.byteLength >= 0;
-const isArrayBufferView = (b) => !Buffer.isBuffer(b) && ArrayBuffer.isView(b);
-/**
-* Internal class representing a pipe to a destination stream.
-*
-* @internal
-*/
-class Pipe {
-	constructor(src, dest, opts) {
-		this.src = src;
-		this.dest = dest;
-		this.opts = opts;
-		this.ondrain = () => src[RESUME]();
-		this.dest.on("drain", this.ondrain);
-	}
-	unpipe() {
-		this.dest.removeListener("drain", this.ondrain);
-	}
-	// only here for the prototype
-	/* c8 ignore start */
-	proxyErrors() {}
-	/* c8 ignore stop */
-	end() {
-		this.unpipe();
-		if (this.opts.end) this.dest.end();
-	}
-}
-/**
-* Internal class representing a pipe to a destination stream where
-* errors are proxied.
-*
-* @internal
-*/
-class PipeProxyErrors extends Pipe {
-	unpipe() {
-		this.src.removeListener("error", this.proxyErrors);
-		super.unpipe();
-	}
-	constructor(src, dest, opts) {
-		super(src, dest, opts);
-		this.proxyErrors = (er) => dest.emit("error", er);
-		src.on("error", this.proxyErrors);
-	}
-}
-/**
-* Main export, the Minipass class
-*
-* `RType` is the type of data emitted, defaults to Buffer
-*
-* `WType` is the type of data to be written, if RType is buffer or string,
-* then any {@link Minipass.ContiguousData} is allowed.
-*
-* `Events` is the set of event handler signatures that this object
-* will emit, see {@link Minipass.Events}
-*/
-class Minipass extends EventEmitter {
-	[FLOWING] = false;
-	[PAUSED] = false;
-	[PIPES] = [];
-	[BUFFER] = [];
-	[OBJECTMODE];
-	[ENCODING];
-	[ASYNC];
-	[DECODER];
-	[EOF] = false;
-	[EMITTED_END] = false;
-	[EMITTING_END] = false;
-	[CLOSED] = false;
-	[EMITTED_ERROR] = null;
-	[BUFFERLENGTH] = 0;
-	[DESTROYED] = false;
-	[SIGNAL];
-	[ABORTED] = false;
-	[DATALISTENERS] = 0;
-	[DISCARDED] = false;
-	/**
-	* true if the stream can be written
-	*/
-	writable = true;
-	/**
-	* true if the stream can be read
-	*/
-	readable = true;
-	/**
-	* If `RType` is Buffer, then options do not need to be provided.
-	* Otherwise, an options object must be provided to specify either
-	* {@link Minipass.SharedOptions.objectMode} or
-	* {@link Minipass.SharedOptions.encoding}, as appropriate.
-	*/
-	constructor(...args) {
-		const options = args[0];
-		super();
-		{
-			{
-				this[OBJECTMODE] = true;
-				this[ENCODING] = null;
-			}
-		}
-		this[ASYNC] = false;
-		this[DECODER] = this[ENCODING] ? new StringDecoder(this[ENCODING]) : null;
-		const { a: signal } = options;
-		if (signal) {
-			this[SIGNAL] = signal;
-			if (signal.aborted) {
-				this[ABORT]();
-			} else {
-				signal.addEventListener("abort", () => this[ABORT]());
-			}
-		}
-	}
-	/**
-	* The amount of data stored in the buffer waiting to be read.
-	*
-	* For Buffer strings, this will be the total byte length.
-	* For string encoding streams, this will be the string character length,
-	* according to JavaScript's `string.length` logic.
-	* For objectMode streams, this is a count of the items waiting to be
-	* emitted.
-	*/
-	get bufferLength() {
-		return this[BUFFERLENGTH];
-	}
-	/**
-	* The `BufferEncoding` currently in use, or `null`
-	*/
-	get encoding() {
-		return this[ENCODING];
-	}
-	/**
-	* @deprecated - This is a read only property
-	*/
-	set encoding(__unused_B8C0) {
-		throw new Error("Encoding must be set at instantiation time");
-	}
-	/**
-	* @deprecated - Encoding may only be set at instantiation time
-	*/
-	setEncoding() {
-		throw new Error("Encoding must be set at instantiation time");
-	}
-	/**
-	* True if this is an objectMode stream
-	*/
-	get objectMode() {
-		return this[OBJECTMODE];
-	}
-	/**
-	* @deprecated - This is a read-only property
-	*/
-	set objectMode(__unused_CF2E) {
-		throw new Error("objectMode must be set at instantiation time");
-	}
-	/**
-	* true if this is an async stream
-	*/
-	get ["async"]() {
-		return this[ASYNC];
-	}
-	/**
-	* Set to true to make this stream async.
-	*
-	* Once set, it cannot be unset, as this would potentially cause incorrect
-	* behavior.  Ie, a sync stream can be made async, but an async stream
-	* cannot be safely made sync.
-	*/
-	set ["async"](a) {
-		this[ASYNC] = this[ASYNC] || !!a;
-	}
-	// drop everything and get out of the flow completely
-	[ABORT]() {
-		this[ABORTED] = true;
-		this.emit("abort", this[SIGNAL]?.reason);
-		this.destroy(this[SIGNAL]?.reason);
-	}
-	/**
-	* True if the stream has been aborted.
-	*/
-	get aborted() {
-		return this[ABORTED];
-	}
-	/**
-	* No-op setter. Stream aborted status is set via the AbortSignal provided
-	* in the constructor options.
-	*/
-	set aborted(__unused_8ECB) {}
-	write(chunk, encoding, cb) {
-		if (this[ABORTED]) return false;
-		if (this[EOF]) throw new Error("write after end");
-		if (this[DESTROYED]) {
-			this.emit("error", Object.assign(new Error("Cannot call write after a stream was destroyed"), { code: "ERR_STREAM_DESTROYED" }));
-			return true;
-		}
-		if (typeof encoding === "function") {
-			cb = encoding;
-			encoding = "utf8";
-		}
-		if (!encoding) encoding = "utf8";
-		const fn = this[ASYNC] ? defer : nodefer;
-		// convert array buffers and typed array views into buffers
-		// at some point in the future, we may want to do the opposite!
-		// leave strings and buffers as-is
-		// anything is only allowed if in object mode, so throw
-		if (!this[OBJECTMODE] && !Buffer.isBuffer(chunk)) {
-			if (isArrayBufferView(chunk)) {
-				//@ts-ignore - sinful unsafe type changing
-				chunk = Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength);
-			} else if (isArrayBufferLike(chunk)) {
-				//@ts-ignore - sinful unsafe type changing
-				chunk = Buffer.from(chunk);
-			} else if (typeof chunk !== "string") {
-				throw new Error("Non-contiguous data written to non-objectMode stream");
-			}
-		}
-		// handle object mode up front, since it's simpler
-		// this yields better performance, fewer checks later.
-		if (this[OBJECTMODE]) {
-			// maybe impossible?
-			/* c8 ignore start */
-			if (this[FLOWING] && this[BUFFERLENGTH] !== 0) this[FLUSH](true);
-			/* c8 ignore stop */
-			if (this[FLOWING]) this.emit("data", chunk);
-			else this[BUFFERPUSH](chunk);
-			if (this[BUFFERLENGTH] !== 0) this.emit("readable");
-			if (cb) fn(cb);
-			return this[FLOWING];
-		}
-		// at this point the chunk is a buffer or string
-		// don't buffer it up or send it to the decoder
-		if (!chunk.length) {
-			if (this[BUFFERLENGTH] !== 0) this.emit("readable");
-			if (cb) fn(cb);
-			return this[FLOWING];
-		}
-		// fast-path writing strings of same encoding to a stream with
-		// an empty buffer, skipping the buffer/decoder dance
-		if (typeof chunk === "string" && !(encoding === this[ENCODING] && !this[DECODER]?.lastNeed)) {
-			//@ts-ignore - sinful unsafe type change
-			chunk = Buffer.from(chunk, encoding);
-		}
-		if (Buffer.isBuffer(chunk) && this[ENCODING]) {
-			//@ts-ignore - sinful unsafe type change
-			chunk = this[DECODER].write(chunk);
-		}
-		// Note: flushing CAN potentially switch us into not-flowing mode
-		if (this[FLOWING] && this[BUFFERLENGTH] !== 0) this[FLUSH](true);
-		if (this[FLOWING]) this.emit("data", chunk);
-		else this[BUFFERPUSH](chunk);
-		if (this[BUFFERLENGTH] !== 0) this.emit("readable");
-		if (cb) fn(cb);
-		return this[FLOWING];
-	}
-	/**
-	* Low-level explicit read method.
-	*
-	* In objectMode, the argument is ignored, and one item is returned if
-	* available.
-	*
-	* `n` is the number of bytes (or in the case of encoding streams,
-	* characters) to consume. If `n` is not provided, then the entire buffer
-	* is returned, or `null` is returned if no data is available.
-	*
-	* If `n` is greater that the amount of data in the internal buffer,
-	* then `null` is returned.
-	*/
-	read(n) {
-		if (this[DESTROYED]) return null;
-		this[DISCARDED] = false;
-		if (this[BUFFERLENGTH] === 0 || n === 0 || n && n > this[BUFFERLENGTH]) {
-			this[MAYBE_EMIT_END]();
-			return null;
-		}
-		if (this[OBJECTMODE]) n = null;
-		if (this[BUFFER].length > 1 && !this[OBJECTMODE]) {
-			// not object mode, so if we have an encoding, then RType is string
-			// otherwise, must be Buffer
-			this[BUFFER] = [this[ENCODING] ? this[BUFFER].join("") : Buffer.concat(this[BUFFER], this[BUFFERLENGTH])];
-		}
-		const ret = this[READ](n || null, this[BUFFER][0]);
-		this[MAYBE_EMIT_END]();
-		return ret;
-	}
-	[READ](n, chunk) {
-		if (this[OBJECTMODE]) this[BUFFERSHIFT]();
-		else {
-			const c = chunk;
-			if (n === c.length || n === null) this[BUFFERSHIFT]();
-			else if (typeof c === "string") {
-				this[BUFFER][0] = c.slice(n);
-				chunk = c.slice(0, n);
-				this[BUFFERLENGTH] -= n;
-			} else {
-				this[BUFFER][0] = c.subarray(n);
-				chunk = c.subarray(0, n);
-				this[BUFFERLENGTH] -= n;
-			}
-		}
-		this.emit("data", chunk);
-		if (!this[BUFFER].length && !this[EOF]) this.emit("drain");
-		return chunk;
-	}
-	end(chunk, encoding, cb) {
-		if (typeof chunk === "function") {
-			cb = chunk;
-			chunk = void 0;
-		}
-		if (typeof encoding === "function") {
-			cb = encoding;
-			encoding = "utf8";
-		}
-		if (chunk !== void 0) this.write(chunk, encoding);
-		if (cb) this.once("end", cb);
-		this[EOF] = true;
-		this.writable = false;
-		// if we haven't written anything, then go ahead and emit,
-		// even if we're not reading.
-		// we'll re-emit if a new 'end' listener is added anyway.
-		// This makes MP more suitable to write-only use cases.
-		if (this[FLOWING] || !this[PAUSED]) this[MAYBE_EMIT_END]();
-		return this;
-	}
-	// don't let the internal resume be overwritten
-	[RESUME]() {
-		if (this[DESTROYED]) return;
-		if (!this[DATALISTENERS] && !this[PIPES].length) {
-			this[DISCARDED] = true;
-		}
-		this[PAUSED] = false;
-		this[FLOWING] = true;
-		this.emit("resume");
-		if (this[BUFFER].length) this[FLUSH]();
-		else if (this[EOF]) this[MAYBE_EMIT_END]();
-		else this.emit("drain");
-	}
-	/**
-	* Resume the stream if it is currently in a paused state
-	*
-	* If called when there are no pipe destinations or `data` event listeners,
-	* this will place the stream in a "discarded" state, where all data will
-	* be thrown away. The discarded state is removed if a pipe destination or
-	* data handler is added, if pause() is called, or if any synchronous or
-	* asynchronous iteration is started.
-	*/
-	resume() {
-		return this[RESUME]();
-	}
-	/**
-	* Pause the stream
-	*/
-	pause() {
-		this[FLOWING] = false;
-		this[PAUSED] = true;
-		this[DISCARDED] = false;
-	}
-	/**
-	* true if the stream has been forcibly destroyed
-	*/
-	get destroyed() {
-		return this[DESTROYED];
-	}
-	/**
-	* true if the stream is currently in a flowing state, meaning that
-	* any writes will be immediately emitted.
-	*/
-	get flowing() {
-		return this[FLOWING];
-	}
-	/**
-	* true if the stream is currently in a paused state
-	*/
-	get paused() {
-		return this[PAUSED];
-	}
-	[BUFFERPUSH](chunk) {
-		if (this[OBJECTMODE]) this[BUFFERLENGTH] += 1;
-		else this[BUFFERLENGTH] += chunk.length;
-		this[BUFFER].push(chunk);
-	}
-	[BUFFERSHIFT]() {
-		if (this[OBJECTMODE]) this[BUFFERLENGTH] -= 1;
-		else this[BUFFERLENGTH] -= this[BUFFER][0].length;
-		return this[BUFFER].shift();
-	}
-	[FLUSH](noDrain = false) {
-		do		;
-while (this[FLUSHCHUNK](this[BUFFERSHIFT]()) && this[BUFFER].length);
-		if (!noDrain && !this[BUFFER].length && !this[EOF]) this.emit("drain");
-	}
-	[FLUSHCHUNK](chunk) {
-		this.emit("data", chunk);
-		return this[FLOWING];
-	}
-	/**
-	* Pipe all data emitted by this stream into the destination provided.
-	*
-	* Triggers the flow of data.
-	*/
-	pipe(dest, opts) {
-		if (this[DESTROYED]) return dest;
-		this[DISCARDED] = false;
-		const ended = this[EMITTED_END];
-		opts = opts || {};
-		if (dest === proc.stdout || dest === proc.stderr) opts.end = false;
-		else opts.end = opts.end !== false;
-		opts.proxyErrors = !!opts.proxyErrors;
-		// piping an ended stream ends immediately
-		if (ended) {
-			if (opts.end) dest.end();
-		} else {
-			// "as" here just ignores the WType, which pipes don't care about,
-			// since they're only consuming from us, and writing to the dest
-			this[PIPES].push(!opts.proxyErrors ? new Pipe(this, dest, opts) : new PipeProxyErrors(this, dest, opts));
-			if (this[ASYNC]) defer(() => this[RESUME]());
-			else this[RESUME]();
-		}
-		return dest;
-	}
-	/**
-	* Fully unhook a piped destination stream.
-	*
-	* If the destination stream was the only consumer of this stream (ie,
-	* there are no other piped destinations or `'data'` event listeners)
-	* then the flow of data will stop until there is another consumer or
-	* {@link Minipass#resume} is explicitly called.
-	*/
-	unpipe(dest) {
-		const p = this[PIPES].find((p) => p.dest === dest);
-		if (p) {
-			if (this[PIPES].length === 1) {
-				if (this[FLOWING] && this[DATALISTENERS] === 0) {
-					this[FLOWING] = false;
-				}
-				this[PIPES] = [];
-			} else this[PIPES].splice(this[PIPES].indexOf(p), 1);
-			p.unpipe();
-		}
-	}
-	/**
-	* Alias for {@link Minipass#on}
-	*/
-	addListener(ev, handler) {
-		return this.on(ev, handler);
-	}
-	/**
-	* Mostly identical to `EventEmitter.on`, with the following
-	* behavior differences to prevent data loss and unnecessary hangs:
-	*
-	* - Adding a 'data' event handler will trigger the flow of data
-	*
-	* - Adding a 'readable' event handler when there is data waiting to be read
-	*   will cause 'readable' to be emitted immediately.
-	*
-	* - Adding an 'endish' event handler ('end', 'finish', etc.) which has
-	*   already passed will cause the event to be emitted immediately and all
-	*   handlers removed.
-	*
-	* - Adding an 'error' event handler after an error has been emitted will
-	*   cause the event to be re-emitted immediately with the error previously
-	*   raised.
-	*/
-	on(ev, handler) {
-		const ret = super.on(ev, handler);
-		if (ev === "data") {
-			this[DISCARDED] = false;
-			this[DATALISTENERS]++;
-			if (!this[PIPES].length && !this[FLOWING]) {
-				this[RESUME]();
-			}
-		} else if (ev === "readable" && this[BUFFERLENGTH] !== 0) {
-			super.emit("readable");
-		} else if (isEndish(ev) && this[EMITTED_END]) {
-			super.emit(ev);
-			this.removeAllListeners(ev);
-		} else if (ev === "error" && this[EMITTED_ERROR]) {
-			const h = handler;
-			if (this[ASYNC]) defer(() => h.call(this, this[EMITTED_ERROR]));
-			else h.call(this, this[EMITTED_ERROR]);
-		}
-		return ret;
-	}
-	/**
-	* Alias for {@link Minipass#off}
-	*/
-	removeListener(ev, handler) {
-		return this.off(ev, handler);
-	}
-	/**
-	* Mostly identical to `EventEmitter.off`
-	*
-	* If a 'data' event handler is removed, and it was the last consumer
-	* (ie, there are no pipe destinations or other 'data' event listeners),
-	* then the flow of data will stop until there is another consumer or
-	* {@link Minipass#resume} is explicitly called.
-	*/
-	off(ev, handler) {
-		const ret = super.off(ev, handler);
-		// if we previously had listeners, and now we don't, and we don't
-		// have any pipes, then stop the flow, unless it's been explicitly
-		// put in a discarded flowing state via stream.resume().
-		if (ev === "data") {
-			this[DATALISTENERS] = this.listeners("data").length;
-			if (this[DATALISTENERS] === 0 && !this[DISCARDED] && !this[PIPES].length) {
-				this[FLOWING] = false;
-			}
-		}
-		return ret;
-	}
-	/**
-	* Mostly identical to `EventEmitter.removeAllListeners`
-	*
-	* If all 'data' event handlers are removed, and they were the last consumer
-	* (ie, there are no pipe destinations), then the flow of data will stop
-	* until there is another consumer or {@link Minipass#resume} is explicitly
-	* called.
-	*/
-	removeAllListeners(ev) {
-		const ret = super.removeAllListeners(ev);
-		if (ev === "data" || ev === void 0) {
-			this[DATALISTENERS] = 0;
-			if (!this[DISCARDED] && !this[PIPES].length) {
-				this[FLOWING] = false;
-			}
-		}
-		return ret;
-	}
-	/**
-	* true if the 'end' event has been emitted
-	*/
-	get emittedEnd() {
-		return this[EMITTED_END];
-	}
-	[MAYBE_EMIT_END]() {
-		if (!this[EMITTING_END] && !this[EMITTED_END] && !this[DESTROYED] && this[BUFFER].length === 0 && this[EOF]) {
-			this[EMITTING_END] = true;
-			this.emit("end");
-			this.emit("prefinish");
-			this.emit("finish");
-			if (this[CLOSED]) this.emit("close");
-			this[EMITTING_END] = false;
-		}
-	}
-	/**
-	* Mostly identical to `EventEmitter.emit`, with the following
-	* behavior differences to prevent data loss and unnecessary hangs:
-	*
-	* If the stream has been destroyed, and the event is something other
-	* than 'close' or 'error', then `false` is returned and no handlers
-	* are called.
-	*
-	* If the event is 'end', and has already been emitted, then the event
-	* is ignored. If the stream is in a paused or non-flowing state, then
-	* the event will be deferred until data flow resumes. If the stream is
-	* async, then handlers will be called on the next tick rather than
-	* immediately.
-	*
-	* If the event is 'close', and 'end' has not yet been emitted, then
-	* the event will be deferred until after 'end' is emitted.
-	*
-	* If the event is 'error', and an AbortSignal was provided for the stream,
-	* and there are no listeners, then the event is ignored, matching the
-	* behavior of node core streams in the presense of an AbortSignal.
-	*
-	* If the event is 'finish' or 'prefinish', then all listeners will be
-	* removed after emitting the event, to prevent double-firing.
-	*/
-	emit(ev, ...args) {
-		const data = args[0];
-		// error and close are only events allowed after calling destroy()
-		if (ev !== "error" && ev !== "close" && ev !== DESTROYED && this[DESTROYED]) {
-			return false;
-		} else if (ev === "data") {
-			return !this[OBJECTMODE] && !data ? false : this[ASYNC] ? (defer(() => this[EMITDATA](data)), true) : this[EMITDATA](data);
-		} else if (ev === "end") {
-			return this[EMITEND]();
-		} else if (ev === "close") {
-			this[CLOSED] = true;
-			// don't emit close before 'end' and 'finish'
-			if (!this[EMITTED_END] && !this[DESTROYED]) return false;
-			const ret = super.emit("close");
-			this.removeAllListeners("close");
-			return ret;
-		} else if (ev === "error") {
-			this[EMITTED_ERROR] = data;
-			super.emit(ERROR, data);
-			const ret = !this[SIGNAL] || this.listeners("error").length ? super.emit("error", data) : false;
-			this[MAYBE_EMIT_END]();
-			return ret;
-		} else if (ev === "resume") {
-			const ret = super.emit("resume");
-			this[MAYBE_EMIT_END]();
-			return ret;
-		} else if (ev === "finish" || ev === "prefinish") {
-			const ret = super.emit(ev);
-			this.removeAllListeners(ev);
-			return ret;
-		}
-		// Some other unknown event
-		const ret = super.emit(ev, ...args);
-		this[MAYBE_EMIT_END]();
-		return ret;
-	}
-	[EMITDATA](data) {
-		for (const p of this[PIPES]) {
-			if (p.dest.write(data) === false) this.pause();
-		}
-		const ret = this[DISCARDED] ? false : super.emit("data", data);
-		this[MAYBE_EMIT_END]();
-		return ret;
-	}
-	[EMITEND]() {
-		if (this[EMITTED_END]) return false;
-		this[EMITTED_END] = true;
-		this.readable = false;
-		return this[ASYNC] ? (defer(() => this[EMITEND2]()), true) : this[EMITEND2]();
-	}
-	[EMITEND2]() {
-		if (this[DECODER]) {
-			const data = this[DECODER].end();
-			if (data) {
-				for (const p of this[PIPES]) {
-					p.dest.write(data);
-				}
-				if (!this[DISCARDED]) super.emit("data", data);
-			}
-		}
-		for (const p of this[PIPES]) {
-			p.end();
-		}
-		const ret = super.emit("end");
-		this.removeAllListeners("end");
-		return ret;
-	}
-	/**
-	* Return a Promise that resolves to an array of all emitted data once
-	* the stream ends.
-	*/
-	async collect() {
-		const buf = Object.assign([], { dataLength: 0 });
-		if (!this[OBJECTMODE]) buf.dataLength = 0;
-		// set the promise first, in case an error is raised
-		// by triggering the flow here.
-		const p = this.promise();
-		this.on("data", (c) => {
-			buf.push(c);
-			if (!this[OBJECTMODE]) buf.dataLength += c.length;
-		});
-		await p;
-		return buf;
-	}
-	/**
-	* Return a Promise that resolves to the concatenation of all emitted data
-	* once the stream ends.
-	*
-	* Not allowed on objectMode streams.
-	*/
-	async concat() {
-		if (this[OBJECTMODE]) {
-			throw new Error("cannot concat in objectMode");
-		}
-		const buf = await this.collect();
-		return this[ENCODING] ? buf.join("") : Buffer.concat(buf, buf.dataLength);
-	}
-	/**
-	* Return a void Promise that resolves once the stream ends.
-	*/
-	async promise() {
-		return new Promise((resolve, reject) => {
-			this.on(DESTROYED, () => reject(new Error("stream destroyed")));
-			this.on("error", (er) => reject(er));
-			this.on("end", () => resolve());
-		});
-	}
-	/**
-	* Asynchronous `for await of` iteration.
-	*
-	* This will continue emitting all chunks until the stream terminates.
-	*/
-	[Symbol.asyncIterator]() {
-		// set this up front, in case the consumer doesn't call next()
-		// right away.
-		this[DISCARDED] = false;
-		let stopped = false;
-		const stop = async () => {
-			this.pause();
-			stopped = true;
-			return {
-				value: void 0,
-				done: true
-			};
-		};
-		const next = () => {
-			if (stopped) return stop();
-			const res = this.read();
-			if (res !== null) return Promise.resolve({
-				done: false,
-				value: res
-			});
-			if (this[EOF]) return stop();
-			let resolve;
-			let reject;
-			const onerr = (er) => {
-				this.off("data", ondata);
-				this.off("end", onend);
-				this.off(DESTROYED, ondestroy);
-				stop();
-				reject(er);
-			};
-			const ondata = (value) => {
-				this.off("error", onerr);
-				this.off("end", onend);
-				this.off(DESTROYED, ondestroy);
-				this.pause();
-				resolve({
-					value,
-					done: !!this[EOF]
-				});
-			};
-			const onend = () => {
-				this.off("error", onerr);
-				this.off("data", ondata);
-				this.off(DESTROYED, ondestroy);
-				stop();
-				resolve({
-					done: true,
-					value: void 0
-				});
-			};
-			const ondestroy = () => (onerr(new Error("stream destroyed")), void 0);
-			return new Promise((res, rej) => {
-				reject = rej;
-				resolve = res;
-				this.once(DESTROYED, ondestroy);
-				this.once("error", onerr);
-				this.once("end", onend);
-				this.once("data", ondata);
-			});
-		};
-		return {
-			next,
-			throw: stop,
-			return: stop,
-			[Symbol.asyncIterator]() {
-				return this;
-			}
-		};
-	}
-	/**
-	* Synchronous `for of` iteration.
-	*
-	* The iteration will terminate when the internal buffer runs out, even
-	* if the stream has not yet terminated.
-	*/
-	[Symbol.iterator]() {
-		// set this up front, in case the consumer doesn't call next()
-		// right away.
-		this[DISCARDED] = false;
-		let stopped = false;
-		const stop = () => {
-			this.pause();
-			this.off(ERROR, stop);
-			this.off(DESTROYED, stop);
-			this.off("end", stop);
-			stopped = true;
-			return {
-				done: true,
-				value: void 0
-			};
-		};
-		const next = () => {
-			if (stopped) return stop();
-			const value = this.read();
-			return value === null ? stop() : {
-				done: false,
-				value
-			};
-		};
-		this.once("end", stop);
-		this.once(ERROR, stop);
-		this.once(DESTROYED, stop);
-		return {
-			next,
-			throw: stop,
-			return: stop,
-			[Symbol.iterator]() {
-				return this;
-			}
-		};
-	}
-	/**
-	* Destroy a stream, preventing it from being used for any further purpose.
-	*
-	* If the stream has a `close()` method, then it will be called on
-	* destruction.
-	*
-	* After destruction, any attempt to write data, read data, or emit most
-	* events will be ignored.
-	*
-	* If an error argument is provided, then it will be emitted in an
-	* 'error' event.
-	*/
-	destroy(er) {
-		if (this[DESTROYED]) {
-			if (er) this.emit("error", er);
-			else this.emit(DESTROYED);
-			return this;
-		}
-		this[DESTROYED] = true;
-		this[DISCARDED] = true;
-		// throw away all buffered data, it's never coming out
-		this[BUFFER].length = 0;
-		this[BUFFERLENGTH] = 0;
-		const wc = this;
-		if (typeof wc.close === "function" && !this[CLOSED]) wc.close();
-		if (er) this.emit("error", er);
-		else this.emit(DESTROYED);
-		return this;
-	}
-}
 const realpathSync = realpathSync$1.native;
 const defaultFS = {
 	lstatSync,
@@ -4181,16 +3324,6 @@ const setAsCwd = Symbol("PathScurry setAsCwd");
 * stack traces.
 */
 class PathBase {
-	/**
-	* the basename of this path
-	*
-	* **Important**: *always* test the path name against any test string
-	* usingthe {@link isNamed} method, and not by directly comparing this
-	* string. Otherwise, unicode path strings that the system sees as identical
-	* will not be properly treated as the same path, leading to incorrect
-	* behavior and possible security issues.
-	*/
-	name;
 	/**
 	* the Path entry corresponding to the path root.
 	*
@@ -5173,7 +4306,7 @@ class PathWin32 extends PathBase {
 			}
 		}
 		// otherwise, have to create a new one.
-		return this.roots[rootPath] = new PathScurryWin32(rootPath, this).root;
+		return this.roots[rootPath] = new PathScurryWin32(rootPath, this).a;
 	}
 	/**
 	* @internal
@@ -5240,25 +4373,19 @@ class PathScurryBase {
 	/**
 	* The root Path entry for the current working directory of this Scurry
 	*/
-	root;
-	/**
-	* The string path for the root of this Scurry's current working directory
-	*/
-	rootPath;
+	a;
 	/**
 	* The Path entry corresponding to this PathScurry's current working directory.
 	*/
-	cwd;
-	#resolveCache;
-	#resolvePosixCache;
-	#children;
+	b;
+	#c;
 	/**
 	* Perform path comparisons case-insensitively.
 	*
 	* Defaults true on Darwin and Windows systems, false elsewhere.
 	*/
-	nocase;
-	#fs;
+	d;
+	#e;
 	/**
 	* This class should not be instantiated directly.
 	*
@@ -5267,19 +4394,19 @@ class PathScurryBase {
 	* @internal
 	*/
 	constructor(cwd = process.cwd(), pathImpl, sep, { nocase, childrenCacheSize = 16384, fs = defaultFS }) {
-		this.#fs = fsFromOption(fs);
+		this.#e = fsFromOption(fs);
 		if (cwd instanceof URL || cwd.startsWith("file://")) {
 			cwd = fileURLToPath(cwd);
 		}
 		// resolve and split root, and then add to the store.
 		// this is the only time we call path.resolve()
 		const cwdPath = pathImpl.resolve(cwd);
-		this.roots = Object.create(null);
-		this.rootPath = this.parseRootPath(cwdPath);
-		this.#resolveCache = new ResolveCache();
-		this.#resolvePosixCache = new ResolveCache();
-		this.#children = new ChildrenCache(childrenCacheSize);
-		const split = cwdPath.substring(this.rootPath.length).split(sep);
+		this.f = Object.create(null);
+		this.g = this.h(cwdPath);
+		new ResolveCache();
+		new ResolveCache();
+		this.#c = new ChildrenCache(childrenCacheSize);
+		const split = cwdPath.substring(this.g.length).split(sep);
 		// resolve('/') leaves '', splits to [''], we don't want that.
 		if (split.length === 1 && !split[0]) {
 			split.pop();
@@ -5289,13 +4416,13 @@ class PathScurryBase {
 			throw new TypeError("must provide nocase setting to PathScurryBase ctor");
 		}
 		/* c8 ignore stop */
-		this.nocase = nocase;
-		this.root = this.newRoot(this.#fs);
-		this.roots[this.rootPath] = this.root;
-		let prev = this.root;
+		this.d = nocase;
+		this.a = this.i(this.#e);
+		this.f[this.g] = this.a;
+		let prev = this.a;
 		let len = split.length - 1;
 		const joinSep = pathImpl.sep;
-		let abs = this.rootPath;
+		let abs = this.g;
 		let sawFirst = false;
 		for (const part of split) {
 			const l = len--;
@@ -5306,16 +4433,7 @@ class PathScurryBase {
 			});
 			sawFirst = true;
 		}
-		this.cwd = prev;
-	}
-	/**
-	* Get the depth of a provided path, string, or the cwd
-	*/
-	depth(path = this.cwd) {
-		if (typeof path === "string") {
-			path = this.cwd.resolve(path);
-		}
-		return path.depth();
+		this.b = prev;
 	}
 	/**
 	* Return the cache of child entries.  Exposed so subclasses can create
@@ -5323,477 +4441,8 @@ class PathScurryBase {
 	*
 	* @internal
 	*/
-	childrenCache() {
-		return this.#children;
-	}
-	/**
-	* Resolve one or more path strings to a resolved string
-	*
-	* Same interface as require('path').resolve.
-	*
-	* Much faster than path.resolve() when called multiple times for the same
-	* path, because the resolved Path objects are cached.  Much slower
-	* otherwise.
-	*/
-	resolve(...paths) {
-		// first figure out the minimum number of paths we have to test
-		// we always start at cwd, but any absolutes will bump the start
-		let r = "";
-		for (let i = paths.length - 1; i >= 0; i--) {
-			const p = paths[i];
-			if (!p || p === ".") continue;
-			r = r ? `${p}/${r}` : p;
-			if (this.isAbsolute(p)) {
-				break;
-			}
-		}
-		const cached = this.#resolveCache.get(r);
-		if (cached !== void 0) {
-			return cached;
-		}
-		const result = this.cwd.resolve(r).fullpath();
-		this.#resolveCache.set(r, result);
-		return result;
-	}
-	/**
-	* Resolve one or more path strings to a resolved string, returning
-	* the posix path.  Identical to .resolve() on posix systems, but on
-	* windows will return a forward-slash separated UNC path.
-	*
-	* Same interface as require('path').resolve.
-	*
-	* Much faster than path.resolve() when called multiple times for the same
-	* path, because the resolved Path objects are cached.  Much slower
-	* otherwise.
-	*/
-	resolvePosix(...paths) {
-		// first figure out the minimum number of paths we have to test
-		// we always start at cwd, but any absolutes will bump the start
-		let r = "";
-		for (let i = paths.length - 1; i >= 0; i--) {
-			const p = paths[i];
-			if (!p || p === ".") continue;
-			r = r ? `${p}/${r}` : p;
-			if (this.isAbsolute(p)) {
-				break;
-			}
-		}
-		const cached = this.#resolvePosixCache.get(r);
-		if (cached !== void 0) {
-			return cached;
-		}
-		const result = this.cwd.resolve(r).fullpathPosix();
-		this.#resolvePosixCache.set(r, result);
-		return result;
-	}
-	/**
-	* find the relative path from the cwd to the supplied path string or entry
-	*/
-	relative(entry = this.cwd) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		}
-		return entry.relative();
-	}
-	/**
-	* find the relative path from the cwd to the supplied path string or
-	* entry, using / as the path delimiter, even on Windows.
-	*/
-	relativePosix(entry = this.cwd) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		}
-		return entry.relativePosix();
-	}
-	/**
-	* Return the basename for the provided string or Path object
-	*/
-	basename(entry = this.cwd) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		}
-		return entry.name;
-	}
-	/**
-	* Return the dirname for the provided string or Path object
-	*/
-	dirname(entry = this.cwd) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		}
-		return (entry.parent || entry).fullpath();
-	}
-	async readdir(entry = this.cwd, opts = { withFileTypes: true }) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			opts = entry;
-			entry = this.cwd;
-		}
-		const { withFileTypes } = opts;
-		if (!entry.canReaddir()) {
-			return [];
-		} else {
-			const p = await entry.readdir();
-			return withFileTypes ? p : p.map((e) => e.name);
-		}
-	}
-	readdirSync(entry = this.cwd, opts = { withFileTypes: true }) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			opts = entry;
-			entry = this.cwd;
-		}
-		const { withFileTypes = true } = opts;
-		if (!entry.canReaddir()) {
-			return [];
-		} else if (withFileTypes) {
-			return entry.readdirSync();
-		} else {
-			return entry.readdirSync().map((e) => e.name);
-		}
-	}
-	/**
-	* Call lstat() on the string or Path object, and update all known
-	* information that can be determined.
-	*
-	* Note that unlike `fs.lstat()`, the returned value does not contain some
-	* information, such as `mode`, `dev`, `nlink`, and `ino`.  If that
-	* information is required, you will need to call `fs.lstat` yourself.
-	*
-	* If the Path refers to a nonexistent file, or if the lstat call fails for
-	* any reason, `undefined` is returned.  Otherwise the updated Path object is
-	* returned.
-	*
-	* Results are cached, and thus may be out of date if the filesystem is
-	* mutated.
-	*/
-	async lstat(entry = this.cwd) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		}
-		return entry.lstat();
-	}
-	/**
-	* synchronous {@link PathScurryBase.lstat}
-	*/
-	lstatSync(entry = this.cwd) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		}
-		return entry.lstatSync();
-	}
-	async readlink(entry = this.cwd, { withFileTypes } = { withFileTypes: false }) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			withFileTypes = entry.withFileTypes;
-			entry = this.cwd;
-		}
-		const e = await entry.readlink();
-		return withFileTypes ? e : e?.fullpath();
-	}
-	readlinkSync(entry = this.cwd, { withFileTypes } = { withFileTypes: false }) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			withFileTypes = entry.withFileTypes;
-			entry = this.cwd;
-		}
-		const e = entry.readlinkSync();
-		return withFileTypes ? e : e?.fullpath();
-	}
-	async realpath(entry = this.cwd, { withFileTypes } = { withFileTypes: false }) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			withFileTypes = entry.withFileTypes;
-			entry = this.cwd;
-		}
-		const e = await entry.realpath();
-		return withFileTypes ? e : e?.fullpath();
-	}
-	realpathSync(entry = this.cwd, { withFileTypes } = { withFileTypes: false }) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			withFileTypes = entry.withFileTypes;
-			entry = this.cwd;
-		}
-		const e = entry.realpathSync();
-		return withFileTypes ? e : e?.fullpath();
-	}
-	async walk(entry = this.cwd, opts = {}) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			opts = entry;
-			entry = this.cwd;
-		}
-		const { withFileTypes = true, follow = false, filter, walkFilter } = opts;
-		const results = [];
-		if (!filter || filter(entry)) {
-			results.push(withFileTypes ? entry : entry.fullpath());
-		}
-		const dirs = new Set();
-		const walk = (dir, cb) => {
-			dirs.add(dir);
-			dir.readdirCB((er, entries) => {
-				/* c8 ignore start */
-				if (er) {
-					return cb(er);
-				}
-				/* c8 ignore stop */
-				let len = entries.length;
-				if (!len) return cb();
-				const next = () => {
-					if (--len === 0) {
-						cb();
-					}
-				};
-				for (const e of entries) {
-					if (!filter || filter(e)) {
-						results.push(withFileTypes ? e : e.fullpath());
-					}
-					if (follow && e.isSymbolicLink()) {
-						e.realpath().then((r) => r?.isUnknown() ? r.lstat() : r).then((r) => r?.shouldWalk(dirs, walkFilter) ? walk(r, next) : next());
-					} else {
-						if (e.shouldWalk(dirs, walkFilter)) {
-							walk(e, next);
-						} else {
-							next();
-						}
-					}
-				}
-			}, true);
-		};
-		const start = entry;
-		return new Promise((res, rej) => {
-			walk(start, (er) => {
-				/* c8 ignore start */
-				if (er) return rej(er);
-				/* c8 ignore stop */
-				res(results);
-			});
-		});
-	}
-	walkSync(entry = this.cwd, opts = {}) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			opts = entry;
-			entry = this.cwd;
-		}
-		const { withFileTypes = true, follow = false, filter, walkFilter } = opts;
-		const results = [];
-		if (!filter || filter(entry)) {
-			results.push(withFileTypes ? entry : entry.fullpath());
-		}
-		const dirs = new Set([entry]);
-		for (const dir of dirs) {
-			const entries = dir.readdirSync();
-			for (const e of entries) {
-				if (!filter || filter(e)) {
-					results.push(withFileTypes ? e : e.fullpath());
-				}
-				let r = e;
-				if (e.isSymbolicLink()) {
-					if (!(follow && (r = e.realpathSync()))) continue;
-					if (r.isUnknown()) r.lstatSync();
-				}
-				if (r.shouldWalk(dirs, walkFilter)) {
-					dirs.add(r);
-				}
-			}
-		}
-		return results;
-	}
-	/**
-	* Support for `for await`
-	*
-	* Alias for {@link PathScurryBase.iterate}
-	*
-	* Note: As of Node 19, this is very slow, compared to other methods of
-	* walking.  Consider using {@link PathScurryBase.stream} if memory overhead
-	* and backpressure are concerns, or {@link PathScurryBase.walk} if not.
-	*/
-	[Symbol.asyncIterator]() {
-		return this.iterate();
-	}
-	iterate(entry = this.cwd, options = {}) {
-		// iterating async over the stream is significantly more performant,
-		// especially in the warm-cache scenario, because it buffers up directory
-		// entries in the background instead of waiting for a yield for each one.
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			options = entry;
-			entry = this.cwd;
-		}
-		return this.stream(entry, options)[Symbol.asyncIterator]();
-	}
-	/**
-	* Iterating over a PathScurry performs a synchronous walk.
-	*
-	* Alias for {@link PathScurryBase.iterateSync}
-	*/
-	[Symbol.iterator]() {
-		return this.iterateSync();
-	}
-	*iterateSync(entry = this.cwd, opts = {}) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			opts = entry;
-			entry = this.cwd;
-		}
-		const { withFileTypes = true, follow = false, filter, walkFilter } = opts;
-		if (!filter || filter(entry)) {
-			yield withFileTypes ? entry : entry.fullpath();
-		}
-		const dirs = new Set([entry]);
-		for (const dir of dirs) {
-			const entries = dir.readdirSync();
-			for (const e of entries) {
-				if (!filter || filter(e)) {
-					yield withFileTypes ? e : e.fullpath();
-				}
-				let r = e;
-				if (e.isSymbolicLink()) {
-					if (!(follow && (r = e.realpathSync()))) continue;
-					if (r.isUnknown()) r.lstatSync();
-				}
-				if (r.shouldWalk(dirs, walkFilter)) {
-					dirs.add(r);
-				}
-			}
-		}
-	}
-	stream(entry = this.cwd, opts = {}) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			opts = entry;
-			entry = this.cwd;
-		}
-		const { withFileTypes = true, follow = false, filter, walkFilter } = opts;
-		const results = new Minipass({});
-		if (!filter || filter(entry)) {
-			results.write(withFileTypes ? entry : entry.fullpath());
-		}
-		const dirs = new Set();
-		const queue = [entry];
-		let processing = 0;
-		const process = () => {
-			let paused = false;
-			while (!paused) {
-				const dir = queue.shift();
-				if (!dir) {
-					if (processing === 0) results.end();
-					return;
-				}
-				processing++;
-				dirs.add(dir);
-				const onReaddir = (er, entries, didRealpaths = false) => {
-					/* c8 ignore start */
-					if (er) return results.emit("error", er);
-					/* c8 ignore stop */
-					if (follow && !didRealpaths) {
-						const promises = [];
-						for (const e of entries) {
-							if (e.isSymbolicLink()) {
-								promises.push(e.realpath().then((r) => r?.isUnknown() ? r.lstat() : r));
-							}
-						}
-						if (promises.length) {
-							Promise.all(promises).then(() => onReaddir(null, entries, true));
-							return;
-						}
-					}
-					for (const e of entries) {
-						if (e && (!filter || filter(e))) {
-							if (!results.write(withFileTypes ? e : e.fullpath())) {
-								paused = true;
-							}
-						}
-					}
-					processing--;
-					for (const e of entries) {
-						const r = e.realpathCached() || e;
-						if (r.shouldWalk(dirs, walkFilter)) {
-							queue.push(r);
-						}
-					}
-					if (paused && !results.flowing) {
-						results.once("drain", process);
-					} else if (!sync) {
-						process();
-					}
-				};
-				// zalgo containment
-				let sync = true;
-				dir.readdirCB(onReaddir, true);
-				sync = false;
-			}
-		};
-		process();
-		return results;
-	}
-	streamSync(entry = this.cwd, opts = {}) {
-		if (typeof entry === "string") {
-			entry = this.cwd.resolve(entry);
-		} else if (!(entry instanceof PathBase)) {
-			opts = entry;
-			entry = this.cwd;
-		}
-		const { withFileTypes = true, follow = false, filter, walkFilter } = opts;
-		const results = new Minipass({});
-		const dirs = new Set();
-		if (!filter || filter(entry)) {
-			results.write(withFileTypes ? entry : entry.fullpath());
-		}
-		const queue = [entry];
-		let processing = 0;
-		const process = () => {
-			let paused = false;
-			while (!paused) {
-				const dir = queue.shift();
-				if (!dir) {
-					if (processing === 0) results.end();
-					return;
-				}
-				processing++;
-				dirs.add(dir);
-				const entries = dir.readdirSync();
-				for (const e of entries) {
-					if (!filter || filter(e)) {
-						if (!results.write(withFileTypes ? e : e.fullpath())) {
-							paused = true;
-						}
-					}
-				}
-				processing--;
-				for (const e of entries) {
-					let r = e;
-					if (e.isSymbolicLink()) {
-						if (!(follow && (r = e.realpathSync()))) continue;
-						if (r.isUnknown()) r.lstatSync();
-					}
-					if (r.shouldWalk(dirs, walkFilter)) {
-						queue.push(r);
-					}
-				}
-			}
-			if (paused && !results.flowing) results.once("drain", process);
-		};
-		process();
-		return results;
-	}
-	chdir(path = this.cwd) {
-		const oldCwd = this.cwd;
-		this.cwd = typeof path === "string" ? this.cwd.resolve(path) : path;
-		this.cwd[setAsCwd](oldCwd);
+	j() {
+		return this.#c;
 	}
 }
 /**
@@ -5803,25 +4452,21 @@ class PathScurryBase {
 * {@link PathWin32} for Path objects.
 */
 class PathScurryWin32 extends PathScurryBase {
-	/**
-	* separator for generating path strings
-	*/
-	sep = "\\";
 	constructor(cwd = process.cwd(), opts = {}) {
 		const { nocase = true } = opts;
 		super(cwd, win32, "\\", {
 			...opts,
 			nocase
 		});
-		this.nocase = nocase;
-		for (let p = this.cwd; p; p = p.parent) {
-			p.nocase = this.nocase;
+		this.d = nocase;
+		for (let p = this.b; p; p = p.parent) {
+			p.nocase = this.d;
 		}
 	}
 	/**
 	* @internal
 	*/
-	parseRootPath(dir) {
+	h(dir) {
 		// if the path starts with a single separator, it's not a UNC, and we'll
 		// just get separator as the root, and driveFromUNC will return \
 		// In that case, mount \ on the root from the cwd.
@@ -5830,14 +4475,8 @@ class PathScurryWin32 extends PathScurryBase {
 	/**
 	* @internal
 	*/
-	newRoot(fs) {
-		return new PathWin32(this.rootPath, 4, void 0, this.roots, this.nocase, this.childrenCache(), { fs });
-	}
-	/**
-	* Return true if the provided path string is an absolute path
-	*/
-	isAbsolute(p) {
-		return p.startsWith("/") || p.startsWith("\\") || /^[a-z]:(\/|\\)/i.test(p);
+	i(fs) {
+		return new PathWin32(this.g, 4, void 0, this.f, this.d, this.j(), { fs });
 	}
 }
 /**
@@ -5848,35 +4487,25 @@ class PathScurryWin32 extends PathScurryBase {
 * Uses {@link PathPosix} for Path objects.
 */
 class PathScurryPosix extends PathScurryBase {
-	/**
-	* separator for generating path strings
-	*/
-	sep = "/";
-	constructor(cwd, opts) {
+	constructor(__unused_45C7, opts) {
 		const { nocase = false } = opts;
-		super(cwd, posix, "/", {
+		super("", posix, "/", {
 			...opts,
 			nocase
 		});
-		this.nocase = nocase;
+		this.d = nocase;
 	}
 	/**
 	* @internal
 	*/
-	parseRootPath() {
+	h() {
 		return "/";
 	}
 	/**
 	* @internal
 	*/
-	newRoot(fs) {
-		return new PathPosix(this.rootPath, 4, void 0, this.roots, this.nocase, this.childrenCache(), { fs });
-	}
-	/**
-	* Return true if the provided path string is an absolute path
-	*/
-	isAbsolute(p) {
-		return p.startsWith("/");
+	i(fs) {
+		return new PathPosix("/", 4, void 0, this.f, this.d, this.j(), { fs });
 	}
 }
 /**
@@ -5888,8 +4517,8 @@ class PathScurryPosix extends PathScurryBase {
 * Uses {@link PathPosix} for Path objects.
 */
 class PathScurryDarwin extends PathScurryPosix {
-	constructor(cwd, opts) {
-		super(cwd, {
+	constructor(__unused_92D5, opts) {
+		super(0, {
 			...opts,
 			nocase: true
 		});
@@ -6100,7 +4729,7 @@ const defaultPlatform$1 = typeof process === "object" && process && typeof proce
 * Class used to process ignored patterns
 */
 class Ignore {
-	constructor(ignored, { nobrace, nocase, noext, noglobstar, platform = defaultPlatform$1 }) {
+	constructor(ignored, { nocase, platform = defaultPlatform$1 }) {
 		this.relative = [];
 		this.absolute = [];
 		this.relativeChildren = [];
@@ -6108,10 +4737,10 @@ class Ignore {
 		this.platform = platform;
 		this.mmopts = {
 			dot: true,
-			nobrace,
+			nobrace: void 0,
 			nocase,
-			noext,
-			noglobstar,
+			noext: void 0,
+			noglobstar: void 0,
 			optimizationLevel: 2,
 			platform,
 			nocomment: true,
@@ -6446,7 +5075,7 @@ class Processor {
 *
 * @module
 */
-const makeIgnore = (ignore, opts) => typeof ignore === "string" ? new Ignore([ignore], opts) : Array.isArray(ignore) ? new Ignore(ignore, opts) : ignore;
+const makeIgnore = (ignore, opts) => Array.isArray(ignore) ? new Ignore(ignore, opts) : ignore;
 /**
 * basic walking utilities that all the glob walker types use
 */
@@ -6463,25 +5092,17 @@ class GlobUtil {
 		this.patterns = patterns;
 		this.path = path;
 		this.opts = opts;
-		this.#sep = !opts.posix && opts.platform === "win32" ? "\\" : "/";
-		this.includeChildMatches = opts.includeChildMatches !== false;
-		if (opts.ignore || !this.includeChildMatches) {
-			this.#ignore = makeIgnore(opts.ignore ?? [], opts);
-			if (!this.includeChildMatches && typeof this.#ignore.add !== "function") {
-				throw new Error("cannot ignore child matches, ignore lacks add() method.");
+		this.#sep = opts.platform === "win32" ? "\\" : "/";
+		this.includeChildMatches = true;
+		{
+			{
+				this.#ignore = makeIgnore(opts.ignore, opts);
 			}
 		}
 		// ignore, always set with maxDepth, but it's optional on the
 		// GlobOptions type
 		/* c8 ignore start */
-		this.maxDepth = opts.maxDepth || Infinity;
-		/* c8 ignore stop */
-		if (opts.signal) {
-			this.signal = opts.signal;
-			this.signal.addEventListener("abort", () => {
-				this.#onResume.length = 0;
-			});
-		}
+		this.maxDepth = Infinity;
 	}
 	#ignored(path) {
 		return this.seen.has(path) || !!this.#ignore?.ignored?.(path);
@@ -6729,37 +5350,6 @@ class GlobWalker extends GlobUtil {
 		return this.matches;
 	}
 }
-class GlobStream extends GlobUtil {
-	results;
-	constructor(patterns, path, opts) {
-		super(patterns, path, opts);
-		this.results = new Minipass({ a: this.signal });
-		this.results.on("drain", () => this.resume());
-		this.results.on("resume", () => this.resume());
-	}
-	matchEmit(e) {
-		this.results.write(e);
-		if (!this.results.flowing) this.pause();
-	}
-	stream() {
-		const target = this.path;
-		if (target.isUnknown()) {
-			target.lstat().then(() => {
-				this.walkCB(target, this.patterns, () => this.results.end());
-			});
-		} else {
-			this.walkCB(target, this.patterns, () => this.results.end());
-		}
-		return this.results;
-	}
-	streamSync() {
-		if (this.path.isUnknown()) {
-			this.path.lstatSync();
-		}
-		this.walkCBSync(this.path, this.patterns, () => this.results.end());
-		return this.results;
-	}
-}
 // if no process global, just call it linux.
 // so we default to case-sensitive, / separators
 const defaultPlatform = typeof process === "object" && process && typeof process.platform === "string" ? process.platform : "linux";
@@ -6767,19 +5357,11 @@ const defaultPlatform = typeof process === "object" && process && typeof process
 * An object that can perform glob pattern traversals.
 */
 class Glob {
-	nocase;
-	pattern;
-	platform;
-	scurry;
-	windowsPathsNoEscape;
-	/**
-	* The options provided to the constructor.
-	*/
-	opts;
+	a;
 	/**
 	* An array of parsed immutable {@link Pattern} objects.
 	*/
-	patterns;
+	b;
 	/**
 	* All options are stored as properties on the `Glob` object.
 	*
@@ -6793,155 +5375,70 @@ class Glob {
 	* again.
 	*/
 	constructor(pattern, opts) {
-		/* c8 ignore stop */
-		this.withFileTypes = false;
-		this.signal = void 0;
-		this.follow = false;
-		this.dot = false;
-		this.dotRelative = false;
-		this.nodir = false;
-		this.mark = false;
-		this.cwd = "";
-		this.root = void 0;
-		this.magicalBraces = false;
-		this.nobrace = false;
-		this.noext = false;
-		this.realpath = false;
-		this.absolute = void 0;
-		this.includeChildMatches = true;
-		this.noglobstar = false;
-		this.matchBase = false;
-		this.maxDepth = Infinity;
-		this.stat = false;
-		this.ignore = opts.ignore;
-		if (this.withFileTypes && this.absolute !== void 0) {
-			throw new Error("cannot set absolute and withFileTypes:true");
-		}
 		{
 			{
 				pattern = ["**/*.js"];
 			}
 		}
-		this.windowsPathsNoEscape = false;
-		if (this.windowsPathsNoEscape) {
-			pattern = pattern.map((p) => p.replace(/\\/g, "/"));
-		}
-		if (this.matchBase) {
-			pattern = pattern.map((p) => p.includes("/") ? p : `./**/${p}`);
-		}
-		this.pattern = pattern;
-		this.platform = defaultPlatform;
-		this.opts = {
-			...opts,
-			platform: this.platform
-		};
+		this.c = pattern;
+		this.d = defaultPlatform;
+		this.e = { ...opts };
 		{
 			{
 				const Scurry = PathScurry;
-				this.scurry = new Scurry(this.cwd, {
+				this.f = new Scurry("", {
 					nocase: void 0,
 					fs: void 0
 				});
 			}
 		}
-		this.nocase = this.scurry.nocase;
+		this.a = this.f.d;
 		// If you do nocase:true on a case-sensitive file system, then
 		// we need to use regexps instead of strings for non-magic
 		// path portions, because statting `aBc` won't return results
 		// for the file `AbC` for example.
-		const nocaseMagicOnly = this.platform === "darwin" || this.platform === "win32";
+		const nocaseMagicOnly = this.d === "darwin" || this.d === "win32";
 		const mmo = {
 			...opts,
-			dot: this.dot,
-			matchBase: this.matchBase,
-			nobrace: this.nobrace,
-			nocase: this.nocase,
+			dot: false,
+			matchBase: false,
+			nobrace: false,
+			nocase: this.a,
 			nocaseMagicOnly,
 			nocomment: true,
-			noext: this.noext,
+			noext: false,
 			nonegate: true,
 			optimizationLevel: 2,
-			platform: this.platform,
-			windowsPathsNoEscape: this.windowsPathsNoEscape,
-			debug: !!this.opts.debug
+			platform: this.d,
+			windowsPathsNoEscape: false,
+			debug: false
 		};
-		const mms = this.pattern.map((p) => new Minimatch(p, mmo));
+		const mms = this.c.map((p) => new Minimatch(p, mmo));
 		const [matchSet, globParts] = mms.reduce((set, m) => {
 			set[0].push(...m.set);
 			set[1].push(...m.globParts);
 			return set;
 		}, [[], []]);
-		this.patterns = matchSet.map((set, i) => {
+		this.b = matchSet.map((set, i) => {
 			const g = globParts[i];
 			/* c8 ignore start */
 			if (!g) throw new Error("invalid pattern object");
 			/* c8 ignore stop */
-			return new Pattern(set, g, 0, this.platform);
+			return new Pattern(set, g, 0, this.d);
 		});
 	}
-	async walk() {
-		// Walkers always return array of Path objects, so we just have to
-		// coerce them into the right shape.  It will have already called
-		// realpath() if the option was set to do so, so we know that's cached.
-		// start out knowing the cwd, at least
-		return [...await new GlobWalker(this.patterns, this.scurry.cwd, {
-			...this.opts,
-			maxDepth: this.maxDepth !== Infinity ? this.maxDepth + this.scurry.cwd.depth() : Infinity,
-			platform: this.platform,
-			nocase: this.nocase,
-			includeChildMatches: this.includeChildMatches
-		}).walk()];
-	}
-	walkSync() {
-		return [...new GlobWalker(this.patterns, this.scurry.cwd, {
-			...this.opts,
-			maxDepth: this.maxDepth !== Infinity ? this.maxDepth + this.scurry.cwd.depth() : Infinity,
-			platform: this.platform,
-			nocase: this.nocase,
-			includeChildMatches: this.includeChildMatches
+	g() {
+		return [...new GlobWalker(this.b, this.f.b, {
+			...this.e,
+			maxDepth: Infinity,
+			platform: this.d,
+			nocase: this.a,
+			includeChildMatches: true
 		}).walkSync()];
-	}
-	stream() {
-		return new GlobStream(this.patterns, this.scurry.cwd, {
-			...this.opts,
-			maxDepth: this.maxDepth !== Infinity ? this.maxDepth + this.scurry.cwd.depth() : Infinity,
-			platform: this.platform,
-			nocase: this.nocase,
-			includeChildMatches: this.includeChildMatches
-		}).stream();
-	}
-	streamSync() {
-		return new GlobStream(this.patterns, this.scurry.cwd, {
-			...this.opts,
-			maxDepth: this.maxDepth !== Infinity ? this.maxDepth + this.scurry.cwd.depth() : Infinity,
-			platform: this.platform,
-			nocase: this.nocase,
-			includeChildMatches: this.includeChildMatches
-		}).streamSync();
-	}
-	/**
-	* Default sync iteration function. Returns a Generator that
-	* iterates over the results.
-	*/
-	iterateSync() {
-		return this.streamSync()[Symbol.iterator]();
-	}
-	[Symbol.iterator]() {
-		return this.iterateSync();
-	}
-	/**
-	* Default async iteration function. Returns an AsyncGenerator that
-	* iterates over the results.
-	*/
-	iterate() {
-		return this.stream()[Symbol.asyncIterator]();
-	}
-	[Symbol.asyncIterator]() {
-		return this.iterate();
 	}
 }
 function globSync(__unused_B01E, options) {
-	return new Glob(0, options).walkSync();
+	return new Glob(0, options).g();
 }
 const files = globSync(0, { ignore: ["node_modules/**", "dist/**"] });
 console.log(files);

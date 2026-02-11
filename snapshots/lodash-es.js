@@ -432,29 +432,6 @@ var WeakMap$1 = WeakMap;
 /** Used to store function metadata. */
 var metaMap = WeakMap$1 && new WeakMap$1();
 var metaMap$1 = metaMap;
-/** Built-in value references. */
-var objectCreate = Object.create;
-/**
-* The base implementation of `_.create` without support for assigning
-* properties to the created object.
-*
-* @private
-* @param {Object} proto The object to inherit from.
-* @returns {Object} Returns the new object.
-*/
-var baseCreate = function() {
-	return function(proto) {
-		if (!isObject(proto)) {
-			return {};
-		}
-		{
-			{
-				return objectCreate(proto);
-			}
-		}
-	};
-}();
-var baseCreate$1 = baseCreate;
 /**
 * A faster alternative to `Function#apply`, this function invokes `func`
 * with the `this` binding of `thisArg` and the arguments of `args`.
@@ -474,31 +451,6 @@ function apply(func, thisArg, args) {
 	}
 	return func.apply(thisArg, args);
 }
-/**
-* The function whose prototype chain sequence wrappers inherit from.
-*
-* @private
-*/
-function baseLodash() {}
-/**
-* Creates a lazy wrapper object which wraps `value` to enable lazy evaluation.
-*
-* @private
-* @constructor
-* @param {*} value The value to wrap.
-*/
-function LazyWrapper(value) {
-	this.__wrapped__ = value;
-	this.__actions__ = [];
-	this.__dir__ = 1;
-	this.__filtered__ = false;
-	this.__iteratees__ = [];
-	this.__takeCount__ = 4294967295;
-	this.__views__ = [];
-}
-// Ensure `LazyWrapper` is an instance of `baseLodash`.
-LazyWrapper.prototype = baseCreate$1(baseLodash.prototype);
-LazyWrapper.prototype.constructor = LazyWrapper;
 /**
 * This method returns `undefined`.
 *
@@ -550,190 +502,6 @@ function getFuncName(func) {
 	return result;
 }
 /**
-* The base constructor for creating `lodash` wrapper objects.
-*
-* @private
-* @param {*} value The value to wrap.
-* @param {boolean} [chainAll] Enable explicit method chain sequences.
-*/
-function LodashWrapper(value, chainAll) {
-	this.__wrapped__ = value;
-	this.__actions__ = [];
-	this.__chain__ = !!chainAll;
-	this.__index__ = 0;
-	this.__values__ = void 0;
-}
-LodashWrapper.prototype = baseCreate$1(baseLodash.prototype);
-LodashWrapper.prototype.constructor = LodashWrapper;
-/**
-* Copies the values of `source` to `array`.
-*
-* @private
-* @param {Array} source The array to copy values from.
-* @param {Array} [array=[]] The array to copy values to.
-* @returns {Array} Returns `array`.
-*/
-function copyArray(source, array) {
-	var index = -1, length = source.length;
-	array = Array(length);
-	while (++index < length) {
-		array[index] = source[index];
-	}
-	return array;
-}
-/**
-* Creates a clone of `wrapper`.
-*
-* @private
-* @param {Object} wrapper The wrapper to clone.
-* @returns {Object} Returns the cloned wrapper.
-*/
-function wrapperClone(wrapper) {
-	if (wrapper instanceof LazyWrapper) {
-		return wrapper.clone();
-	}
-	var result = new LodashWrapper(wrapper.__wrapped__, wrapper.__chain__);
-	result.__actions__ = copyArray(wrapper.__actions__);
-	result.__index__ = wrapper.__index__;
-	result.__values__ = wrapper.__values__;
-	return result;
-}
-/** Used for built-in method references. */
-var objectProto$9 = Object.prototype;
-/** Used to check objects for own properties. */
-var hasOwnProperty$7 = objectProto$9.hasOwnProperty;
-/**
-* Creates a `lodash` object which wraps `value` to enable implicit method
-* chain sequences. Methods that operate on and return arrays, collections,
-* and functions can be chained together. Methods that retrieve a single value
-* or may return a primitive value will automatically end the chain sequence
-* and return the unwrapped value. Otherwise, the value must be unwrapped
-* with `_#value`.
-*
-* Explicit chain sequences, which must be unwrapped with `_#value`, may be
-* enabled using `_.chain`.
-*
-* The execution of chained methods is lazy, that is, it's deferred until
-* `_#value` is implicitly or explicitly called.
-*
-* Lazy evaluation allows several methods to support shortcut fusion.
-* Shortcut fusion is an optimization to merge iteratee calls; this avoids
-* the creation of intermediate arrays and can greatly reduce the number of
-* iteratee executions. Sections of a chain sequence qualify for shortcut
-* fusion if the section is applied to an array and iteratees accept only
-* one argument. The heuristic for whether a section qualifies for shortcut
-* fusion is subject to change.
-*
-* Chaining is supported in custom builds as long as the `_#value` method is
-* directly or indirectly included in the build.
-*
-* In addition to lodash methods, wrappers have `Array` and `String` methods.
-*
-* The wrapper `Array` methods are:
-* `concat`, `join`, `pop`, `push`, `shift`, `sort`, `splice`, and `unshift`
-*
-* The wrapper `String` methods are:
-* `replace` and `split`
-*
-* The wrapper methods that support shortcut fusion are:
-* `at`, `compact`, `drop`, `dropRight`, `dropWhile`, `filter`, `find`,
-* `findLast`, `head`, `initial`, `last`, `map`, `reject`, `reverse`, `slice`,
-* `tail`, `take`, `takeRight`, `takeRightWhile`, `takeWhile`, and `toArray`
-*
-* The chainable wrapper methods are:
-* `after`, `ary`, `assign`, `assignIn`, `assignInWith`, `assignWith`, `at`,
-* `before`, `bind`, `bindAll`, `bindKey`, `castArray`, `chain`, `chunk`,
-* `commit`, `compact`, `concat`, `conforms`, `constant`, `countBy`, `create`,
-* `curry`, `debounce`, `defaults`, `defaultsDeep`, `defer`, `delay`,
-* `difference`, `differenceBy`, `differenceWith`, `drop`, `dropRight`,
-* `dropRightWhile`, `dropWhile`, `extend`, `extendWith`, `fill`, `filter`,
-* `flatMap`, `flatMapDeep`, `flatMapDepth`, `flatten`, `flattenDeep`,
-* `flattenDepth`, `flip`, `flow`, `flowRight`, `fromPairs`, `functions`,
-* `functionsIn`, `groupBy`, `initial`, `intersection`, `intersectionBy`,
-* `intersectionWith`, `invert`, `invertBy`, `invokeMap`, `iteratee`, `keyBy`,
-* `keys`, `keysIn`, `map`, `mapKeys`, `mapValues`, `matches`, `matchesProperty`,
-* `memoize`, `merge`, `mergeWith`, `method`, `methodOf`, `mixin`, `negate`,
-* `nthArg`, `omit`, `omitBy`, `once`, `orderBy`, `over`, `overArgs`,
-* `overEvery`, `overSome`, `partial`, `partialRight`, `partition`, `pick`,
-* `pickBy`, `plant`, `property`, `propertyOf`, `pull`, `pullAll`, `pullAllBy`,
-* `pullAllWith`, `pullAt`, `push`, `range`, `rangeRight`, `rearg`, `reject`,
-* `remove`, `rest`, `reverse`, `sampleSize`, `set`, `setWith`, `shuffle`,
-* `slice`, `sort`, `sortBy`, `splice`, `spread`, `tail`, `take`, `takeRight`,
-* `takeRightWhile`, `takeWhile`, `tap`, `throttle`, `thru`, `toArray`,
-* `toPairs`, `toPairsIn`, `toPath`, `toPlainObject`, `transform`, `unary`,
-* `union`, `unionBy`, `unionWith`, `uniq`, `uniqBy`, `uniqWith`, `unset`,
-* `unshift`, `unzip`, `unzipWith`, `update`, `updateWith`, `values`,
-* `valuesIn`, `without`, `wrap`, `xor`, `xorBy`, `xorWith`, `zip`,
-* `zipObject`, `zipObjectDeep`, and `zipWith`
-*
-* The wrapper methods that are **not** chainable by default are:
-* `add`, `attempt`, `camelCase`, `capitalize`, `ceil`, `clamp`, `clone`,
-* `cloneDeep`, `cloneDeepWith`, `cloneWith`, `conformsTo`, `deburr`,
-* `defaultTo`, `divide`, `each`, `eachRight`, `endsWith`, `eq`, `escape`,
-* `escapeRegExp`, `every`, `find`, `findIndex`, `findKey`, `findLast`,
-* `findLastIndex`, `findLastKey`, `first`, `floor`, `forEach`, `forEachRight`,
-* `forIn`, `forInRight`, `forOwn`, `forOwnRight`, `get`, `gt`, `gte`, `has`,
-* `hasIn`, `head`, `identity`, `includes`, `indexOf`, `inRange`, `invoke`,
-* `isArguments`, `isArray`, `isArrayBuffer`, `isArrayLike`, `isArrayLikeObject`,
-* `isBoolean`, `isBuffer`, `isDate`, `isElement`, `isEmpty`, `isEqual`,
-* `isEqualWith`, `isError`, `isFinite`, `isFunction`, `isInteger`, `isLength`,
-* `isMap`, `isMatch`, `isMatchWith`, `isNaN`, `isNative`, `isNil`, `isNull`,
-* `isNumber`, `isObject`, `isObjectLike`, `isPlainObject`, `isRegExp`,
-* `isSafeInteger`, `isSet`, `isString`, `isUndefined`, `isTypedArray`,
-* `isWeakMap`, `isWeakSet`, `join`, `kebabCase`, `last`, `lastIndexOf`,
-* `lowerCase`, `lowerFirst`, `lt`, `lte`, `max`, `maxBy`, `mean`, `meanBy`,
-* `min`, `minBy`, `multiply`, `noConflict`, `noop`, `now`, `nth`, `pad`,
-* `padEnd`, `padStart`, `parseInt`, `pop`, `random`, `reduce`, `reduceRight`,
-* `repeat`, `result`, `round`, `runInContext`, `sample`, `shift`, `size`,
-* `snakeCase`, `some`, `sortedIndex`, `sortedIndexBy`, `sortedLastIndex`,
-* `sortedLastIndexBy`, `startCase`, `startsWith`, `stubArray`, `stubFalse`,
-* `stubObject`, `stubString`, `stubTrue`, `subtract`, `sum`, `sumBy`,
-* `template`, `times`, `toFinite`, `toInteger`, `toJSON`, `toLength`,
-* `toLower`, `toNumber`, `toSafeInteger`, `toString`, `toUpper`, `trim`,
-* `trimEnd`, `trimStart`, `truncate`, `unescape`, `uniqueId`, `upperCase`,
-* `upperFirst`, `value`, and `words`
-*
-* @name _
-* @constructor
-* @category Seq
-* @param {*} value The value to wrap in a `lodash` instance.
-* @returns {Object} Returns the new `lodash` wrapper instance.
-* @example
-*
-* function square(n) {
-*   return n * n;
-* }
-*
-* var wrapped = _([1, 2, 3]);
-*
-* // Returns an unwrapped value.
-* wrapped.reduce(_.add);
-* // => 6
-*
-* // Returns a wrapped value.
-* var squares = wrapped.map(square);
-*
-* _.isArray(squares);
-* // => false
-*
-* _.isArray(squares.value());
-* // => true
-*/
-function lodash(value) {
-	if (isObjectLike(value) && !isArray$1(value) && !(value instanceof LazyWrapper)) {
-		if (value instanceof LodashWrapper) {
-			return value;
-		}
-		if (hasOwnProperty$7.call(value, "__wrapped__")) {
-			return wrapperClone(value);
-		}
-	}
-	return new LodashWrapper(value);
-}
-// Ensure wrappers are instances of `baseLodash`.
-lodash.prototype = baseLodash.prototype;
-lodash.prototype.constructor = lodash;
-/**
 * Checks if `func` has a lazy counterpart.
 *
 * @private
@@ -742,15 +510,7 @@ lodash.prototype.constructor = lodash;
 *  else `false`.
 */
 function isLaziable(func) {
-	var funcName = getFuncName(func), other = lodash[funcName];
-	if (typeof other != "function" || !(funcName in LazyWrapper.prototype)) {
-		return false;
-	}
-	if (func === other) {
-		return true;
-	}
-	var data = getData$1(other);
-	return !!data && func === data[0];
+	getFuncName(func);
 }
 /**
 * Creates a function that'll short out and invoke `identity` instead
@@ -1594,7 +1354,7 @@ function filter(collection, predicate) {
 */
 function createFlow() {
 	return flatRest(function(funcs) {
-		var length = funcs.length, index = length, prereq = LodashWrapper.prototype.thru;
+		var length = funcs.length, index = length;
 		{
 			funcs.reverse();
 		}
@@ -1603,18 +1363,16 @@ function createFlow() {
 			if (typeof func != "function") {
 				throw new TypeError("Expected a function");
 			}
-			if (prereq && !wrapper && getFuncName(func) == "wrapper") {
-				var wrapper = new LodashWrapper([], true);
-			}
 		}
 		index = wrapper ? index : length;
 		while (++index < length) {
 			func = funcs[index];
 			var funcName = getFuncName(func), data = funcName == "wrapper" ? getData$1(func) : void 0;
-			if (data && isLaziable(data[0]) && data[1] == 424 && !data[4].length && data[9] == 1) {
-				wrapper = wrapper[getFuncName(data[0])].apply(wrapper, data[3]);
-			} else {
-				wrapper = func.length == 1 && isLaziable(func) ? wrapper[funcName]() : wrapper.thru(func);
+			{
+				data && isLaziable(data[0]);
+				{
+					wrapper = (func.length == 1 && isLaziable(func), wrapper.thru(func));
+				}
 			}
 		}
 		return function() {
@@ -1628,6 +1386,7 @@ function createFlow() {
 			}
 			return result;
 		};
+		var wrapper;
 	});
 }
 /**

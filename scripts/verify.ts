@@ -78,8 +78,10 @@ async function main() {
   }
 
   // Save updated failed tests
-  saveFailedTests(failedTests);
-  console.log('\nFailed tests saved to failed.json');
+  if (!name) {
+    saveFailedTests(failedTests);
+    console.log('\nFailed tests saved to failed.json');
+  }
 }
 
 main();

@@ -1,13 +1,14 @@
 {
   "rollup_lacuna2_terser": [
+    "antd",
+    "d3",
     "glob",
     "novnc",
     "vuetify",
     "js-yaml",
     "sentry",
     "material-ui",
-    "rxjs",
-    "antd"
+    "rxjs"
   ],
   "rollup_terser": [],
   "rollup_jsshaker_terser": [],
@@ -15,17 +16,18 @@
     "glob"
   ],
   "rollup_gccAdv_terser": [
+    "antd",
     "glob",
     "novnc",
     "js-yaml",
     "react-icons",
     "sentry",
     "material-ui",
-    "lodash",
-    "lodash-es",
-    "antd"
+    "lodash-es"
   ],
   "rollup_lacuna3_terser": [
+    "antd",
+    "d3",
     "glob",
     "novnc",
     "vuetify",
@@ -34,10 +36,8 @@
     "remeda",
     "sentry",
     "material-ui",
-    "lodash",
     "lodash-es",
-    "rxjs",
-    "antd"
+    "rxjs"
   ],
   "rollup": [],
   "rollup_lacuna1": [

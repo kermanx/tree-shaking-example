@@ -1245,7 +1245,7 @@ var StyleRule = function(_BaseStyleRule) {
 	_inheritsLoose(StyleRule, _BaseStyleRule);
 	function StyleRule(key, style, options) {
 		var _this;
-		_this = _BaseStyleRule.call(this, key, style, options) || this;
+		_this = (_BaseStyleRule.call(this, key, style, options), this);
 		var selector = options.selector, scoped = options.scoped, sheet = options.sheet, generateId = options.generateId;
 		if (selector) {
 			_this.selectorText = selector;
@@ -1473,7 +1473,7 @@ var pluginKeyframesRule = {
 var KeyframeRule = function(_BaseStyleRule) {
 	_inheritsLoose(KeyframeRule, _BaseStyleRule);
 	function KeyframeRule() {
-		return _BaseStyleRule.apply(this, arguments) || this;
+		return _BaseStyleRule.apply(this, arguments), this;
 	}
 	var _proto = KeyframeRule.prototype;
 	/**

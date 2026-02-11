@@ -10,7 +10,7 @@ const WARMUP_RUNS = 1;
 const BENCHMARK_RUNS = 3;
 const DEFAULT_DEPTH = 2;
 
-type OptimizerType = 'jsshaker' | 'terser' | 'rollup' | 'gcc' | 'gccAdv' | 'lacuna';
+type OptimizerType = 'jsshaker' | 'terser' | 'rollup' | 'gcc' | 'gccAdv' | 'lacuna2' | 'lacuna3';
 
 async function benchmarkJsshaker() {
   const distFolder = join(import.meta.dirname, '../dist');
@@ -284,7 +284,7 @@ async function benchmarkGccAdv() {
   console.log('\nResults saved to time.json');
 }
 
-async function benchmarkLacuna() {
+async function benchmarkLacuna(ol: number) {
   const distFolder = join(import.meta.dirname, '../dist');
   const srcFolder = join(import.meta.dirname, '../src');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
@@ -306,7 +306,7 @@ async function benchmarkLacuna() {
 
     for (let i = 0; i < WARMUP_RUNS; i++) {
       try {
-        const r = await Optimizers.lacuna({ name, code, env: config.env });
+        const r = await Optimizers[`lacuna${ol}`]({ name, code, env: config.env });
         if (!r) {
           console.log(`[${name}] Warmup returned no result, skipping...`);
           continue loop;
@@ -322,7 +322,7 @@ async function benchmarkLacuna() {
     for (let i = 0; i < BENCHMARK_RUNS; i++) {
       try {
         const start = performance.now();
-        await Optimizers.lacuna({ name, code, env: config.env });
+        await Optimizers[`lacuna${ol}`]({ name, code, env: config.env });
         times.push(performance.now() - start);
       } catch (e) {
         console.log(`[${name}] Benchmark failed, skipping...`);
@@ -339,7 +339,7 @@ async function benchmarkLacuna() {
   }
 
   const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
-  timeData.lacuna = results;
+  timeData[`lacuna${ol}`] = results;
   await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
   console.log('\nResults saved to time.json');
 }
@@ -355,7 +355,8 @@ async function main() {
     await benchmarkRollup();
     await benchmarkGcc();
     await benchmarkGccAdv();
-    await benchmarkLacuna();
+    await benchmarkLacuna(2);
+    await benchmarkLacuna(3);
     console.log('\nAll benchmarks completed!');
     return;
   }
@@ -376,8 +377,11 @@ async function main() {
     case 'gccAdv':
       await benchmarkGccAdv();
       break;
-    case 'lacuna':
-      await benchmarkLacuna();
+    case 'lacuna2':
+      await benchmarkLacuna(2);
+      break;
+    case 'lacuna3':
+      await benchmarkLacuna(3);
       break;
     default:
       console.error(`Unknown optimizer: ${optimizer}`);
