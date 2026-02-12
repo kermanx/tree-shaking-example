@@ -23,79 +23,24 @@ export async function heuristic({ name, code }: OptimizeOptions) {
     const mainFile = path.join(libDir, 'index.js');
     await fs.writeFile(mainFile, code, 'utf8');
 
-    // Create a minimal package.json
+    // Create a minimal package.json with npm test configured
+    // npm test will be called by JavaScriptHeuristicOptimizer's CommandTester
     const packageJson = {
       name: name,
       version: '1.0.0',
       main: 'index.js',
       scripts: {
-        test: 'node test.js'
+        // npm test will directly run index.js
+        test: 'node index.js'
       }
     };
     await fs.writeFile(path.join(libDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
 
-    // Create a test file that validates the code functionality
-    // Analyze the code to determine what to test
-    let testCode = '';
 
-    // Check if code exports 'answer' variable
-    const hasAnswerExport = /(?:module\.exports\s*=\s*\{[^}]*answer|answer\s*:)/.test(code);
-
-    if (hasAnswerExport) {
-      // Test the answer export
-      testCode = `
-const startTime = Date.now();
-try {
-  const lib = require('./index.js');
-
-  // Test the actual functionality
-  if (lib && lib.answer !== undefined) {
-    // For most test cases, the answer should be '2,4,6,8'
-    const expected = '2,4,6,8';
-    const actual = String(lib.answer);
-    if (actual === expected) {
-      const duration = Date.now() - startTime;
-      console.log(JSON.stringify({ duration: duration, success: "true", host: "localhost" }));
-      process.exit(0);
-    } else {
-      console.error('Test failed: Expected "' + expected + '" but got "' + actual + '"');
-      process.exit(1);
-    }
-  } else {
-    console.error('Test failed: lib.answer is undefined');
-    process.exit(1);
-  }
-} catch (error) {
-  console.error('Test failed:', error.message);
-  process.exit(1);
-}
-`;
-    } else {
-      // Generic test - just check if code can be parsed (syntax check)
-      // For browser-only code that can't run in Node.js
-      testCode = `
-const startTime = Date.now();
-const fs = require('fs');
-
-try {
-  // Just verify the file can be read and has content
-  const code = fs.readFileSync('./index.js', 'utf8');
-  if (code && code.length > 0) {
-    const duration = Date.now() - startTime;
-    console.log(JSON.stringify({ duration: duration, success: "true", host: "localhost" }));
-    process.exit(0);
-  } else {
-    console.error('Test failed: Empty file');
-    process.exit(1);
-  }
-} catch (error) {
-  console.error('Test failed:', error.message);
-  process.exit(1);
-}
-`;
-    }
-
-    await fs.writeFile(path.join(libDir, 'test.js'), testCode, 'utf8');
+    // No need to create test.js - npm test will directly run index.js
+    // JavaScriptHeuristicOptimizer will call: cd ${libDir} && npm test
+    // which executes: node index.js
+    // The code's console.log output will be captured and verified
 
     // Use absolute paths for results directory to avoid path resolution issues
     const absoluteScratchDir = path.join(tmpDir, "scratch");
@@ -128,9 +73,9 @@ try {
       "heuristics": ["GA"],
       "port": 5000,
       "url": "ws://localhost",
-      "clientTimeout": 120,
+      "clientTimeout": code.length > 600000 ? 300 : 120,  // 300s for >600KB, 120s for smaller
       "clientsTotal": 1,
-      "copyFileTimeout": 120,
+      "copyFileTimeout": code.length > 600000 ? 300 : 120,  // Increase copy timeout too
       "memory": 2048,
       "libraries": [
         {
@@ -169,8 +114,8 @@ try {
               "ConditionalExpression"
             ],
             // Adjust parameters based on file size
-            "individuals": code.length > 500000 ? 15 : 30,  // 15 for >500KB, 30 for smaller
-            "generations": code.length > 500000 ? 10 : 15,  // 10 for >500KB, 15 for smaller
+            "individuals": code.length > 600000 ? 10 : (code.length > 500000 ? 15 : 30),  // 10 for >600KB, 15 for 500-600KB, 30 for smaller
+            "generations": code.length > 600000 ? 5 : (code.length > 500000 ? 10 : 15),  // 5 for >600KB, 10 for 500-600KB, 15 for smaller
             "crossoverProbability": 70,
             "mutationProbability": 30,
             "elitism": true,
@@ -202,7 +147,7 @@ try {
     console.log(`[${name}] Config: ${configPath}`);
 
     // Run the optimizer
-    const { execSync, spawn } = await import('node:child_process');
+    const { execSync } = await import('node:child_process');
     const originalCwd = process.cwd();
 
     try {

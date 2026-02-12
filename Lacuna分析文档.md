@@ -25,6 +25,12 @@ Lacuna 提供 4 个优化级别：
 - **Level 3**: 用 null 替换函数定义
 - 支持多种分析器生成调用图：static、dynamic、nativecalls、acg、jelly、npm_cg(tajs、wala不太行，不支持ES6语法)
 
+论文里准确率+召回率最佳：dynamic+tajs——>tajs太陈旧，无法简单修改代码支持ES6——>dynamic+jelly(通过模块化方法克服TAJS的缺点，能够对更复杂的Node.js应用程序进行静态分析；支持最新的ECMAScript标准)
+
+OL-1（懒加载）安全性最高，但负优化太多
+OL-3性能提升最大但有运行时错误风险，
+OL-2平衡两者
+
 ## 2. 项目中的 Lacuna 集成
 
 ### 集成实现
@@ -97,11 +103,7 @@ Lacuna 提供 4 个优化级别：
 - **调用图**：`vendor/Lacuna/call_graph.js`
 - **文档**：`vendor/Lacuna/README.md`
 
-### 项目集成代码
 
-- **优化器封装**：`scripts/optimizer.ts` (第 154-245 行)
-- **CLI 接口**：`scripts/cli.ts`
-- **打包器**：`scripts/bundle.ts`
 
 ### 测试相关
 
