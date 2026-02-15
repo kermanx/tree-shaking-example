@@ -1,0 +1,72 @@
+{
+  "file": "config-js-yaml-1770515906281.json",
+  "trials": 1,
+  "startTrial": 0,
+  "fitType": "median",
+  "testUntil": 1,
+  "mutationTrials": 1,
+  "crossOverTrials": 1,
+  "logFilePath": "../../../../../tmp/heuristic-4DhYBh/optimization.log",
+  "tmpDirectory": "../../../../../tmp/heuristic-4DhYBh/scratch",
+  "logCategory": "optimization",
+  "logFileClearing": false,
+  "resultsDirectory": "/tmp/heuristic-4DhYBh/results",
+  "trialResultsFile": "Results.csv",
+  "logWritter": "ConcreteLogger",
+  "tester": "CommandTester",
+  "outWriter": "CsvResultsOutWriter",
+  "heuristics": [
+    "GA"
+  ],
+  "port": 5000,
+  "url": "ws://localhost",
+  "clientTimeout": 30,
+  "clientsTotal": 1,
+  "copyFileTimeout": 60,
+  "memory": 2048,
+  "libraries": [
+    {
+      "name": "js-yaml",
+      "path": "../../../../../tmp/heuristic-4DhYBh/js-yaml",
+      "mainFilePath": "index.js"
+    }
+  ],
+  "trialsConfiguration": [
+    {
+      "nodesSelectionApproach": "Global",
+      "ByFunctionType": "dynamic",
+      "especific": {
+        "neighborApproach": "FirstAscent",
+        "neighborsToProcess": 2,
+        "trials": 10,
+        "restartAtEnd": false,
+        "ramdonRestart": false,
+        "ramdonNodes": false,
+        "nodesType": [
+          "ExpressionStatement",
+          "VariableDeclaration",
+          "Literal",
+          "ReturnStatement",
+          "Property",
+          "BinaryExpression",
+          "FunctionDeclaration",
+          "IfStatement",
+          "CallExpression",
+          "VariableDeclarator",
+          "ObjectExpression",
+          "FunctionExpression",
+          "ArrayExpression",
+          "UnaryExpression",
+          "AssignmentExpression",
+          "ConditionalExpression"
+        ],
+        "individuals": 30,
+        "generations": 15,
+        "crossoverProbability": 70,
+        "mutationProbability": 30,
+        "elitism": true,
+        "elitismPercentual": 10
+      }
+    }
+  ]
+}

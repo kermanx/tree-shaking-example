@@ -1,0 +1,72 @@
+{
+    "file": "Configuration.json",
+    "trials": 5,
+    "startTrial": 0,
+    "fitType": "median",
+    "testUntil": 1,
+    "mutationTrials": 1,
+    "crossOverTrials": 1,
+    "logFilePath": "build/optmization.log",
+    "tmpDirectory": "/tmp/js-optimizer",
+    "logCategory": "optmization",
+    "logFileClearing": false,
+    "resultsDirectory": "build/results",
+    "trialResultsFile": "Results.csv",
+    "logWritter": "ConcreteLogger",
+    "tester": "CommandTester",
+    "outWriter": "CsvResultsOutWriter",
+    "heuristics": [
+        "GA"
+    ],
+    "port": 5000,
+    "url": "ws://localhost",
+    "clientTimeout": 80,
+    "clientsTotal": 4,
+    "copyFileTimeout": 1728000,
+    "memory": 8192,
+    "libraries": [
+        {
+            "name": "exectimer",
+            "path": "Libraries/exectimer",
+            "mainFilePath": "index.js"
+        }
+    ],
+    "trialsConfiguration": [
+        {
+            "nodesSelectionApproach": "Global",
+            "ByFunctionType": "dynamic",
+            "especific": {
+                "neighborApproach": "FirstAscent",
+                "neighborsToProcess": 4,
+                "trials": 5000,
+                "restartAtEnd": true,
+                "ramdonRestart": false,
+                "ramdonNodes": false,
+                "nodesType": [
+                    "ExpressionStatement",
+                    "VariableDeclaration",
+                    "Literal",
+                    "ReturnStatement",
+                    "Property",
+                    "BinaryExpression",
+                    "FunctionDeclaration",
+                    "IfStatement",
+                    "CallExpression",
+                    "VariableDeclarator",
+                    "ObjectExpression",
+                    "FunctionExpression",
+                    "ArrayExpression",
+                    "UnaryExpression",
+                    "AssignmentExpression",
+                    "ConditionalExpression"
+                ],
+                "individuals": 50,
+                "generations": 100,
+                "crossoverProbability": 100,
+                "mutationProbability": 100,
+                "elitism": true,
+                "elitismPercentual": 30
+            }
+        }
+    ]
+}

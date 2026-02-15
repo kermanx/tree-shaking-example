@@ -1,0 +1,19 @@
+--- a/src/heuristics/IHeuristic.ts
++++ b/src/heuristics/IHeuristic.ts
+@@ -290,6 +290,15 @@ abstract class IHeuristic extends events.EventEmitter {
+                 this.FoundedAnyBetter = found;
+
+                 if (this.Name == "GA")
+                     this.RefreshIndexList();
++
++                // Save the best solution to a file for recovery
++                try {
++                    const fs = require('fs');
++                    const path = require('path');
++                    const bestFile = path.join(this._globalConfig.resultsDirectory, this._lib.name, this.Name, 'best-solution.js');
++                    fs.writeFileSync(bestFile, newCode, 'utf8');
++                } catch (e) {
++                    // Ignore errors
++                }
+             }
+         }

@@ -1,0 +1,72 @@
+{
+    "file": "uglify.json",
+    "trials": 60,
+    "startTrial": 0,
+    "fitType": "median",
+    "testUntil": 1,
+    "mutationTrials": 1,
+    "crossOverTrials": 1,
+    "logFilePath": "build/uglify.log",
+    "tmpDirectory": "/scratch/41061a/ffarzat1981/clients",
+    "logCategory": "optmization",
+    "logFileClearing": false,
+    "resultsDirectory": "build/results",
+    "trialResultsFile": "Results.csv",
+    "logWritter": "ConcreteLogger",
+    "tester": "CommandTester",
+    "outWriter": "CsvResultsOutWriter",
+    "heuristics": [
+        "RD"
+    ],
+    "port": 5000,
+    "url": "ws://localhost",
+    "clientTimeout": 60,
+    "copyFileTimeout": 1728000,
+    "clientsTotal": 40,
+    "memory": 2408000,
+    "libraries": [
+        {
+            "name": "UglifyJS2",
+            "path": "Libraries/UglifyJS2/",
+            "mainFilePath": "lib/compress.js"
+        }
+    ],
+    "trialsConfiguration": [
+        {
+            "nodesSelectionApproach": "Global",
+            "ByFunctionType": "dynamic",
+            "especific": {
+                "neighborApproach": "FirstAscent",
+                "neighborsToProcess": 5,
+                "trials": 5000,
+                "restartAtEnd": true,
+                "ramdonRestart": false,
+                "ramdonNodes": true,
+                "nodesType": [
+                    "ExpressionStatement",
+                    "VariableDeclaration",
+                    "Literal",
+                    "ReturnStatement",
+                    "Property",
+                    "BinaryExpression",
+                    "FunctionDeclaration",
+                    "IfStatement",
+                    "CallExpression",
+                    "VariableDeclarator",
+                    "ObjectExpression",
+                    "FunctionExpression",
+                    "ArrayExpression",
+                    "UnaryExpression",
+                    "AssignmentExpression",
+                    "ConditionalExpression"
+                ],
+                "individuals": 100,
+                "generations": 50,
+                "crossoverProbability": 0,
+                "mutationProbability": 75,
+                "elitism": true,
+                "elitismPercentual": 30
+            }
+        }
+    ]
+}

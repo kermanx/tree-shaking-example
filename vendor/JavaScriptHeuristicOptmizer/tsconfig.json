@@ -1,0 +1,33 @@
+{
+   "compilerOptions": {
+       "target": "es6",
+       "module": "commonjs",
+       "moduleResolution": "node",
+       "isolatedModules": false,
+       "jsx": "react",
+       "experimentalDecorators": true,
+       "emitDecoratorMetadata": true,
+       "declaration": false,
+       "noImplicitAny": false,
+       "noImplicitUseStrict": false,
+       "removeComments": true,
+       "noLib": false,
+       "preserveConstEnums": true,
+       "outDir": "build",
+       "allowUnusedLabels": true,
+       "skipLibCheck": true,
+       "strict": false
+   },
+   "exclude": [
+       "node_modules",
+       "test/lodash-testes",
+       "Libraries",
+       "typings/browser",
+       "typings/browser.d.ts"
+   ],
+   "compileOnSave": true,
+   "buildOnSave": false,
+   "atom": {
+       "rewriteTsconfig": false
+   }
+}
