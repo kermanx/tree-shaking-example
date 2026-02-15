@@ -3,7 +3,7 @@
 import { prepackSources } from 'prepack/lib/prepack-standalone.js'
 import { gcc } from './cc.ts';
 import assert from 'assert';
-import { heuristic } from './heuristic.ts';
+import { heuristic as dfahc } from './dfahc.ts';
 import { jsshaker } from './jsshaker.ts';
 import { lacuna } from './lacuna.ts';
 
@@ -180,5 +180,5 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
       optimizationLevel: 3
     });
   },
-  heuristic
+  dfahc
 }
