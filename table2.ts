@@ -6,7 +6,8 @@ const OTHER_STAGES: Record<string, string> = {
   "jsshaker": "JsShaker",
   "gcc": "CC\\textsubscript{Simp.}",
   "gccAdv": "CC\\textsubscript{Adv.}",
-  "lacuna": "Lacuna",
+  "lacuna2": "Lacuna\\textsubscript{O2}",
+  "lacuna3": "Lacuna\\textsubscript{O3}",
 };
 
 interface TimeData {
@@ -33,13 +34,13 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   let latex = '\\begin{table}[t]\n';
   latex += '  \\scriptsize\n';
   latex += '  \\centering\n';
-  latex += '  \\caption{Time breakdown for optimization pipeline}\n';
-  latex += '  \\label{tab:time-breakdown}\n';
+  latex += '  \\caption{Time overhead of different optimiziers}\n';
+  latex += '  \\label{tab:time}\n';
   latex += `  \\begin{tabular}{${columnSpec}}\n`;
   latex += '    \\toprule\n';
 
   // Header row
-  latex += '    Program & \\multicolumn{3}{c}{Baseline}';
+  latex += '    Program & Baseline';
   for (const stageKey of otherStageKeys) {
     const displayName = otherStages[stageKey];
     latex += ` & \\multicolumn{2}{c}{${displayName}}`;
@@ -48,7 +49,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
 
   // Sub-header row
   latex += '    ';
-  latex += ' & (ms) & (ms) & (ms)';
+  latex += ' & (ms)';
   for (let i = 0; i < otherStageKeys.length; i++) {
     latex += ' & (ms) & (×)';
   }
@@ -71,14 +72,15 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
     latex += `    ${escapedTestcase}`;
 
     // Output baseline times
-    const rollupTime = data['rollup']?.[testcase];
-    const terserTime = data['terser']?.[testcase];
+    // const rollupTime = data['rollup']?.[testcase];
+    // const terserTime = data['terser']?.[testcase];
 
-    const rollupStr = rollupTime !== undefined ? rollupTime.toFixed(1) : '---';
-    const terserStr = terserTime !== undefined ? terserTime.toFixed(1) : '---';
+    // const rollupStr = rollupTime !== undefined ? rollupTime.toFixed(1) : '---';
+    // const terserStr = terserTime !== undefined ? terserTime.toFixed(1) : '---';
     const totalStr = baselineTotal > 0 ? baselineTotal.toFixed(1) : '---';
 
-    latex += ` & ${rollupStr} & ${terserStr} & ${totalStr}`;
+    // latex += ` & ${rollupStr} & ${terserStr} & ${totalStr}`;
+    latex += ` & ${totalStr}`;
 
     // Output time and percentage for each other stage
     for (const stageKey of otherStageKeys) {
@@ -111,20 +113,29 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   }
   const baselineGrandTotal = rollupTotal + terserTotal;
 
-  latex += ` & \\textbf{${rollupTotal.toFixed(1)}} & \\textbf{${terserTotal.toFixed(1)}} & \\textbf{${baselineGrandTotal.toFixed(1)}}`;
+  // latex += ` & \\textbf{${rollupTotal.toFixed(1)}} & \\textbf{${terserTotal.toFixed(1)}} & \\textbf{${baselineGrandTotal.toFixed(1)}}`;
+  latex += ` & \\textbf{1$\\times$}`;
 
   // Calculate totals for other stages
   for (const stageKey of otherStageKeys) {
     let stageTotal = 0;
+    let correspondingBaselineTotal = 0;
     for (const testcase of testcases) {
       const time = data[stageKey]?.[testcase];
       if (time !== undefined) {
         stageTotal += time;
+        // Add baseline time for this testcase (only for successful cases)
+        for (const stage of baselineStages) {
+          const baselineTime = data[stage]?.[testcase];
+          if (baselineTime !== undefined) {
+            correspondingBaselineTotal += baselineTime;
+          }
+        }
       }
     }
     const timeStr = stageTotal.toFixed(1);
-    const multiplier = baselineGrandTotal > 0 ? (stageTotal / baselineGrandTotal).toFixed(2) : '0.00';
-    latex += ` & \\textbf{${timeStr}} & \\textbf{$${multiplier}\\times$}`;
+    const multiplier = correspondingBaselineTotal > 0 ? (stageTotal / correspondingBaselineTotal).toFixed(2) : '0.00';
+    latex += ` &  & \\textbf{${multiplier}$\\times$}`;
   }
 
   latex += ' \\\\\n';

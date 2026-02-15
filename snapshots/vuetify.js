@@ -1542,13 +1542,12 @@ function computed$1(getterOrOptions, __unused_E86B, isSSR = false) {
 }
 const INITIAL_WATCHER_VALUE = {};
 const cleanupMap = new WeakMap();
-function onWatcherCleanup(cleanupFn, __unused_DBF3, owner) {
-	{
-		{
-			let cleanups = cleanupMap.get(owner);
-			if (!cleanups) cleanupMap.set(owner, cleanups = []);
-			cleanups.push(cleanupFn);
-		}
+let activeWatcher = void 0;
+function onWatcherCleanup(cleanupFn, __unused_DBF3, owner = activeWatcher) {
+	if (owner) {
+		let cleanups = cleanupMap.get(owner);
+		if (!cleanups) cleanupMap.set(owner, cleanups = []);
+		cleanups.push(cleanupFn);
 	}
 }
 function watch$1(source, cb, options) {
@@ -1595,9 +1594,13 @@ function watch$1(source, cb, options) {
 						resetTracking();
 					}
 				}
+				const currentEffect = activeWatcher;
+				activeWatcher = effect;
 				try {
 					return call ? call(source, 3, [boundCleanup]) : source();
-				} catch {}
+				} finally {
+					activeWatcher = currentEffect;
+				}
 			};
 		}
 	} else {
@@ -1633,6 +1636,8 @@ function watch$1(source, cb, options) {
 				if (cleanup) {
 					cleanup();
 				}
+				const currentWatcher = activeWatcher;
+				activeWatcher = effect;
 				try {
 					const args = [
 						newValue,
@@ -1641,7 +1646,9 @@ function watch$1(source, cb, options) {
 					];
 					oldValue = newValue;
 					call ? call(cb, 3, args) : cb(...args);
-				} catch {}
+				} finally {
+					activeWatcher = currentWatcher;
+				}
 			}
 		} else {
 			effect.run();

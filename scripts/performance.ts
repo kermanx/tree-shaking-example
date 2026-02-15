@@ -1,6 +1,6 @@
 import { bundlers } from './bundle.ts';
 import { Optimizers } from './optimizer.ts';
-import { shakeSingleModule } from 'jsshaker';
+import { type Options, shakeSingleModule } from 'jsshaker';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { gccWithTiming } from './cc.ts';
@@ -21,7 +21,6 @@ async function benchmarkJsshaker() {
   for (const file of srcFiles) {
     const name = file.replace('.js', '');
     const bundledPath = join(distFolder, `${name}_rollup.js`);
-    console.log(`[${name}] Loading ${bundledPath}...`);
     bundled[name] = await readFile(bundledPath, 'utf-8');
   }
 
@@ -76,6 +75,55 @@ async function benchmarkJsshaker() {
   await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
   console.log(`Results for depth=${DEFAULT_DEPTH} saved to time.json`);
 }
+
+
+async function benchmarkJsshakerConfigs(options: Partial<Options>) {
+  const distFolder = join(import.meta.dirname, '../dist');
+  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
+  const bundled: Record<string, string> = {};
+
+  for (const file of srcFiles) {
+    const name = file.replace('.js', '');
+    const bundledPath = join(distFolder, `${name}_rollup.js`);
+    bundled[name] = await readFile(bundledPath, 'utf-8');
+  }
+
+  let totalTime = 0;
+
+  for (const [name, code] of Object.entries(bundled)) {
+    console.log(`  [${name}] Warming up...`);
+    for (let i = 0; i < WARMUP_RUNS; i++) {
+      shakeSingleModule(code, {
+        preset: "smallest",
+        jsx: "react",
+        ...options,
+      });
+    }
+
+    const times: number[] = [];
+    let finalCode = '';
+
+    for (let i = 0; i < BENCHMARK_RUNS; i++) {
+      const start = performance.now();
+      const result = shakeSingleModule(code, {
+        preset: "smallest",
+        jsx: "react",
+        ...options,
+      });
+      times.push(performance.now() - start);
+      finalCode = result.output.code;
+    }
+
+    const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+    totalTime += avgTime;
+
+    console.log(`  [${name}] Time: ${avgTime.toFixed(2)}ms`);
+  }
+
+  console.log(`\nTotal Time: ${totalTime.toFixed(2)}ms for config:`, options);
+}
+
 
 async function benchmarkTerser() {
   const distFolder = join(import.meta.dirname, '../dist');
@@ -348,6 +396,7 @@ async function benchmarkLacuna(ol: number) {
 async function main() {
   const optimizer = process.argv[2] as OptimizerType;
 
+
   if (!optimizer) {
     console.log('No optimizer specified, running all benchmarks...\n');
     await benchmarkJsshaker();
@@ -358,6 +407,13 @@ async function main() {
     await benchmarkLacuna(2);
     await benchmarkLacuna(3);
     console.log('\nAll benchmarks completed!');
+    return;
+  }
+
+  if (optimizer.startsWith('{')) {
+    const options: Partial<Options> = JSON.parse(optimizer);
+    console.log('Running jsshaker benchmark with options:', options);
+    await benchmarkJsshakerConfigs(options);
     return;
   }
 

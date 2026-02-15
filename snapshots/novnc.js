@@ -14173,7 +14173,7 @@ const UI = {
 		// insecure context
 		if (!window.isSecureContext) {
 			// FIXME: This gets hidden when connecting
-			UI.q(_("Running without HTTPS is not recommended, crashes or other issues are likely."), "error");
+			UI.q(_("Running without HTTPS is not recommended, crashes or other issues are likely."), "a");
 		}
 		// Try to fetch version number
 		try {
@@ -14442,7 +14442,7 @@ const UI = {
 	q(text, statusType) {
 		const statusElem = document.getElementById("noVNC_status");
 		if (typeof statusType === "undefined") {
-			statusType = "a";
+			statusType = "b";
 		}
 		// Don't overwrite more severe visible statuses and never
 		// errors. Only shows the first error.
@@ -14450,18 +14450,18 @@ const UI = {
 			if (statusElem.classList.contains("noVNC_status_error")) {
 				return;
 			}
-			if (statusElem.classList.contains("noVNC_status_warn") && statusType === "a") {
+			if (statusElem.classList.contains("noVNC_status_warn") && statusType === "b") {
 				return;
 			}
 		}
 		clearTimeout(UI.d);
 		switch (statusType) {
-			case "error":
+			case "a":
 				statusElem.classList.remove("noVNC_status_warn");
 				statusElem.classList.remove("noVNC_status_normal");
 				statusElem.classList.add("noVNC_status_error");
 				break;
-			case "b":
+			case "c":
 				statusElem.classList.remove("noVNC_status_error");
 				statusElem.classList.remove("noVNC_status_normal");
 				statusElem.classList.add("noVNC_status_warn");
@@ -14470,7 +14470,7 @@ const UI = {
 		statusElem.textContent = text;
 		statusElem.classList.add("noVNC_open");
 		// Error messages do not timeout
-		if (statusType !== "error") {
+		if (statusType !== "a") {
 			UI.d = window.setTimeout(UI.A, 1500);
 		}
 	},
@@ -14879,7 +14879,7 @@ const UI = {
 		} catch (exc) {
 			Error$1("Failed to connect to server: " + exc);
 			UI.D("e");
-			UI.q(_("Failed to connect to server: ") + exc, "error");
+			UI.q(_("Failed to connect to server: ") + exc, "a");
 			return;
 		}
 		UI.ha.addEventListener("connect", UI.Wa);
@@ -14953,9 +14953,9 @@ const UI = {
 		if (!e.detail.clean) {
 			UI.D("e");
 			if (wasConnected) {
-				UI.q(_("Something went wrong, connection is closed"), "error");
+				UI.q(_("Something went wrong, connection is closed"), "a");
 			} else {
-				UI.q(_("Failed to connect to server"), "error");
+				UI.q(_("Failed to connect to server"), "d");
 			}
 		}
 		// If reconnecting is allowed process it now
@@ -14966,7 +14966,7 @@ const UI = {
 			return;
 		} else {
 			UI.D("e");
-			UI.q(_("Disconnected"), "a");
+			UI.q(_("Disconnected"), "b");
 		}
 		UI.eb();
 		document.title = "noVNC";
@@ -14983,7 +14983,7 @@ const UI = {
 		} else {
 			msg = _("New connection has been rejected");
 		}
-		UI.q(msg, "error");
+		UI.q(msg, "d");
 	},
 	fb(e) {
 		// Trigger a "Leave site?" warning prompt before closing the
@@ -15040,7 +15040,7 @@ const UI = {
 		document.getElementById("noVNC_credentials_dlg").classList.add("noVNC_open");
 		setTimeout(() => document.getElementById(inputFocus).focus(), 100);
 		Warn("Server asked for credentials");
-		UI.q(_("Credentials are required"), "b");
+		UI.q(_("Credentials are required"), "c");
 	},
 	na(e) {
 		// Prevent actually submitting the form
