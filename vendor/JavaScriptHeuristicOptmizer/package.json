@@ -4,7 +4,6 @@
   "description": "",
   "main": "build/src/index.js",
   "scripts": {
-    "postinstall": "tsd install",
     "build": "tsc",
     "test": "mocha --recursive build/test",
     "pretest": "npm run clean && npm run build",
@@ -27,6 +26,7 @@
     "exectimer": "2.0.0",
     "express": "^4.13.4",
     "fork-pool": "^2.0.0",
+    "generic-pool": "^2.4.0",
     "fs-extra": "0.26.7",
     "function-extractor": "0.0.5",
     "http": "0.0.0",
