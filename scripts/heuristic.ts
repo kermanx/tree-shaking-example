@@ -25,15 +25,27 @@ export async function heuristic({ name, code }: OptimizeOptions) {
 
     // Create a minimal package.json with npm test configured
     // npm test will be called by JavaScriptHeuristicOptimizer's CommandTester
+    // Use absolute path to test script (must be calculated before any chdir)
+    const projectRoot = path.resolve(process.cwd());
+    const testScriptPath = path.join(projectRoot, 'test', `${name}.js`);
+    const testFilePath = path.join(libDir, 'index.js');
+
     const packageJson = {
       name: name,
       version: '1.0.0',
       main: 'index.js',
       scripts: {
+        // Use test directory test script instead of directly running index.js
+        test: `node "${testScriptPath}" "${testFilePath}"`
+        // ORIGINAL VERSION (commented out):
         // npm test will directly run index.js
-        test: 'node index.js'
+        // test: 'node index.js'
       }
     };
+
+    console.log(`[${name}] Test script: ${testScriptPath}`);
+    console.log(`[${name}] Test command: node "${testScriptPath}" "${testFilePath}"`);
+
     await fs.writeFile(path.join(libDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
 
 
@@ -161,32 +173,23 @@ export async function heuristic({ name, code }: OptimizeOptions) {
       console.log(`[${name}] Executing: ${command}`);
 
       // Start a background task to monitor and save the best solution
+      // Only monitor the main library file, which is updated by the optimizer
+      // with VALIDATED solutions (not scratch directories with unvalidated mutations)
       let bestSize = code.length;
       const monitorInterval = setInterval(async () => {
         try {
-          // Monitor all scratch directories for better solutions
-          const scratchDirs = [
-            path.join(absoluteScratchDir, '0', name, 'index.js'),
-            path.join(absoluteScratchDir, '1', name, 'index.js'),
-          ];
-
-          for (const scratchFile of scratchDirs) {
-            try {
-              const scratchCode = await fs.readFile(scratchFile, 'utf8');
-              if (scratchCode && scratchCode.length > 50 && scratchCode.length < bestSize) {
-                // Found a better solution, save it
-                bestSize = scratchCode.length;
-                await fs.writeFile(bestSolutionFile, scratchCode, 'utf8');
-                console.log(`[${name}] Found better solution: ${bestSize}B`);
-              }
-            } catch (e) {
-              // File might not exist yet or be in use
-            }
+          // Monitor the main library file - optimizer only updates this with validated solutions
+          const mainFileCode = await fs.readFile(mainFile, 'utf8');
+          if (mainFileCode && mainFileCode.length > 50 && mainFileCode.length < bestSize) {
+            // Found a better validated solution, save it
+            bestSize = mainFileCode.length;
+            await fs.writeFile(bestSolutionFile, mainFileCode, 'utf8');
+            console.log(`[${name}] Found better validated solution: ${bestSize}B`);
           }
         } catch (e) {
-          // Ignore errors during monitoring
+          // File might not exist yet or be in use
         }
-      }, 1000); // Check every second
+      }, 2000); // Check every 2 seconds (less frequent since we're only checking one file)
 
       try {
         execSync(command, {

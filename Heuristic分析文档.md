@@ -68,6 +68,7 @@ JavaScriptHeuristicOptimizer 提供多个可配置参数：
 
 ## 3. 测试结果
 
+1.用vendor/JavaScriptHeuristicOptmizer自身检测变异个体
 |JS库|init size|init+Gzip size|heuristic size|heuristic+terser size|heuristic+terser+Gzip size|原因|正确性|配置(individuals,generations,memory)|
 |--|--|--|--|--|--|--|--|--|
 |antd|1550610|310864|❌|❌|❌|heuristic: esprima不支持ES2020可选链（?.），解析失败|❌ 流程失败|15，10，8192|
@@ -83,7 +84,20 @@ JavaScriptHeuristicOptimizer 提供多个可配置参数：
 |vuetify|304846|74360|❌|❌|❌|heuristic: esprima不支持ES2018对象扩展运算符 line 5774|❌ 流程失败|30，15，4096|
 
 
-
+2.用vendor/JavaScriptHeuristicOptmizer自身检测变异个体(结果可能不太对)
+|JS库|init size|init+Gzip size|heuristic size|heuristic+terser size|heuristic+terser+Gzip size|原因|正确性|配置(individuals,generations,memory)|
+|--|--|--|--|--|--|--|--|--|
+|remeda|6665|1939|5148 (-22.8%)|1700 (-74.5%)|785 (-59.5%)|heuristic减小22.8%且验证通过；heuristic+terser组合也通过|✅ heuristic成功 ✅ heuristic+terser成功|30，15，4096|
+|lodash-es|103180|22540|101786 (-1.4%)|17910 (-82.6%)|6452 (-71.4%)|heuristic减小1.4%；terser大幅优化82.6%|✅ heuristic成功 ❌ terser破坏功能 (memoize is not defined)|30，15，4096|
+|react-icons|1357280|423681|1484723 (+9.4%)|9507 (-99.3%)|3724 (-99.1%)|heuristic变大9.4%且破坏功能；heuristic+terser组合大幅优化99.3%|❌ heuristic单独失败 (Cannot set properties of undefined) ✅ heuristic+terser组合成功|10，5，8192|
+|antd|1550610|310864|❌|❌|❌|esprima不支持ES2020可选链（?.），第17313行解析失败|❌ 流程失败|10，5，8192|
+|glob|276805|61021|❌|❌|❌|打包输出为ES模块（import/export），esprima仅支持script模式，第1行解析失败|❌ 流程失败|30，15，4096|
+|js-yaml|107394|25794|111409 (+3.7%)|❌|❌|heuristic变大3.7%但验证通过；heuristic+terser优化时内存耗尽崩溃（4048MB不足）|✅ heuristic成功 ❌ heuristic+terser内存耗尽|30，15，4048|
+|material-ui|698562|134829|731647 (+4.7%)|❌|❌|heuristic变大4.7%且破坏功能（输出为空）；heuristic+terser测试中断|❌ heuristic功能错误（输出为空） ❌ heuristic+terser测试中断|10，5，8192|
+|novnc|622673|141663|❌|❌|❌|esprima解析错误，第381行 "Unexpected token ."，可能是可选链语法|❌ 流程失败|10，5，8192|
+|rxjs|25487|4952|20297 (-20.4%)|8528 (-66.5%)|2514 (-49.2%)|heuristic减小20.4%但破坏功能；heuristic+terser减小66.5%但仍破坏功能|❌ heuristic失败 (SafeSubscriber is not a constructor) ❌ heuristic+terser失败 (t.add is not a function)|30，15，4096|
+|sentry|309673|84791|❌|❌|❌|heuristic: esprima不支持ES2018对象扩展运算符(...)|❌ 流程失败|30，15，4096|
+|vuetify|304846|74360|❌|❌|❌|heuristic: esprima不支持ES2018对象扩展运算符 line 5774|❌ 流程失败|30，15，4096|
 
 
 
