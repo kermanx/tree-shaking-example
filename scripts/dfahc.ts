@@ -1,6 +1,38 @@
 import type { OptimizeOptions } from './optimizer.ts';
 
+async function transformToEs5(code: string) {
+  const { transformSync } = await import('@babel/core');
+  try {
+    const result = transformSync(code, {
+      configFile: false,
+      babelrc: false,
+      presets: [
+        [
+          '@babel/preset-env',
+          {
+            // 强制转换所有 ES6+ 语法为 ES5
+            targets: {
+              ie: "11"
+            },
+            // 确保模块语法也被转换（如果输入包含 import/export）
+            modules: "commonjs"
+          }
+        ]
+      ],
+      minified: false,
+      comments: false
+    });
+
+    return result!.code!;
+  } catch (err) {
+    console.error("Babel 转换失败:", err);
+    throw err;
+  }
+}
+
 export async function heuristic({ name, code }: OptimizeOptions) {
+  code = await transformToEs5(code);
+
   // JavaScriptHeuristicOptmizer wrapper using genetic algorithm
   const fs = await import('node:fs/promises');
   const path = await import('node:path');
@@ -208,7 +240,7 @@ export async function heuristic({ name, code }: OptimizeOptions) {
 
       // Check if it's a ENOENT error in Results.csv writing (acceptable)
       const isResultsWriteError = execError.stderr?.toString().includes('Results.csv') ||
-                                   execError.message?.includes('ENOENT');
+        execError.message?.includes('ENOENT');
 
       if (signal) {
         console.log(`[${name}] Optimizer terminated by signal ${signal}`);

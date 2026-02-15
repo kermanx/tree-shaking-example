@@ -59,5 +59,11 @@
     "material-ui",
     "rxjs",
     "antd"
+  ],
+  "rollup_dfahc_terser": [
+    "d3",
+    "glob",
+    "remeda",
+    "rxjs"
   ]
 }

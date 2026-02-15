@@ -8,6 +8,7 @@ const TOOLCHAINS: Record<string, string> = {
   "rollup_gccAdv_terser": "CC\\textsubscript{Adv.}",
   "rollup_lacuna2_terser": "Lacuna\\textsubscript{O2}",
   "rollup_lacuna3_terser": "Lacuna\\textsubscript{O3}",
+  "rollup_dfahc_terser": "DFAHC",
 };
 
 const SHOW_GZ = true;
