@@ -5938,7 +5938,6 @@ function zero(buf) {
 * to avoid allocating a large strm->output buffer and copying into it.
 * (See also read_buf()).
 */
-//! @__NO_SHAKE__
 function flush_pending(strm) {
 	var s = strm.state;
 	//_tr_flush_bits(s);
@@ -11093,10 +11092,10 @@ class RFB extends EventTargetMixin {
 		}
 		// Connection details
 		options = options;
-		this._rfbCredentials = options.credentials;
-		this._shared = "shared" in options ? !!options.shared : true;
-		this._repeaterID = options.repeaterID || "";
-		this._wsProtocols = options.wsProtocols || [];
+		this._rfbCredentials = options.a;
+		this._shared = !!options.b;
+		this._repeaterID = options.c || "";
+		this._wsProtocols = [];
 		// Internal state
 		this._rfbConnectionState = "";
 		this._rfbInitState = "";
@@ -14872,9 +14871,9 @@ const UI = {
 		}
 		try {
 			UI.ha = new RFB(document.getElementById("noVNC_container"), url.href, {
-				shared: UI.E("shared"),
-				repeaterID: UI.E("repeaterID"),
-				credentials: { password }
+				b: UI.E("shared"),
+				c: UI.E("repeaterID"),
+				a: { password }
 			});
 		} catch (exc) {
 			Error$1("Failed to connect to server: " + exc);
