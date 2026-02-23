@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
@@ -9,11 +10,14 @@ async function captureConsoleOutput(modulePath) {
   let output = [];
   const originalLog = console.log;
   console.log = (...args) => { output.push(args); };
+  const originalRequire = globalThis.require;
+  globalThis.require = createRequire(import.meta.url);
   try {
     await import(modulePath + '?t=' + Date.now());
     return output;
   } finally {
     console.log = originalLog;
+    globalThis.require = originalRequire;
   }
 }
 try {

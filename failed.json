@@ -61,9 +61,11 @@
     "antd"
   ],
   "rollup_dfahc_terser": [
-    "d3",
-    "glob",
+    "js-yaml",
+    "react-icons",
     "remeda",
+    "sentry",
+    "lodash-es",
     "rxjs"
   ]
 }

@@ -1,6 +1,6 @@
 import type { OptimizeOptions } from './optimizer.ts';
 
-async function transformToEs5(code: string) {
+export async function transformToEs5(code: string) {
   const { transformSync } = await import('@babel/core');
   try {
     const result = transformSync(code, {
@@ -30,7 +30,7 @@ async function transformToEs5(code: string) {
   }
 }
 
-export async function heuristic({ name, code }: OptimizeOptions) {
+export async function dfahc({ name, code }: OptimizeOptions) {
   code = await transformToEs5(code);
 
   // JavaScriptHeuristicOptmizer wrapper using genetic algorithm
@@ -57,7 +57,7 @@ export async function heuristic({ name, code }: OptimizeOptions) {
 
     // Create a minimal package.json with npm test configured
     // npm test will be called by JavaScriptHeuristicOptimizer's CommandTester
-    // Use absolute path to test script (must be calculated before any chdir)
+    // Use absolute path to test script
     const projectRoot = path.resolve(process.cwd());
     const testScriptPath = path.join(projectRoot, 'test', `${name}.js`);
     const testFilePath = path.join(libDir, 'index.js');
@@ -192,71 +192,56 @@ export async function heuristic({ name, code }: OptimizeOptions) {
 
     // Run the optimizer
     const { execSync } = await import('node:child_process');
-    const originalCwd = process.cwd();
 
-    try {
-      process.chdir(optimizerPath);
+    // Run the optimizer with the config filename (relative to optimizer directory)
+    const configFilename = path.basename(configPath);
+    // Adjust memory based on file size
+    const memory = code.length > 500000 ? 8192 : 4048;  // 8GB for >500KB, 4GB for smaller
+    const command = `node --expose-gc --max-old-space-size=${memory} build/src/index.js ${configFilename}`;
+    console.log(`[${name}] Executing: ${command}`);
 
-      // Run the optimizer with the config filename (relative to optimizer directory)
-      const configFilename = path.basename(configPath);
-      // Adjust memory based on file size
-      const memory = code.length > 500000 ? 8192 : 4048;  // 8GB for >500KB, 4GB for smaller
-      const command = `node --expose-gc --max-old-space-size=${memory} build/src/index.js ${configFilename}`;
-      console.log(`[${name}] Executing: ${command}`);
-
-      // Start a background task to monitor and save the best solution
-      // Only monitor the main library file, which is updated by the optimizer
-      // with VALIDATED solutions (not scratch directories with unvalidated mutations)
-      let bestSize = code.length;
-      const monitorInterval = setInterval(async () => {
-        try {
-          // Monitor the main library file - optimizer only updates this with validated solutions
-          const mainFileCode = await fs.readFile(mainFile, 'utf8');
-          if (mainFileCode && mainFileCode.length > 50 && mainFileCode.length < bestSize) {
-            // Found a better validated solution, save it
-            bestSize = mainFileCode.length;
-            await fs.writeFile(bestSolutionFile, mainFileCode, 'utf8');
-            console.log(`[${name}] Found better validated solution: ${bestSize}B`);
-          }
-        } catch (e) {
-          // File might not exist yet or be in use
-        }
-      }, 2000); // Check every 2 seconds (less frequent since we're only checking one file)
-
+    // Start a background task to monitor and save the best solution
+    // Only monitor the main library file, which is updated by the optimizer
+    // with VALIDATED solutions (not scratch directories with unvalidated mutations)
+    let bestSize = code.length;
+    const monitorInterval = setInterval(async () => {
       try {
-        execSync(command, {
-          stdio: 'inherit',
-          timeout: 1200000, // 20 minutes timeout (15 generations * ~1min/gen)
-          maxBuffer: 1024 * 1024 * 10 // 10MB buffer
-        });
-      } finally {
-        clearInterval(monitorInterval);
-      }
-
-    } catch (execError: any) {
-      // Handle different types of errors
-      const exitCode = execError.status;
-      const signal = execError.signal;
-
-      // Check if it's a ENOENT error in Results.csv writing (acceptable)
-      const isResultsWriteError = execError.stderr?.toString().includes('Results.csv') ||
-        execError.message?.includes('ENOENT');
-
-      if (signal) {
-        console.log(`[${name}] Optimizer terminated by signal ${signal}`);
-      } else if (exitCode !== null && exitCode !== 0) {
-        if (isResultsWriteError) {
-          console.log(`[${name}] Optimizer completed but failed to write results file (exit code ${exitCode})`);
-        } else {
-          console.log(`[${name}] Optimizer exited with code ${exitCode}`);
+        // Monitor the main library file - optimizer only updates this with validated solutions
+        const mainFileCode = await fs.readFile(mainFile, 'utf8');
+        if (mainFileCode && mainFileCode.length > 50 && mainFileCode.length < bestSize) {
+          // Found a better validated solution, save it
+          bestSize = mainFileCode.length;
+          await fs.writeFile(bestSolutionFile, mainFileCode, 'utf8');
+          console.log(`[${name}] Found better validated solution: ${bestSize}B`);
         }
-      } else if (exitCode === null) {
-        // Exit code null usually means crashed or killed
-        console.log(`[${name}] Optimizer crashed or was killed unexpectedly`);
+      } catch (e) {
+        // File might not exist yet or be in use
       }
+    }, 2000); // Check every 2 seconds (less frequent since we're only checking one file)
+
+    var startTime = performance.now();
+    try {
+      execSync(command, {
+        cwd: optimizerPath,
+        stdio: 'inherit',
+        timeout: 1200000, // 20 minutes timeout (15 generations * ~1min/gen)
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      });
     } finally {
-      process.chdir(originalCwd);
+      clearInterval(monitorInterval);
     }
+    // Record elapsed time and write to time.json
+    const elapsedTime = performance.now() - startTime;
+    console.log(`[${name}] DFAHC optimization time: ${elapsedTime.toFixed(2)}ms`);
+    const timeJsonPath = path.resolve(import.meta.dirname, '../time.json');
+    const timeData = JSON.parse(await fs.readFile(timeJsonPath, 'utf-8'));
+    if (!timeData.dfahc) {
+      timeData.dfahc = {};
+    }
+    timeData.dfahc[name] = elapsedTime;
+    // @ts-expect-error
+    timeData.dfahc = Object.fromEntries(Object.entries(timeData.dfahc).sort((a, b) => a[1] - b[1]));
+    await fs.writeFile(timeJsonPath, JSON.stringify(timeData, null, 2));
 
     // Read the optimized code back
     // First try to read from best-solution.js (which tracks the best solution found)
@@ -300,6 +285,6 @@ export async function heuristic({ name, code }: OptimizeOptions) {
       // Ignore cleanup errors
     }
 
-    return code; // Return original code on error
+    return '';
   }
 }

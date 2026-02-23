@@ -11,6 +11,11 @@ const TOOLCHAINS: Record<string, string> = {
   "rollup_dfahc_terser": "DFAHC",
 };
 
+const DEFAULT_BASELINE = "rollup_terser";
+const BASELINE_MAPPINGS: Record<string, string> = {
+  "rollup_dfahc_terser": "rollup_dfahcBaseline_terser"
+};
+
 const SHOW_GZ = true;
 
 interface ToolchainData {
@@ -47,6 +52,12 @@ function loadFailedTests(filename: string = "failed.json"): FailedTests {
 function parseData(sizes: Record<string, number>, toolchains: Record<string, string>): ParsedData {
   const data: ParsedData = {};
 
+  // Collect all toolchain keys including baselines from BASELINE_MAPPINGS
+  const allToolchains = new Set([
+    ...Object.keys(toolchains),
+    ...Object.values(BASELINE_MAPPINGS)
+  ]);
+
   for (const [key, value] of Object.entries(sizes)) {
     // Skip .gz entries, we'll handle them separately
     if (key.endsWith('.gz')) {
@@ -54,8 +65,8 @@ function parseData(sizes: Record<string, number>, toolchains: Record<string, str
     }
 
     // Parse the key: {testcase}_{toolchain}
-    // Find where the toolchain starts by checking against known toolchains
-    for (const toolchain of Object.keys(toolchains)) {
+    // Find where the toolchain starts by checking against all known toolchains
+    for (const toolchain of allToolchains) {
       if (key.endsWith('_' + toolchain)) {
         const testcase = key.slice(0, -toolchain.length - 1);
 
@@ -78,7 +89,6 @@ function parseData(sizes: Record<string, number>, toolchains: Record<string, str
 function generateLatexTable(data: ParsedData, toolchains: Record<string, string>, failedTests: FailedTests): string {
   const testcases = Object.keys(data).sort();
   const toolchainKeys = Object.keys(toolchains);
-  const baselineToolchain = toolchainKeys[0];
 
   // Build table header
   const numColumns = 1 + 1 + (toolchainKeys.length - 1); // Program + Baseline + Other toolchains
@@ -106,14 +116,14 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
   // Calculate max widths for alignment
   const maxTestcaseWidth = Math.max(...testcases.map(t => t.replace(/_/g, '\\_').length));
   const maxBaselineWidth = Math.max(...testcases.map(t => {
-    const baselineGzSize = data[t][baselineToolchain]?.gz_size || 0;
+    const baselineGzSize = data[t][DEFAULT_BASELINE]?.gz_size || 0;
     return (baselineGzSize / 1024).toFixed(2).length;
   }));
 
   // Data rows
   for (const testcase of testcases) {
     const testcaseData = data[testcase];
-    const baselineGzSize = testcaseData[baselineToolchain]?.gz_size || 0;
+    const baselineGzSize = testcaseData[DEFAULT_BASELINE]?.gz_size || 0;
 
     // First pass: calculate all reduction percentages to find the best
     const reductions: Array<{ index: number; value: number; failed: boolean; allFail: boolean }> = [];
@@ -136,10 +146,14 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
       const gzSize = toolchainData.gz_size;
       const size = toolchainData.size;
 
+      // Determine the baseline for this toolchain
+      const baselineKey = BASELINE_MAPPINGS[toolchain] || DEFAULT_BASELINE;
+      const toolchainBaselineGzSize = testcaseData[baselineKey]?.gz_size || 0;
+
       if (size <= 20) {
         reductions.push({ index: i, value: -Infinity, failed: true, allFail: isAllFail });
-      } else if (baselineGzSize > 0) {
-        const reductionPercent = ((baselineGzSize - gzSize) / baselineGzSize) * 100;
+      } else if (toolchainBaselineGzSize > 0) {
+        const reductionPercent = ((toolchainBaselineGzSize - gzSize) / toolchainBaselineGzSize) * 100;
         reductions.push({ index: i, value: reductionPercent, failed: false, allFail: isAllFail });
       } else {
         reductions.push({ index: i, value: -Infinity, failed: false, allFail: isAllFail });
