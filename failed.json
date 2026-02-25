@@ -67,5 +67,12 @@
     "sentry",
     "lodash-es",
     "rxjs"
+  ],
+  "rollup_heuristic_terser": [
+    "d3",
+    "react-icons",
+    "material-ui",
+    "lodash-es",
+    "rxjs"
   ]
 }

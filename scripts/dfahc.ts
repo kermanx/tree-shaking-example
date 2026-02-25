@@ -60,31 +60,23 @@ export async function dfahc({ name, code }: OptimizeOptions) {
     // Use absolute path to test script
     const projectRoot = path.resolve(process.cwd());
     const testScriptPath = path.join(projectRoot, 'test', `${name}.js`);
-    const testFilePath = path.join(libDir, 'index.js');
 
     const packageJson = {
       name: name,
       version: '1.0.0',
       main: 'index.js',
       scripts: {
-        // Use test directory test script instead of directly running index.js
-        test: `node "${testScriptPath}" "${testFilePath}"`
-        // ORIGINAL VERSION (commented out):
-        // npm test will directly run index.js
-        // test: 'node index.js'
+        // Use relative path "./index.js" so the test runs against whichever
+        // directory npm test is invoked from (the scratch copy with the mutant),
+        // NOT the original libDir which never changes.
+        test: `node "${testScriptPath}" "./index.js"`
       }
     };
 
     console.log(`[${name}] Test script: ${testScriptPath}`);
-    console.log(`[${name}] Test command: node "${testScriptPath}" "${testFilePath}"`);
+    console.log(`[${name}] Test command: node "${testScriptPath}" "./index.js"`);
 
     await fs.writeFile(path.join(libDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf8');
-
-
-    // No need to create test.js - npm test will directly run index.js
-    // JavaScriptHeuristicOptimizer will call: cd ${libDir} && npm test
-    // which executes: node index.js
-    // The code's console.log output will be captured and verified
 
     // Use absolute paths for results directory to avoid path resolution issues
     const absoluteScratchDir = path.join(tmpDir, "scratch");
@@ -114,7 +106,7 @@ export async function dfahc({ name, code }: OptimizeOptions) {
       "logWritter": "ConcreteLogger",
       "tester": "CommandTester",
       "outWriter": "CsvResultsOutWriter",
-      "heuristics": ["GA"],
+      "heuristics": ["HC"],
       "port": 5000,
       "url": "ws://localhost",
       "clientTimeout": code.length > 600000 ? 300 : 120,  // 300s for >600KB, 120s for smaller
@@ -135,7 +127,7 @@ export async function dfahc({ name, code }: OptimizeOptions) {
           "especific": {
             "neighborApproach": "FirstAscent",
             "neighborsToProcess": 2,
-            "trials": 10,
+            "trials": 100,
             "restartAtEnd": false,
             "ramdonRestart": false,
             "ramdonNodes": false,
@@ -175,15 +167,18 @@ export async function dfahc({ name, code }: OptimizeOptions) {
     await fs.mkdir(absoluteScratchDir, { recursive: true });
     await fs.mkdir(absoluteResultsDir, { recursive: true });
     await fs.mkdir(path.join(absoluteResultsDir, name), { recursive: true });
-    await fs.mkdir(path.join(absoluteResultsDir, name, "GA"), { recursive: true });
+
+    // Get the heuristic name from config (e.g., "GA", "HC", "RD")
+    const heuristicName = config.heuristics[0];
+    await fs.mkdir(path.join(absoluteResultsDir, name, heuristicName), { recursive: true });
 
     // Pre-create the Results.csv file to avoid path issues
-    const resultsFile = path.join(absoluteResultsDir, name, "GA", "Results.csv");
+    const resultsFile = path.join(absoluteResultsDir, name, heuristicName, "Results.csv");
     const csvHeader = "sep=,\ntrial,originalIndividualAvgTime,originalIndividualLOC,originalIndividualCharacters,bestIndividualAvgTime,bestIndividualLOC,bestIndividualCharacters,time,better\n";
     await fs.writeFile(resultsFile, csvHeader, 'utf8');
 
     // Create a file to track the best solution found during optimization
-    const bestSolutionFile = path.join(absoluteResultsDir, name, "GA", "best-solution.js");
+    const bestSolutionFile = path.join(absoluteResultsDir, name, heuristicName, "best-solution.js");
     await fs.writeFile(bestSolutionFile, code, 'utf8'); // Start with original code
 
     console.log(`[${name}] Running JavaScriptHeuristicOptmizer...`);
