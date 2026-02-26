@@ -27,9 +27,9 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   const otherStageKeys = Object.keys(otherStages);
 
   // Build table header
-  // Columns: Program + Baseline (Total) + Other stages (%)
-  const numColumns = 1 + 1 + otherStageKeys.length; // Program + Baseline + (%) × other stages
-  const columnSpec = 'l' + 'r' + 'r'.repeat(otherStageKeys.length);
+  // Columns: Program + Baseline (Total) + Rolldown (×) + Other stages (%)
+  const numColumns = 1 + 1 + 1 + otherStageKeys.length; // Program + Baseline + Rolldown (×) + (%) × other stages
+  const columnSpec = 'lrr' + 'r'.repeat(otherStageKeys.length);
 
   let latex = '\\begin{table}[t]\n';
   latex += '  \\scriptsize\n';
@@ -40,7 +40,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   latex += '    \\toprule\n';
 
   // Header row
-  latex += '    Program & Baseline (ms)';
+  latex += '    Program & Baseline (ms) & Rolldown ($\\times$)';
   for (const stageKey of otherStageKeys) {
     const displayName = otherStages[stageKey];
     latex += ` & ${displayName} ($\\times$)`;
@@ -74,6 +74,23 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
     // latex += ` & ${rollupStr} & ${terserStr} & ${totalStr}`;
     latex += ` & ${totalStr}`;
 
+    // Output Rolldown ratio
+    const rolldownTime = data['rolldown']?.[testcase];
+    if (rolldownTime === undefined || baselineTotal === 0) {
+      latex += ' & ---';
+    } else {
+      const rolldownRatio = rolldownTime / baselineTotal;
+      let rolldownMultiplierStr: string;
+      if (rolldownRatio < 0.005) {
+        rolldownMultiplierStr = '<0.01';
+      } else if (rolldownRatio < 10) {
+        rolldownMultiplierStr = rolldownRatio.toFixed(2);
+      } else {
+        rolldownMultiplierStr = rolldownRatio.toFixed(1);
+      }
+      latex += ` & ${rolldownMultiplierStr}`;
+    }
+
     // Output time and percentage for each other stage
     for (const stageKey of otherStageKeys) {
       const time = data[stageKey]?.[testcase];
@@ -104,7 +121,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
 
   // Add total row
   latex += '    \\midrule\n';
-  latex += '    \\textbf{Total}';
+  latex += '    \\textbf{Average}';
 
   // Calculate baseline totals
   let rollupTotal = 0;
@@ -119,6 +136,37 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
 
   // latex += ` & \\textbf{${rollupTotal.toFixed(1)}} & \\textbf{${terserTotal.toFixed(1)}} & \\textbf{${baselineGrandTotal.toFixed(1)}}`;
   latex += ` & \\textbf{---}`;
+
+  // Calculate geometric mean for Rolldown
+  let rolldownProduct = 1;
+  let rolldownCount = 0;
+  for (const testcase of testcases) {
+    const rolldownTime = data['rolldown']?.[testcase];
+    if (rolldownTime !== undefined) {
+      let baselineTotal = 0;
+      for (const stage of baselineStages) {
+        const baselineTime = data[stage]?.[testcase];
+        if (baselineTime !== undefined) {
+          baselineTotal += baselineTime;
+        }
+      }
+      if (baselineTotal > 0) {
+        const ratio = rolldownTime / baselineTotal;
+        rolldownProduct *= ratio;
+        rolldownCount++;
+      }
+    }
+  }
+  const rolldownGeomean = rolldownCount > 0 ? Math.pow(rolldownProduct, 1 / rolldownCount) : 0;
+  let rolldownGeomeanStr: string;
+  if (rolldownGeomean < 0.005) {
+    rolldownGeomeanStr = '<0.01';
+  } else if (rolldownGeomean < 10) {
+    rolldownGeomeanStr = rolldownGeomean.toFixed(2);
+  } else {
+    rolldownGeomeanStr = rolldownGeomean.toFixed(1);
+  }
+  latex += ` & \\textbf{${rolldownGeomeanStr}}`;
 
   // Calculate geometric mean for other stages
   for (const stageKey of otherStageKeys) {

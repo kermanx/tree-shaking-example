@@ -10,7 +10,7 @@ const WARMUP_RUNS = 1;
 const BENCHMARK_RUNS = 3;
 const DEFAULT_DEPTH = 2;
 
-type OptimizerType = 'jsshaker' | 'terser' | 'rollup' | 'gcc' | 'gccAdv' | 'lacuna2' | 'lacuna3';
+type OptimizerType = 'jsshaker' | 'terser' | 'rollup' | 'gcc' | 'gccAdv' | 'lacuna2' | 'lacuna3' | 'esbuild' | 'rolldown';
 
 async function benchmarkJsshaker() {
   const distFolder = join(import.meta.dirname, '../dist');
@@ -392,6 +392,103 @@ async function benchmarkLacuna(ol: number) {
   console.log('\nResults saved to time.json');
 }
 
+async function benchmarkEsbuild() {
+  const distFolder = join(import.meta.dirname, '../dist');
+  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
+  const bundled: Record<string, string> = {};
+
+  for (const file of srcFiles) {
+    const name = file.replace('.js', '');
+    const bundledPath = join(distFolder, `${name}_rollup.js`);
+    console.log(`[${name}] Loading ${bundledPath}...`);
+    bundled[name] = await readFile(bundledPath, 'utf-8');
+  }
+
+  const results: Record<string, number> = {};
+
+  for (const [name, code] of Object.entries(bundled)) {
+    console.log(`[${name}] Warming up...`);
+
+    for (let i = 0; i < WARMUP_RUNS; i++) {
+      try {
+        await Optimizers.esbuild({ name, code, env: 'browser' });
+      } catch (e) {
+        console.log(`[${name}] Warmup failed, skipping...`);
+        continue;
+      }
+    }
+
+    const times: number[] = [];
+
+    for (let i = 0; i < BENCHMARK_RUNS; i++) {
+      try {
+        const start = performance.now();
+        await Optimizers.esbuild({ name, code, env: 'browser' });
+        times.push(performance.now() - start);
+      } catch (e) {
+        console.log(`[${name}] Benchmark failed, skipping...`);
+        break;
+      }
+    }
+
+    if (times.length === 0) continue;
+
+    const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+    results[name] = avgTime;
+
+    console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
+  }
+
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  timeData.esbuild = results;
+  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to time.json');
+}
+
+async function benchmarkRolldown() {
+  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
+
+  const results: Record<string, number> = {};
+
+  for (const file of srcFiles) {
+    const name = file.replace('.js', '');
+    const entry = join(srcFolder, file);
+    const config = getTestCaseConfig(name);
+
+    console.log(`[${name}] Warming up...`);
+
+    for (let i = 0; i < WARMUP_RUNS; i++) {
+      await bundlers.rolldown({ name, entry, env: config.env, cjs: false, excludeReact: false },
+        // @ts-expect-error
+        true
+      );
+    }
+
+    const times: number[] = [];
+
+    for (let i = 0; i < BENCHMARK_RUNS; i++) {
+      const start = performance.now();
+      await bundlers.rolldown({ name, entry, env: config.env, cjs: false, excludeReact: false },
+        // @ts-expect-error
+        true
+      );
+      times.push(performance.now() - start);
+    }
+
+    const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+    results[name] = avgTime;
+
+    console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
+  }
+
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  timeData.rolldown = results;
+  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to time.json');
+}
+
 
 async function main() {
   const optimizer = process.argv[2] as OptimizerType;
@@ -406,6 +503,8 @@ async function main() {
     await benchmarkGccAdv();
     await benchmarkLacuna(2);
     await benchmarkLacuna(3);
+    await benchmarkEsbuild();
+    await benchmarkRolldown();
     console.log('\nAll benchmarks completed!');
     return;
   }
@@ -439,9 +538,15 @@ async function main() {
     case 'lacuna3':
       await benchmarkLacuna(3);
       break;
+    case 'esbuild':
+      await benchmarkEsbuild();
+      break;
+    case 'rolldown':
+      await benchmarkRolldown();
+      break;
     default:
       console.error(`Unknown optimizer: ${optimizer}`);
-      console.error('Available: jsshaker, terser, rollup, gcc, gccAdv, lacuna');
+      console.error('Available: jsshaker, terser, rollup, gcc, gccAdv, lacuna2, lacuna3, esbuild, rolldown');
       console.error('Or run without arguments to test all optimizers');
       process.exit(1);
   }

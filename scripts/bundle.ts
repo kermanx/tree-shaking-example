@@ -171,7 +171,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
       });
     });
   },
-  async rolldown({ name, entry, env, cjs }) {
+  async rolldown({ name, entry, env, cjs }, minify = false) {
     const { build } = await import('rolldown');
     const result = await build({
       platform: env,
@@ -192,9 +192,11 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
       },
       output: {
         format: cjs ? 'cjs' : 'esm',
+        minify,
       },
     });
-    assert(result.output.length === 1, 'Expected exactly one output');
+    const cssExcluded = result.output.filter(file => file.type === 'chunk' && !file.fileName.endsWith('.css'));
+    assert(cssExcluded.length === 1, 'Expected exactly one output');
     return result.output[0].code;
   }
 };
@@ -276,13 +278,15 @@ function extractPackages(files: Set<string>): Set<string> {
 function SkipCSS() {
   return {
     name: 'skip-css',
-    load(id: string) {
-      if (id.endsWith('.css')) {
+    load: {
+      filter: {
+        id: /\.css\b/
+      },
+      async handler() {
         return '';
       }
-      return null;
     }
-  }
+  } satisfies import('rollup').Plugin;
 }
 
 import { walk } from 'estree-walker';
