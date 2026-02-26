@@ -67,40 +67,7 @@ JavaScriptHeuristicOptimizer 提供多个可配置参数：
 - **客户端内存**：2048MB
 
 ## 3. 测试结果
-
-1.用vendor/JavaScriptHeuristicOptmizer自身检测变异个体
-|JS库|init size|init+Gzip size|heuristic size|heuristic+terser size|heuristic+terser+Gzip size|原因|正确性|配置(individuals,generations,memory)|
-|--|--|--|--|--|--|--|--|--|
-|antd|1550610|310864|❌|❌|❌|heuristic: esprima不支持ES2020可选链（?.），解析失败|❌ 流程失败|15，10，8192|
-|glob|276805|61021|❌|❌|❌|heuristic: esprima解析错误，无法处理|❌ 流程失败|30，15，4096|
-|js-yaml|107394|25794|111498 (+3.8%)|37752 (-64.9%)|12499 (-51.5%)|heuristic反而变大(+3.8%)；terser成功优化|❌ 字和布尔值被解析成字符串|30，15，4096|
-|lodash-es|103180|22540|101458 (-1.7%)|17318 (-83.2%)|6253 (-72.2%)|heuristic成功减少1.67%；terser大幅优化|✅ 优化成功|30，15，4096|
-|material-ui|698562|134829|❌|❌|❌|测试执行超时(>300s)，不适合heuristic优化|❌ 测试超时|10，5，8192|
-|novnc|622673|141663|❌|❌|❌|heuristic: esprima解析错误 "Unexpected token"|❌ 流程失败|10，5，8192|
-|react-icons|1357280|423681|1485087 (+9.4%)|9237 (-99.3%)|3593 (-99.2%)|heuristic变大但terser成功大幅优化|✅ 优化成功|10，5，8192|
-|remeda|6665|1939|6109 (-8.3%)|1961 (-70.6%)|876 (-54.8%)|heuristic成功减小8.3%；terser继续优化|✅ 优化成功|30，15，4096|
-|rxjs|25487|4952|24485 (-3.9%)|8974 (-64.8%)|2627 (-46.9%)|heuristic减小3.9%但破坏功能（输出为空）|❌ 功能错误|30，15，4096|
-|sentry|309673|84791|❌|❌|❌|heuristic: esprima不支持ES2018对象扩展运算符(...)|❌ 流程失败|30，15，4096|
-|vuetify|304846|74360|❌|❌|❌|heuristic: esprima不支持ES2018对象扩展运算符 line 5774|❌ 流程失败|30，15，4096|
-
-
-2.用vendor/JavaScriptHeuristicOptmizer自身检测变异个体(结果可能不太对)
-|JS库|init size|init+Gzip size|heuristic size|heuristic+terser size|heuristic+terser+Gzip size|原因|正确性|配置(individuals,generations,memory)|
-|--|--|--|--|--|--|--|--|--|
-|remeda|6665|1939|5148 (-22.8%)|1700 (-74.5%)|785 (-59.5%)|heuristic减小22.8%且验证通过；heuristic+terser组合也通过|✅ heuristic成功 ✅ heuristic+terser成功|30，15，4096|
-|lodash-es|103180|22540|101786 (-1.4%)|17910 (-82.6%)|6452 (-71.4%)|heuristic减小1.4%；terser大幅优化82.6%|✅ heuristic成功 ❌ terser破坏功能 (memoize is not defined)|30，15，4096|
-|react-icons|1357280|423681|1484723 (+9.4%)|9507 (-99.3%)|3724 (-99.1%)|heuristic变大9.4%且破坏功能；heuristic+terser组合大幅优化99.3%|❌ heuristic单独失败 (Cannot set properties of undefined) ✅ heuristic+terser组合成功|10，5，8192|
-|antd|1550610|310864|❌|❌|❌|esprima不支持ES2020可选链（?.），第17313行解析失败|❌ 流程失败|10，5，8192|
-|glob|276805|61021|❌|❌|❌|打包输出为ES模块（import/export），esprima仅支持script模式，第1行解析失败|❌ 流程失败|30，15，4096|
-|js-yaml|107394|25794|111409 (+3.7%)|❌|❌|heuristic变大3.7%但验证通过；heuristic+terser优化时内存耗尽崩溃（4048MB不足）|✅ heuristic成功 ❌ heuristic+terser内存耗尽|30，15，4048|
-|material-ui|698562|134829|731647 (+4.7%)|❌|❌|heuristic变大4.7%且破坏功能（输出为空）；heuristic+terser测试中断|❌ heuristic功能错误（输出为空） ❌ heuristic+terser测试中断|10，5，8192|
-|novnc|622673|141663|❌|❌|❌|esprima解析错误，第381行 "Unexpected token ."，可能是可选链语法|❌ 流程失败|10，5，8192|
-|rxjs|25487|4952|20297 (-20.4%)|8528 (-66.5%)|2514 (-49.2%)|heuristic减小20.4%但破坏功能；heuristic+terser减小66.5%但仍破坏功能|❌ heuristic失败 (SafeSubscriber is not a constructor) ❌ heuristic+terser失败 (t.add is not a function)|30，15，4096|
-|sentry|309673|84791|❌|❌|❌|heuristic: esprima不支持ES2018对象扩展运算符(...)|❌ 流程失败|30，15，4096|
-|vuetify|304846|74360|❌|❌|❌|heuristic: esprima不支持ES2018对象扩展运算符 line 5774|❌ 流程失败|30，15，4096|
-
-
-3.用HC算法（Hill Climbing - 确定性爬山）测试结果
+用DFAHC算法（Hill Climbing - 确定性爬山）测试结果（未babel转化）
 |JS库|init size|init+Gzip size|heuristic size|heuristic+terser size|heuristic+terser+Gzip size|原因|正确性|
 |--|--|--|--|--|--|--|--|--|
 |remeda|6665|1939|6464 (-3.0%)|1923 (-71.2%)|885 (-54.4%)|HC成功减少3.0%；terser继续优化|✅ 优化成功|
@@ -114,6 +81,23 @@ JavaScriptHeuristicOptimizer 提供多个可配置参数：
 |rxjs|25487|4952|24999 (-1.9%)|9147 (-64.1%)|2703 (-45.4%)|HC成功减少1.9%；terser继续优化|✅ 优化成功|
 |sentry|309673|84791|309673 (0%)|76008 (-75.4%)|25522 (-69.9%)|esprima解析失败（第292行对象展开运算符...），HC无优化；terser成功压缩|✅ 优化成功|
 |vuetify|304846|74360|304846 (0%)|124866 (-59.0%)|44834 (-39.7%)|esprima解析失败（第5774行对象展开运算符...），HC无优化；terser成功压缩|✅ 优化成功|
+
+## 4. DFAHC 测试结果
+用DFAHC算法（先Babel ES5转换，再HC优化）测试结果
+
+|JS库|init size|init+Gzip size|babel ES5 size|dfahc size|dfahc+terser size|dfahc+terser+Gzip size|原因|正确性|
+|--|--|--|--|--|--|--|--|--|
+|remeda|6665|1939|5097 (-23.5%)|5918 (+16.1%)|2132 (-68.0%)|943 (-51.4%)|Babel ES5转换减少23.5%；HC后略增大（+16.1%）；terser优化至2132B|✅ 优化成功|
+|lodash-es|103180|22540|46529 (-54.9%)|48979 (+5.3%)|18662 (-81.9%)|6656 (-70.5%)|Babel ES5转换大幅减少54.9%（ES模块转CommonJS）；HC略增大；terser优化|✅ 优化成功|
+|glob|276805|61021|-|-|131818 (-52.4%)|35309 (-42.1%)|Babel ES5+HC优化后terser压缩至131818B（比HC terser略大：83082；ES5转换后代码结构变化导致terser效果下降）|✅ 优化成功|
+|js-yaml|107394|25794|-|-|39108 (-63.6%)|12904 (-50.0%)|Babel ES5+HC优化后terser压缩至39108B（与HC terser相近：38540）|✅ 优化成功|
+|react-icons|1357280|423681|-|-|9792 (-99.3%)|3810 (-99.1%)|Babel ES5+HC优化后terser压缩至9792B（与HC terser相近：9507）|✅ 优化成功|
+|novnc|622673|141663|339730 (-45.4%)|339730 (+0%)|240593 (-61.4%)|67589 (-52.3%)|Babel ES5转换减少45.4%；但仍含`await`关键字（非async上下文），esprima解析失败，HC无优化；terser成功压缩|❌ 优化失败|
+|material-ui|698562|134829|479814 (-31.3%)|704295 (+46.8%)|257453 (-63.2%)|78893 (-41.5%)|Babel ES5转换减少31.3%；HC使代码反而增大（+46.8%，测试失败导致HC行为异常）；terser最终成功压缩|✅ 优化成功|
+|rxjs|25487|4952|20462 (-19.7%)|23301 (+13.9%)|9478 (-62.8%)|2829 (-42.8%)|Babel ES5转换减少19.7%；HC使代码反而增大（+13.9%）；terser成功压缩|✅ 优化成功|
+|sentry|309673|84791|231891 (-25.1%)|264825 (+14.2%)|97980 (-68.4%)|30624 (-63.9%)|Babel ES5转换减少25.1%；HC使代码反而增大（+14.2%）；terser成功压缩|✅ 优化成功|
+|vuetify|304846|74360|341645 (+12.1%)|390665 (+14.3%)|149580 (-50.9%)|49606 (-33.3%)|Babel ES5转换反而增大（+12.1%，class等语法展开）；HC继续增大（+14.3%）；terser成功压缩|✅ 优化成功|
+|antd|1550610|310864|-|超时|-|-|文件体积过大（1550610B），HC运行超时（20分钟，SIGTERM终止），无结果|❌ 超时失败|
 
 
 
