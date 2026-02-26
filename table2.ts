@@ -27,31 +27,23 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   const otherStageKeys = Object.keys(otherStages);
 
   // Build table header
-  // Columns: Program + Baseline (Time, %, Total) + Other stages (Time, %)
-  const numColumns = 1 + 3 + otherStageKeys.length * 2; // Program + (Rollup, Terser, Total) + (Time, %) × other stages
-  const columnSpec = 'l' + 'rrr' + 'rr'.repeat(otherStageKeys.length);
+  // Columns: Program + Baseline (Total) + Other stages (%)
+  const numColumns = 1 + 1 + otherStageKeys.length; // Program + Baseline + (%) × other stages
+  const columnSpec = 'l' + 'r' + 'r'.repeat(otherStageKeys.length);
 
   let latex = '\\begin{table}[t]\n';
   latex += '  \\scriptsize\n';
   latex += '  \\centering\n';
-  latex += '  \\caption{Time overhead of different optimiziers}\n';
+  latex += '  \\caption{Time overhead of different optimizers}\n';
   latex += '  \\label{tab:time}\n';
   latex += `  \\begin{tabular}{${columnSpec}}\n`;
   latex += '    \\toprule\n';
 
   // Header row
-  latex += '    Program & Baseline';
+  latex += '    Program & Baseline (ms)';
   for (const stageKey of otherStageKeys) {
     const displayName = otherStages[stageKey];
-    latex += ` & \\multicolumn{2}{c}{${displayName}}`;
-  }
-  latex += ' \\\\\n';
-
-  // Sub-header row
-  latex += '    ';
-  latex += ' & (ms)';
-  for (let i = 0; i < otherStageKeys.length; i++) {
-    latex += ' & (ms) & (×)';
+    latex += ` & ${displayName} ($\\times$)`;
   }
   latex += ' \\\\\n';
   latex += '    \\midrule\n';
@@ -77,7 +69,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
 
     // const rollupStr = rollupTime !== undefined ? rollupTime.toFixed(1) : '---';
     // const terserStr = terserTime !== undefined ? terserTime.toFixed(1) : '---';
-    const totalStr = baselineTotal > 0 ? baselineTotal.toFixed(1) : '---';
+    const totalStr = baselineTotal > 0 ? Math.round(baselineTotal).toString() : '---';
 
     // latex += ` & ${rollupStr} & ${terserStr} & ${totalStr}`;
     latex += ` & ${totalStr}`;
@@ -87,11 +79,23 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
       const time = data[stageKey]?.[testcase];
 
       if (time === undefined) {
-        latex += ' & --- & ---';
+        latex += ' & ---';
       } else {
-        const timeStr = time.toFixed(1);
-        const multiplier = baselineTotal > 0 ? (time / baselineTotal).toFixed(2) : '0.00';
-        latex += ` & ${timeStr} & $${multiplier}\\times$`;
+        const ratio = baselineTotal > 0 ? (time / baselineTotal) : 0;
+        let multiplierStr: string;
+        if (ratio < 0.005) {
+          multiplierStr = '<0.01';
+        } else if (ratio < 10) {
+          // Small overhead: keep 2 decimal places
+          multiplierStr = ratio.toFixed(2);
+        } else {
+          // Large overhead: use 1 decimal place
+          multiplierStr = ratio.toFixed(1);
+        }
+        // Bold if this is JsShaker (best performance)
+        const isBest = stageKey === 'jsshaker';
+        const formattedValue = isBest ? `\\textbf{${multiplierStr}}` : multiplierStr;
+        latex += ` & ${formattedValue}`;
       }
     }
 
@@ -114,28 +118,42 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   const baselineGrandTotal = rollupTotal + terserTotal;
 
   // latex += ` & \\textbf{${rollupTotal.toFixed(1)}} & \\textbf{${terserTotal.toFixed(1)}} & \\textbf{${baselineGrandTotal.toFixed(1)}}`;
-  latex += ` & \\textbf{1$\\times$}`;
+  latex += ` & \\textbf{---}`;
 
-  // Calculate totals for other stages
+  // Calculate geometric mean for other stages
   for (const stageKey of otherStageKeys) {
-    let stageTotal = 0;
-    let correspondingBaselineTotal = 0;
+    let product = 1;
+    let count = 0;
     for (const testcase of testcases) {
       const time = data[stageKey]?.[testcase];
       if (time !== undefined) {
-        stageTotal += time;
-        // Add baseline time for this testcase (only for successful cases)
+        // Calculate baseline for this testcase
+        let baselineTotal = 0;
         for (const stage of baselineStages) {
           const baselineTime = data[stage]?.[testcase];
           if (baselineTime !== undefined) {
-            correspondingBaselineTotal += baselineTime;
+            baselineTotal += baselineTime;
           }
+        }
+        if (baselineTotal > 0) {
+          const ratio = time / baselineTotal;
+          product *= ratio;
+          count++;
         }
       }
     }
-    const timeStr = stageTotal.toFixed(1);
-    const multiplier = correspondingBaselineTotal > 0 ? (stageTotal / correspondingBaselineTotal).toFixed(2) : '0.00';
-    latex += ` &  & \\textbf{${multiplier}$\\times$}`;
+    const geomean = count > 0 ? Math.pow(product, 1 / count) : 0;
+    let geomeanStr: string;
+    if (geomean < 0.005) {
+      geomeanStr = '<0.01';
+    } else if (geomean < 10) {
+      // Small overhead: keep 2 decimal places
+      geomeanStr = geomean.toFixed(2);
+    } else {
+      // Large overhead: use 1 decimal place
+      geomeanStr = geomean.toFixed(1);
+    }
+    latex += ` & \\textbf{${geomeanStr}}`;
   }
 
   latex += ' \\\\\n';

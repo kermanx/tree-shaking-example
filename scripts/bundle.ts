@@ -233,6 +233,7 @@ function ClocPlugin(name: string) {
       const packages = extractPackages(files);
       summary['__packages'] ??= {};
       summary['__packages'][name] = packages.size;
+      console.error(`Packages in ${name}:`, Array.from(packages).sort());
 
       // 统计文件数量
       summary['__files'] ??= {};

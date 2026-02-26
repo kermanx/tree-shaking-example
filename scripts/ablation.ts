@@ -4,6 +4,7 @@ import { gzip } from 'node:zlib';
 import { promisify } from 'node:util';
 import { jsshaker } from './jsshaker.ts';
 import { getTestCaseNames, getTestCaseConfig } from './config.ts';
+import { shakeSingleModule } from 'jsshaker';
 
 const gzipAsync = promisify(gzip);
 
@@ -15,10 +16,11 @@ interface AblationResult {
 }
 
 const configurations = [
-  { constantFolding: 'enabled', propertyMangling: 'enabled' },
-  { constantFolding: 'enabled', propertyMangling: 'disabled' },
-  { constantFolding: 'enabled', propertyMangling: 'only' },
-  { constantFolding: 'disabled', propertyMangling: 'disabled' },
+  { branchFolding: true, constantFolding: 'enabled', propertyMangling: 'enabled' },
+  { branchFolding: false, constantFolding: 'enabled', propertyMangling: 'enabled' },
+  { branchFolding: true, constantFolding: 'enabled', propertyMangling: 'disabled' },
+  { branchFolding: true, constantFolding: 'enabled', propertyMangling: 'only' },
+  { branchFolding: true, constantFolding: 'disabled', propertyMangling: 'disabled' },
 ] as const;
 
 async function main() {
@@ -37,7 +39,7 @@ async function main() {
     console.log(`\n[${name}] Starting ablation study...`);
 
     const code = await readFile(inputPath, 'utf-8');
-    const originalSize = Buffer.byteLength(code, 'utf-8');
+    const originalSize = shakeSingleModule(code, { preset: 'disabled', minify: false }).output.code.length;
     const testCaseConfig = getTestCaseConfig(name);
 
     console.log(`[${name}] Original size: ${originalSize} bytes`);
@@ -52,13 +54,14 @@ async function main() {
 
 
     for (const config of configurations) {
-      const configName = `cf_${config.constantFolding}_pm_${config.propertyMangling}`;
+      const configName = `bf_${config.branchFolding}_cf_${config.constantFolding}_pm_${config.propertyMangling}`;
       console.log(`[${name}] Testing configuration: ${configName}`);
 
       try {
         const optimized = await jsshaker(
           { name, code, env: testCaseConfig.env },
           {
+            branchFolding: config.branchFolding,
             constantFolding: config.constantFolding,
             propertyMangling: config.propertyMangling,
           }
