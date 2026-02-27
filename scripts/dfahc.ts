@@ -127,7 +127,7 @@ export async function dfahc({ name, code }: OptimizeOptions) {
           "especific": {
             "neighborApproach": "FirstAscent",
             "neighborsToProcess": 5,
-            "trials": 10,
+            "trials": 5000,
             "restartAtEnd": true,
             "ramdonRestart": false,
             "ramdonNodes": false,
