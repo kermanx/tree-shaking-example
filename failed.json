@@ -60,14 +60,7 @@
     "rxjs",
     "antd"
   ],
-  "rollup_dfahc_terser": [
-    "js-yaml",
-    "react-icons",
-    "remeda",
-    "sentry",
-    "lodash-es",
-    "rxjs"
-  ],
+  "rollup_dfahc_terser": [],
   "rollup_heuristic_terser": [
     "d3",
     "react-icons",

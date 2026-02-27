@@ -112,35 +112,35 @@ part4_ratios.insert(0, total_bf_contribution)
 error_ratios.insert(0, 100 - total_dce_contribution - total_cf_contribution - total_pm_contribution - total_bf_contribution)
 
 # Create horizontal stacked bar chart
-fig, ax = plt.subplots(figsize=(12, len(test_cases) * 0.45))
+fig, ax = plt.subplots(figsize=(12, len(test_cases) * 0.36))
 
 y_pos = np.arange(len(test_cases))
 
 # Stack the bars (order: BF, CF, PM, DCE)
 if NO_COLOR:
     # Use black and white with different hatch patterns
-    p1 = ax.barh(y_pos, part4_ratios, height=0.667, color='white', edgecolor='black', 
+    p1 = ax.barh(y_pos, part4_ratios, height=0.58, color='white', edgecolor='black', 
                  hatch='xxx', linewidth=0.5, label='Branch Folding')
-    p2 = ax.barh(y_pos, part2_ratios, height=0.667, left=part4_ratios,
+    p2 = ax.barh(y_pos, part2_ratios, height=0.58, left=part4_ratios,
                  color='white', edgecolor='black', hatch='///', linewidth=0.5,
                  label='Constant Folding')
-    p3 = ax.barh(y_pos, part3_ratios, height=0.667,
+    p3 = ax.barh(y_pos, part3_ratios, height=0.58,
                  left=np.array(part4_ratios) + np.array(part2_ratios),
                  color='white', edgecolor='black', hatch='\\\\\\', linewidth=0.5,
                  label='Property Mangling')
-    p4 = ax.barh(y_pos, part1_ratios, height=0.667,
+    p4 = ax.barh(y_pos, part1_ratios, height=0.58,
                  left=np.array(part4_ratios) + np.array(part2_ratios) + np.array(part3_ratios),
                  color='white', edgecolor='black', linewidth=0.5,
                  label='Base DCE' if not NO_DCE_LABEL else '_nolegend_')
 else:
     # Use colors
-    p1 = ax.barh(y_pos, part4_ratios, height=0.667, color='#D4A373', label='Branch Folding')
-    p2 = ax.barh(y_pos, part2_ratios, height=0.667, left=part4_ratios,
+    p1 = ax.barh(y_pos, part4_ratios, height=0.58, color='#D4A373', label='Branch Folding')
+    p2 = ax.barh(y_pos, part2_ratios, height=0.58, left=part4_ratios,
                  color='#7CB342', label='Constant Folding')
-    p3 = ax.barh(y_pos, part3_ratios, height=0.667,
+    p3 = ax.barh(y_pos, part3_ratios, height=0.58,
                  left=np.array(part4_ratios) + np.array(part2_ratios),
                  color='#5B9BD5', label='Property Mangling')
-    p4 = ax.barh(y_pos, part1_ratios, height=0.667,
+    p4 = ax.barh(y_pos, part1_ratios, height=0.58,
                  left=np.array(part4_ratios) + np.array(part2_ratios) + np.array(part3_ratios),
                  color='#E8956F', label='Base DCE' if not NO_DCE_LABEL else '_nolegend_')
 
@@ -151,18 +151,18 @@ ax.set_yticklabels(test_cases)
 for i, label in enumerate(ax.get_yticklabels()):
     if label.get_text() == 'Average':
         label.set_weight('bold')
-ax.set_xlabel('Additional Size Reduction over Basic Tree-Shaking Baseline (%)')
+# ax.set_xlabel('Additional Size Reduction over Basic Tree-Shaking Baseline (%)')
 ax.legend(loc='upper right')
 
 if TRUNCATE_AT:
     ax.set_xlim(0, TRUNCATE_AT)
-    ax.tick_params(axis='x', which='both', bottom=False, top=False)
+    ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
     
     # Custom x-axis ticks to show TRUNCATE_AT as 100
-    xticks = [0, 10, 20, 30, 40, 50, TRUNCATE_AT]
-    xticklabels = ['0', '10', '20', '30', '40', '50', '100']
-    ax.set_xticks(xticks)
-    ax.set_xticklabels(xticklabels)
+    # xticks = [0, 10, 20, 30, 40, 50, TRUNCATE_AT]
+    # xticklabels = ['0', '10', '20', '30', '40', '50', '100']
+    # ax.set_xticks(xticks)
+    # ax.set_xticklabels(xticklabels)
     
     # Draw axis break symbol using official matplotlib method (rotated 90° for horizontal axis)
     d = .5  # Proportion of diagonal to marker size
@@ -188,7 +188,7 @@ if TRUNCATE_AT:
     ax.plot(break_positions, [0, 0], transform=ax.transAxes, **kwargs)
 else:
     ax.set_xlim(0, 100)
-    ax.tick_params(axis='x', which='both', bottom=False, top=False)
+    ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
 
 # Add grid for better readability
 ax.grid(axis='x', alpha=0.3, linestyle='--')

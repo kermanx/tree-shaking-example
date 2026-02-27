@@ -8,6 +8,7 @@ const OTHER_STAGES: Record<string, string> = {
   "gccAdv": "CC\\textsubscript{Adv.}",
   "lacuna2": "Lacuna\\textsubscript{O2}",
   "lacuna3": "Lacuna\\textsubscript{O3}",
+  "dfahc": "DFAHC",
 };
 
 interface TimeData {
@@ -19,6 +20,18 @@ interface TimeData {
 function loadTimes(filename: string = "time.json"): TimeData {
   const content = fs.readFileSync(filename, 'utf-8');
   return JSON.parse(content);
+}
+
+function formatMultiplier(ratio: number): string {
+  if (ratio < 0.005) {
+    return '<0.01';
+  } else if (ratio < 10) {
+    return ratio.toFixed(2);
+  } else if (ratio < 100) {
+    return ratio.toFixed(1);
+  } else {
+    return ratio.toFixed(0);
+  }
 }
 
 function generateLatexTable(data: TimeData, baselineStages: string[], otherStages: Record<string, string>): string {
@@ -80,14 +93,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
       latex += ' & ---';
     } else {
       const rolldownRatio = rolldownTime / baselineTotal;
-      let rolldownMultiplierStr: string;
-      if (rolldownRatio < 0.005) {
-        rolldownMultiplierStr = '<0.01';
-      } else if (rolldownRatio < 10) {
-        rolldownMultiplierStr = rolldownRatio.toFixed(2);
-      } else {
-        rolldownMultiplierStr = rolldownRatio.toFixed(1);
-      }
+      const rolldownMultiplierStr = formatMultiplier(rolldownRatio);
       latex += ` & ${rolldownMultiplierStr}`;
     }
 
@@ -99,16 +105,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
         latex += ' & ---';
       } else {
         const ratio = baselineTotal > 0 ? (time / baselineTotal) : 0;
-        let multiplierStr: string;
-        if (ratio < 0.005) {
-          multiplierStr = '<0.01';
-        } else if (ratio < 10) {
-          // Small overhead: keep 2 decimal places
-          multiplierStr = ratio.toFixed(2);
-        } else {
-          // Large overhead: use 1 decimal place
-          multiplierStr = ratio.toFixed(1);
-        }
+        const multiplierStr = formatMultiplier(ratio);
         // Bold if this is JsShaker (best performance)
         const isBest = stageKey === 'jsshaker';
         const formattedValue = isBest ? `\\textbf{${multiplierStr}}` : multiplierStr;
@@ -158,14 +155,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
     }
   }
   const rolldownGeomean = rolldownCount > 0 ? Math.pow(rolldownProduct, 1 / rolldownCount) : 0;
-  let rolldownGeomeanStr: string;
-  if (rolldownGeomean < 0.005) {
-    rolldownGeomeanStr = '<0.01';
-  } else if (rolldownGeomean < 10) {
-    rolldownGeomeanStr = rolldownGeomean.toFixed(2);
-  } else {
-    rolldownGeomeanStr = rolldownGeomean.toFixed(1);
-  }
+  const rolldownGeomeanStr = formatMultiplier(rolldownGeomean);
   latex += ` & \\textbf{${rolldownGeomeanStr}}`;
 
   // Calculate geometric mean for other stages
@@ -191,16 +181,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
       }
     }
     const geomean = count > 0 ? Math.pow(product, 1 / count) : 0;
-    let geomeanStr: string;
-    if (geomean < 0.005) {
-      geomeanStr = '<0.01';
-    } else if (geomean < 10) {
-      // Small overhead: keep 2 decimal places
-      geomeanStr = geomean.toFixed(2);
-    } else {
-      // Large overhead: use 1 decimal place
-      geomeanStr = geomean.toFixed(1);
-    }
+    const geomeanStr = formatMultiplier(geomean);
     latex += ` & \\textbf{${geomeanStr}}`;
   }
 

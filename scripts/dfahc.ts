@@ -35,7 +35,8 @@ export async function transformToEs5(code: string) {
 
 export async function dfahc({ name, code }: OptimizeOptions) {
   code = await transformToEs5(code);
-
+  // code = shakeSingleModule(code, { preset: "disabled", minify: false }).output.code;
+  // await fs.writeFile('./temp.js', code, 'utf8'); // Write the transformed code to a temporary file for inspection
 
   const optimizerPath = path.resolve('./vendor/JavaScriptHeuristicOptmizer');
 
@@ -125,9 +126,9 @@ export async function dfahc({ name, code }: OptimizeOptions) {
           "ByFunctionType": "dynamic",
           "especific": {
             "neighborApproach": "FirstAscent",
-            "neighborsToProcess": 2,
-            "trials": 100,
-            "restartAtEnd": false,
+            "neighborsToProcess": 5,
+            "trials": 10,
+            "restartAtEnd": true,
             "ramdonRestart": false,
             "ramdonNodes": false,
             "nodesType": [
@@ -149,8 +150,8 @@ export async function dfahc({ name, code }: OptimizeOptions) {
               "ConditionalExpression"
             ],
             // Adjust parameters based on file size
-            "individuals": code.length > 600000 ? 10 : (code.length > 500000 ? 15 : 30),  // 10 for >600KB, 15 for 500-600KB, 30 for smaller
-            "generations": code.length > 600000 ? 5 : (code.length > 500000 ? 10 : 15),  // 5 for >600KB, 10 for 500-600KB, 15 for smaller
+            "individuals": 100, // code.length > 600000 ? 10 : (code.length > 500000 ? 15 : 30),  // 10 for >600KB, 15 for 500-600KB, 30 for smaller
+            "generations": 50, // code.length > 600000 ? 5 : (code.length > 500000 ? 10 : 15),  // 5 for >600KB, 10 for 500-600KB, 15 for smaller
             "crossoverProbability": 70,
             "mutationProbability": 30,
             "elitism": true,
@@ -175,10 +176,6 @@ export async function dfahc({ name, code }: OptimizeOptions) {
     const resultsFile = path.join(absoluteResultsDir, name, heuristicName, "Results.csv");
     const csvHeader = "sep=,\ntrial,originalIndividualAvgTime,originalIndividualLOC,originalIndividualCharacters,bestIndividualAvgTime,bestIndividualLOC,bestIndividualCharacters,time,better\n";
     await fs.writeFile(resultsFile, csvHeader, 'utf8');
-
-    // Create a file to track the best solution found during optimization
-    const bestSolutionFile = path.join(absoluteResultsDir, name, heuristicName, "best-solution.js");
-    await fs.writeFile(bestSolutionFile, code, 'utf8'); // Start with original code
 
     console.log(`[${name}] Running JavaScriptHeuristicOptmizer...`);
     console.log(`[${name}] Library directory: ${libDir}`);
@@ -216,7 +213,13 @@ export async function dfahc({ name, code }: OptimizeOptions) {
 
     // Read the optimized code back
     // First try to read from best-solution.js (which tracks the best solution found)
-    const optimizedCode = await fs.readFile(bestSolutionFile, 'utf8');
+    console.log(absoluteResultsDir)
+    let optimizedCode = await fs.readFile(path.resolve(absoluteResultsDir, name, heuristicName, "0.js"), 'utf8');
+    if (code.startsWith('"use strict";') || code.startsWith("'use strict';")) {
+      if (!optimizedCode.startsWith('"use strict";') && !optimizedCode.startsWith("'use strict';")) {
+        optimizedCode = '"use strict";\n' + optimizedCode;
+      }
+    }
 
     console.log(`[${name}] Optimization complete. Original: ${code.length}B, Optimized: ${optimizedCode.length}B`);
 
@@ -228,29 +231,18 @@ export async function dfahc({ name, code }: OptimizeOptions) {
     const cleanupDelay = code.length > 100000 ? 10000 : 1000; // 10s for large files, 1s for small
     console.log(`[${name}] Waiting ${cleanupDelay / 1000}s for all processes to complete before cleanup...`);
     await new Promise(resolve => setTimeout(resolve, cleanupDelay));
-    try {
-      await fs.rm(tmpDir, { recursive: true, force: true });
-      console.log(`[${name}] Cleanup completed successfully`);
-    } catch (e) {
-      // Ignore cleanup errors
-      console.log(`[${name}] Note: Temporary directory cleanup had issues (can be ignored)`);
-    }
-
     return optimizedCode;
-
   } catch (error) {
     console.error(`[${name}] [heuristic] Optimization failed:`, error);
     // Clean up config file on error
     await fs.unlink(configPath).catch(() => { });
-
-    // Clean up temporary directory even on error
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    try {
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-
     return '';
+  } finally {
+    setTimeout(async () => {
+      try {
+        await fs.rm(tmpDir, { recursive: true, force: true })
+      } catch (e) {
+      }
+    }, 1000);
   }
 }
