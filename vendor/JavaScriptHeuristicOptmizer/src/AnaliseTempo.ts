@@ -55,7 +55,7 @@ async function Executar() {
 
     //instrumentar, executar, salvar
 
-    var codigoOriginal = fs.readFileSync(caminhoOriginal, 'utf8');
+    var codigoOriginal = fs.readFileSync(caminhoOriginal, 'UTF8');
     WriteCodeToFile(arquivoRootBiblioteca, codigoOriginal);
 
     //Despreza a primeira execuçao
@@ -90,7 +90,7 @@ async function Executar() {
                 continue;
             }
 
-            var CodigoDaRodada = fs.readFileSync(caminhoArquivoRodada, 'utf8');
+            var CodigoDaRodada = fs.readFileSync(caminhoArquivoRodada, 'UTF8');
 
             if (CodigoDaRodada != codigoOriginal) {
 

@@ -57,11 +57,7 @@ export default class Client {
         try {
             var newIndividual = this._astExplorer.Mutate(context);
 
-            // Check if newIndividual is valid before calling ToCode()
-            if (!newIndividual) {
-                this.logger.Write(`[Client ${this.id}]  Mutate returned undefined, using Original`);
-                newIndividual = context.Original.Clone();
-            } else if ((newIndividual.ToCode() != context.Original.ToCode())) {
+            if ((newIndividual.ToCode() != context.Original.ToCode())) {
                 this.logger.Write(`[Client ${this.id}]  Testing new mutant`);
                 this.InitializeTester(context);
                 this._tester.Test(newIndividual);
@@ -95,11 +91,7 @@ export default class Client {
 
             var newIndividual = this._astExplorer.MutateBy(context);
 
-            // Check if newIndividual is valid before calling ToCode()
-            if (!newIndividual) {
-                this.logger.Write(`[Client ${this.id}]  MutateBy returned undefined, using Original`);
-                newIndividual = context.Original.Clone();
-            } else if ((newIndividual.ToCode() != context.Original.ToCode())) {
+            if ((newIndividual.ToCode() != context.Original.ToCode())) {
                 this.logger.Write(`[Client ${this.id}]  Testing new mutant`);
                 //this.logger.Write(`[Client]  ${context.clientPath}`);
                 this.InitializeTester(context);
@@ -134,24 +126,19 @@ export default class Client {
         try {
             var news = this._astExplorer.CrossOver(context);
 
-            // Check if news[0] is valid before calling ToCode()
-            if (!news || !news[0]) {
-                this.logger.Write(`[Client ${this.id}]  CrossOver returned invalid result, using Original`);
-                ctx.First = context.Original.Clone();
-                ctx.Second = undefined;
-            } else if ((news[0].ToCode() != context.Original.ToCode())) {
+
+            if ((news[0].ToCode() != context.Original.ToCode())) {
                 this.logger.Write(`[Client ${this.id}]  Testing First son`);
                 this.InitializeTester(context);
                 this._tester.Test(news[0]);
                 this.logger.Write(`[Client ${this.id}]  Tests done.`);
-                ctx.First = news[0];
-                ctx.Second = undefined;
             } else {
                 news[0] = context.Original.Clone();
                 this.logger.Write(`[Client ${this.id}]  First Fail`);
-                ctx.First = news[0];
-                ctx.Second = undefined;
             }
+
+            ctx.First = news[0];
+            ctx.Second = undefined;
         }
         catch (err) {
             this.logger.Write(`[Client ${this.id}]Error: ${err}`);

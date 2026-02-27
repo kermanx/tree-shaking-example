@@ -73,7 +73,7 @@ function Configurar() {
     process.on('message', function (message) {
 
         try {
-            var msg: Message = JSON.parse(message as string);
+            var msg: Message = JSON.parse(message);
 
             var exectimer = require('exectimer');
             var Tick = new exectimer.Tick(msg.id);

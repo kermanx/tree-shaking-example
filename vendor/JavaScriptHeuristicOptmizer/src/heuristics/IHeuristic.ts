@@ -213,21 +213,6 @@ abstract class IHeuristic extends events.EventEmitter {
 
         this._logger.Write(`[IHeuristic] bestIndividual.testResults = ${bestIndividual.testResults == undefined}`);
 
-        // CRITICAL FIX: Validate that bestIndividual actually passed tests
-        // Handle THREE cases where bestIndividual is invalid:
-        // 1. testResults is undefined/null
-        // 2. testResults exists but passedAllTests is false
-        // 3. testResults exists but passedAllTests is undefined
-        const hasValidTestResults = bestIndividual.testResults
-            && bestIndividual.testResults.passedAllTests === true;
-
-        if (!hasValidTestResults) {
-            this._logger.Write(`[IHeuristic] WARNING: bestIndividual has invalid or missing test results!`);
-            this._logger.Write(`[IHeuristic] testResults=${JSON.stringify(bestIndividual.testResults)}`);
-            this._logger.Write(`[IHeuristic] Reverting to original code for safety.`);
-            bestIndividual = this.Original.Clone();
-        }
-
         if (this.nodesSelectionApproach == 'ByFunction' && bestIndividual.testResults == undefined) {
             this._logger.Write(`[IHeuristic] Não encontrou melhor. Voltando ao original...`);
             bestIndividual = this.Original.Clone();
@@ -292,14 +277,6 @@ abstract class IHeuristic extends events.EventEmitter {
         try {
             var localBest: Individual = this.nodesSelectionApproach == "ByFunction" ? this.ActualBestForFunctionScope.Clone() : this.bestIndividual.Clone();
 
-            // Add detailed logging for debugging
-            const hasTestResults = newBest.testResults !== undefined && newBest.testResults !== null;
-            const passedTests = hasTestResults && newBest.testResults.passedAllTests === true;
-            const newFit = hasTestResults ? parseInt(newBest.testResults.fit.toString()) : Infinity;
-            const bestFit = parseInt(this.bestFit.toString());
-
-            this._logger.Write(`[UpdateBest] Evaluating new individual: size=${newCode.length}, hasTestResults=${hasTestResults}, passedTests=${passedTests}, fit=${newFit}, currentBestFit=${bestFit}`);
-
             if (newBest.testResults && newBest.testResults.passedAllTests && (parseInt(newBest.testResults.fit.toString()) < parseInt(this.bestFit.toString())) && (newCode != "") && (newCode != localBest.ToCode())) {
                 this._logger.Write('=================================');
                 this._logger.Write(`Older Fit ${this.bestFit}`);
@@ -314,17 +291,6 @@ abstract class IHeuristic extends events.EventEmitter {
 
                 if (this.Name == "GA")
                     this.RefreshIndexList();
-
-                // Save the best solution to a file for recovery
-                try {
-                    const fs = require('fs');
-                    const path = require('path');
-                    const bestFile = path.join(this._globalConfig.resultsDirectory, this._lib.name, this.Name, 'best-solution.js');
-                    fs.writeFileSync(bestFile, newCode, 'utf8');
-                    this._logger.Write(`[IHeuristic] Saved best solution to ${bestFile} (${newCode.length}B)`);
-                } catch (e) {
-                    // Ignore errors
-                }
             }
         }
         catch (err) {

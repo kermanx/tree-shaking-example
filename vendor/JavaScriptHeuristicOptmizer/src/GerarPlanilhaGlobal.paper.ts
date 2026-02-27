@@ -51,7 +51,7 @@ var tamanhoArquivoOriginalEmBytes = 0;
 
 arquivoRootBiblioteca = path.join(DiretorioBiblioteca, arquivoRootBiblioteca);
 var caminhoOriginal = DiretorioResultados + `/${heuristicas[0]}/original.js`;
-var codigoOriginal = fs.readFileSync(caminhoOriginal, 'utf8');
+var codigoOriginal = fs.readFileSync(caminhoOriginal, 'UTF8');
 var originalLoc = 0;
 var originalChar = 0;
 var originalIns = 0;
@@ -132,7 +132,7 @@ async function Executar() {
                 continue;
             }
 
-            var CodigoDaRodada = fs.readFileSync(caminhoArquivoRodada, 'utf8');
+            var CodigoDaRodada = fs.readFileSync(caminhoArquivoRodada, 'UTF8');
 
             if (CodigoDaRodada != codigoOriginal) {
                 WriteCodeToFile(arquivoRootBiblioteca, CodigoDaRodada);

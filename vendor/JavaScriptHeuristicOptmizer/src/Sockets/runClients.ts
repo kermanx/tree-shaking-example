@@ -165,8 +165,8 @@ function ExecuteOperations(clientLocal: Client) {
 
     });
 
-    (ws as any).on("ping", () => {
-        (ws as any).pong();
+    ws.addEventListener("ping", () => {
+        ws.pong();
     });
 
 
@@ -174,7 +174,7 @@ function ExecuteOperations(clientLocal: Client) {
 
         try {
 
-            var msg: Message = JSON.parse(e.data.toString());
+            var msg: Message = JSON.parse(e.data);
             //logger.Write(`[runClient] msg ${msg.ctx.First._astFile.path}`);
             msg.ctx = clientLocal.Reload(msg.ctx);
             logger.Write(`[runClient]Client ${localClient.id} processing message ${msg.id}`);

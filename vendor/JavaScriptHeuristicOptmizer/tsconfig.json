@@ -13,10 +13,9 @@
        "removeComments": true,
        "noLib": false,
        "preserveConstEnums": true,
+       "suppressImplicitAnyIndexErrors": true,
        "outDir": "build",
-       "allowUnusedLabels": true,
-       "skipLibCheck": true,
-       "strict": false
+       "allowUnusedLabels": true
    },
    "exclude": [
        "node_modules",

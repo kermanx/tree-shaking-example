@@ -127,12 +127,6 @@ export default class Optmizer {
      */
     private Notify(result: TrialResults) {
 
-        // Fix: Check if result.file exists before using it
-        if (!result.file) {
-            this.logger.Write(` [Optmizer] Skipping notification: result file path is undefined`);
-            return;
-        }
-
         var filepath = path.join(process.cwd(), result.file);
         this.logger.Write(` [Optmizer] Async send Email to notify observers`);
         //this.logger.Write(`File: ${filepath}`);

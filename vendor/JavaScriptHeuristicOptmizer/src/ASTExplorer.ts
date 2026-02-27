@@ -258,11 +258,7 @@ export default class ASTExplorer {
      */
     MutateBy(context: OperatorContext): Individual {
         const fs = require('fs');
-        var mutant = (context.Original || context.First).Clone();
-
-        // Ensure all nodes have IDs
-        this.IndexNodesGUID(mutant);
-
+        var mutant = context.Original.Clone();
         //var originalLocal = context.Original.Clone();
         var localNodeIndex = context.NodeIndex;
         var localGlobalIndexForinstructionType = context.globalIndexForinstructionType;
@@ -271,21 +267,8 @@ export default class ASTExplorer {
         var removedNodeId = '';
 
         var removedNode = this.GetNode(mutant, localNodeIndex);
-        if (!removedNode) {
-            // If node not found, try to find a valid node
-            var allNodes = traverse(mutant.AST).nodes();
-            if (localNodeIndex >= allNodes.length) {
-                // Index out of bounds, use the last valid node
-                localNodeIndex = allNodes.length - 1;
-                removedNode = allNodes[localNodeIndex];
-            }
-            if (!removedNode) {
-                // Still no node found, return the original mutant unchanged
-                return mutant;
-            }
-        }
         removedNodeId = removedNode.ID;
-        mutant.removedIDS = mutant.removedIDS.concat((context.First || context.Original).removedIDS.slice());
+        mutant.removedIDS = mutant.removedIDS.concat(context.First.removedIDS.slice());
         mutant.removedIDS.push(removedNodeId);
         
 

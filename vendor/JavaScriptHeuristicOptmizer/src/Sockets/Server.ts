@@ -141,7 +141,7 @@ export default class Server {
     private HandleServer() {
 
         //Handle on request
-        this.wsServer.on('connection', (connection: any) => {
+        this.wsServer.on('connection', (connection) => {
             var id = connection.upgradeReq.url.replace("/ID=", "");
 
             var client = new Client();
@@ -175,7 +175,7 @@ export default class Server {
             //this.concludedMessages[message.id] = message;
             this.totalReturnedMessages += 1;
 
-            var msgProcessed: Message = JSON.parse(message.toString());
+            var msgProcessed: Message = JSON.parse(message);
             var client = this.clientProcessing[msgProcessed.clientId];
 
             this.Done(client, msgProcessed);

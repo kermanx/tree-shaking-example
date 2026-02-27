@@ -392,28 +392,9 @@ export default class GA extends IHeuristic {
         var countTotal = Math.floor(population.length - this._config.individuals);
         this._logger.Write(`[GA] Sort population`);
         try {
-            // CRITICAL FIX: Filter out individuals that failed tests BEFORE sorting
-            // Only keep individuals where testResults.passedAllTests === true
-            const validPopulation = population.filter(ind =>
-                ind.testResults && ind.testResults.passedAllTests === true
-            );
-            const invalidCount = population.length - validPopulation.length;
-
-            if (invalidCount > 0) {
-                this._logger.Write(`[GA] Filtered out ${invalidCount} individuals that failed tests`);
-            }
-
-            // If no valid individuals, keep original
-            if (validPopulation.length === 0) {
-                this._logger.Write(`[GA] WARNING: No valid individuals found! Keeping original code.`);
-                population = [this.Original.Clone()];
-            } else {
-                // Sort only the VALID individuals by fitness
-                validPopulation.sort((a, b) => { return a.testResults.fit > b.testResults.fit ? 1 : 0; });
-                population = validPopulation;
-            }
+            population.sort((a, b) => { return a.testResults.fit > b.testResults.fit ? 1 : 0; });    
         } catch (error) {
-            this._logger.Write(`[GA] Population cut error: ${error.message}`);
+            this._logger.Write(`[GA] Population cut error`);    
         }
         
         this._logger.Write(`[GA] Population cut (${population.length}-${countTotal})`);
@@ -515,7 +496,7 @@ export default class GA extends IHeuristic {
             if (this.timeoutId == undefined) {
                 this.timeoutId = setTimeout(() => {
                     //
-                    if (neighbors.length < totalMutants) {
+                    if (neighbors.length < this.operationsCounter) {
                         clearTimeout(this.timeoutId);
                         this.timeoutId = undefined;
                         this.DoMutationsPerTime(counter, neighbors, totalMutants, cb); //do again
@@ -527,8 +508,8 @@ export default class GA extends IHeuristic {
             if (this.DoMutationsIntervalId == undefined) {
                 this.DoMutationsIntervalId = setInterval(() => {
                     //this._logger.Write(`[GA] Interval: Neighbors:${neighbors.length}, Operations ${this.operationsCounter}`);
-                    this._logger.Write(`[GA] DoMutationsPerTime: ${neighbors.length}[${totalMutants}]`);
-                    if (neighbors.length == totalMutants) {
+                    this._logger.Write(`[GA] DoMutationsPerTime: ${neighbors.length}[${this.operationsCounter}]`);
+                    if (neighbors.length == this.operationsCounter) {
                         clearInterval(this.DoMutationsIntervalId);
                         this.DoMutationsIntervalId = undefined;
                         this._logger.Write(`[GA] Interval: doing callback ${neighbors.length}`);

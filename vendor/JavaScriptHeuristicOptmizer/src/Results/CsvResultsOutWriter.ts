@@ -78,53 +78,33 @@ export default class CsvResultsOutWriter implements IOutWriter {
 
     /**
      * Adds to storage a trial final result
-     *
+     * 
      * Keeps Best code over directory with #TrialNumber.js
-     *
+     * 
      */
     WriteTrialResults(result: TrialResults) {
-        try {
-            // Check if file still exists before writing (in case directory was cleaned up)
-            if (!fs.existsSync(this.file)) {
-                console.log(`[CsvResultsOutWriter] Warning: Results file no longer exists, skipping CSV write`);
-                // Still try to write the code file as it might succeed
-                this.WriteCodeToFile(result);
-                return;
-            }
 
-            fs.appendFileSync(this.file, result.trial + ",\"" +
-                this.numberToCsv(result.originalIndividualAvgTime) + "\"," +
-                result.originalIndividualLOC + "," +
-                result.originalIndividualCharacters + ",\"" +
-                this.numberToCsv(result.bestIndividualAvgTime) + "\"," +
-                result.bestIndividualLOC + "," +
-                result.bestIndividualCharacters + ",\"" +
-                this.numberToCsv(result.time) + "\"," +
-                result.better +
-                this.newLine
-            );
+        fs.appendFileSync(this.file, result.trial + ",\"" +
+            this.numberToCsv(result.originalIndividualAvgTime) + "\"," +
+            result.originalIndividualLOC + "," +
+            result.originalIndividualCharacters + ",\"" +
+            this.numberToCsv(result.bestIndividualAvgTime) + "\"," +
+            result.bestIndividualLOC + "," +
+            result.bestIndividualCharacters + ",\"" +
+            this.numberToCsv(result.time) + "\"," +
+            result.better +
+            this.newLine
+        );
 
-            result.file = this.file;
-        } catch (error) {
-            // Ignore write errors - results are already saved in best-solution.js by heuristic.ts
-            console.log(`[CsvResultsOutWriter] Warning: Failed to write CSV results (${error.code || error.message}), but optimization data is preserved in best-solution.js`);
+        result.file = this.file;
+
+        for (let indice in result.best.typesRemoved) {
+            fs.appendFileSync(this.typesRemovedFile, result.best.typesRemoved[indice] + "\n");
         }
 
-        // Try to write types removed file
-        try {
-            for (let indice in result.best.typesRemoved) {
-                fs.appendFileSync(this.typesRemovedFile, result.best.typesRemoved[indice] + "\n");
-            }
-        } catch (error) {
-            // Ignore errors when writing types removed file
-        }
 
-        // Try to write code file
-        try {
-            this.WriteCodeToFile(result);
-        } catch (error) {
-            console.log(`[CsvResultsOutWriter] Warning: Failed to write code files, but results are preserved`);
-        }
+
+        this.WriteCodeToFile(result);
     }
 
     /**

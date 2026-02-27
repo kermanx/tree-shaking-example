@@ -68,9 +68,9 @@ async function Executar() {
         var caminhoOriginal = DiretorioResultados + `${library}/${heuristicas[0]}/original.js`;
         var caminhoMelhor = DiretorioResultados + `${library}/${heuristicas[0]}/0.js`;
         var caminhoGCC = DiretorioGcc + `${library}.js`;
-        var codigoOriginal = fs.readFileSync(caminhoOriginal, 'utf8');
-        var codigoMelhor = fs.readFileSync(caminhoMelhor, 'utf8');
-        var codigoGCC = fs.readFileSync(caminhoGCC, 'utf8');
+        var codigoOriginal = fs.readFileSync(caminhoOriginal, 'UTF8');
+        var codigoMelhor = fs.readFileSync(caminhoMelhor, 'UTF8');
+        var codigoGCC = fs.readFileSync(caminhoGCC, 'UTF8');
 
         //console.log(caminhoOriginal);
         //console.log(caminhoMelhor);
