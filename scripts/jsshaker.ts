@@ -3,7 +3,7 @@ import { shakeSingleModule, type Options } from 'jsshaker';
 
 
 export async function jsshaker({ name, code }: OptimizeOptions, options: Partial<Options> = {}) {
-  Object.assign(options, {
+  options = Object.assign({
     preset: "smallest",
     jsx: "react",
     // maxRecursionDepth: 2,
@@ -13,7 +13,7 @@ export async function jsshaker({ name, code }: OptimizeOptions, options: Partial
 
     // constantFolding: 'enabled',
     // propertyMangling: 'enabled',
-  } satisfies Partial<Options>);
+  }, options);
 
   console.log(`[${name}] Running jsshaker...`);
 

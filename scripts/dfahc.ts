@@ -1,4 +1,7 @@
 import type { OptimizeOptions } from './optimizer.ts';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
 
 export async function transformToEs5(code: string) {
   const { transformSync } = await import('@babel/core');
@@ -33,10 +36,6 @@ export async function transformToEs5(code: string) {
 export async function dfahc({ name, code }: OptimizeOptions) {
   code = await transformToEs5(code);
 
-  // JavaScriptHeuristicOptmizer wrapper using genetic algorithm
-  const fs = await import('node:fs/promises');
-  const path = await import('node:path');
-  const os = await import('node:os');
 
   const optimizerPath = path.resolve('./vendor/JavaScriptHeuristicOptmizer');
 
@@ -192,40 +191,17 @@ export async function dfahc({ name, code }: OptimizeOptions) {
     const configFilename = path.basename(configPath);
     // Adjust memory based on file size
     const memory = code.length > 500000 ? 8192 : 4048;  // 8GB for >500KB, 4GB for smaller
-    const command = `node --expose-gc --max-old-space-size=${memory} build/src/index.js ${configFilename}`;
+    const command = `node --max-old-space-size=${memory} build/src/index.js ${configFilename}`;
     console.log(`[${name}] Executing: ${command}`);
 
-    // Start a background task to monitor and save the best solution
-    // Only monitor the main library file, which is updated by the optimizer
-    // with VALIDATED solutions (not scratch directories with unvalidated mutations)
-    let bestSize = code.length;
-    const monitorInterval = setInterval(async () => {
-      try {
-        // Monitor the main library file - optimizer only updates this with validated solutions
-        const mainFileCode = await fs.readFile(mainFile, 'utf8');
-        if (mainFileCode && mainFileCode.length > 50 && mainFileCode.length < bestSize) {
-          // Found a better validated solution, save it
-          bestSize = mainFileCode.length;
-          await fs.writeFile(bestSolutionFile, mainFileCode, 'utf8');
-          console.log(`[${name}] Found better validated solution: ${bestSize}B`);
-        }
-      } catch (e) {
-        // File might not exist yet or be in use
-      }
-    }, 2000); // Check every 2 seconds (less frequent since we're only checking one file)
-
-    var startTime = performance.now();
-    try {
-      execSync(command, {
-        cwd: optimizerPath,
-        stdio: 'inherit',
-        timeout: 1200000, // 20 minutes timeout (15 generations * ~1min/gen)
-        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
-      });
-    } finally {
-      clearInterval(monitorInterval);
-    }
-    // Record elapsed time and write to time.json
+    const startTime = performance.now();
+    execSync(command, {
+      cwd: optimizerPath,
+      stdio: 'inherit',
+      // timeout: 1200000, // 20 minutes timeout (15 generations * ~1min/gen)
+      // maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+    });
+    // Record elapsed time
     const elapsedTime = performance.now() - startTime;
     console.log(`[${name}] DFAHC optimization time: ${elapsedTime.toFixed(2)}ms`);
     const timeJsonPath = path.resolve(import.meta.dirname, '../time.json');
@@ -240,14 +216,7 @@ export async function dfahc({ name, code }: OptimizeOptions) {
 
     // Read the optimized code back
     // First try to read from best-solution.js (which tracks the best solution found)
-    let optimizedCode = await fs.readFile(bestSolutionFile, 'utf8').catch(() => null);
-
-    // If best-solution.js doesn't exist or is invalid, fall back to main file
-    if (!optimizedCode || optimizedCode.length === 0 || optimizedCode === code) {
-      const mainFileCode = await fs.readFile(mainFile, 'utf8').catch(() => null);
-      // Only use HC output if it actually improved upon the babel input
-      optimizedCode = (mainFileCode && mainFileCode.length < code.length) ? mainFileCode : code;
-    }
+    const optimizedCode = await fs.readFile(bestSolutionFile, 'utf8');
 
     console.log(`[${name}] Optimization complete. Original: ${code.length}B, Optimized: ${optimizedCode.length}B`);
 
