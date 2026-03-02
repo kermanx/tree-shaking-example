@@ -27,6 +27,9 @@ TRUNCATE_AT = False
 # Configuration: Set to True to hide DCE (Basic DCE) labels on bars
 NO_DCE_LABEL = True
 
+# Configuration: Set to True to remove spacing between bars
+NO_BAR_SPACING = True
+
 # Read ablation data
 with open('ablation.json', 'r') as f:
     data = json.load(f)
@@ -112,35 +115,44 @@ part4_ratios.insert(0, total_bf_contribution)
 error_ratios.insert(0, 100 - total_dce_contribution - total_cf_contribution - total_pm_contribution - total_bf_contribution)
 
 # Create horizontal stacked bar chart
-fig, ax = plt.subplots(figsize=(12, len(test_cases) * 0.36))
+# When NO_BAR_SPACING is enabled, reduce figure height proportionally to maintain bar thickness
+fig_height_scale = 0.58 if NO_BAR_SPACING else 1.0
+fig, ax = plt.subplots(figsize=(12, len(test_cases) * 0.36 * fig_height_scale))
 
 y_pos = np.arange(len(test_cases))
+
+# Determine bar height based on spacing configuration
+bar_height = 1.0 if NO_BAR_SPACING else 0.58
+
+# Remove y-axis padding when NO_BAR_SPACING is enabled
+if NO_BAR_SPACING:
+    ax.set_ylim(-0.5, len(test_cases) - 0.5)
 
 # Stack the bars (order: BF, CF, PM, DCE)
 if NO_COLOR:
     # Use black and white with different hatch patterns
-    p1 = ax.barh(y_pos, part4_ratios, height=0.58, color='white', edgecolor='black', 
+    p1 = ax.barh(y_pos, part4_ratios, height=bar_height, color='white', edgecolor='black', 
                  hatch='xxx', linewidth=0.5, label='Branch Folding')
-    p2 = ax.barh(y_pos, part2_ratios, height=0.58, left=part4_ratios,
+    p2 = ax.barh(y_pos, part2_ratios, height=bar_height, left=part4_ratios,
                  color='white', edgecolor='black', hatch='///', linewidth=0.5,
                  label='Constant Folding')
-    p3 = ax.barh(y_pos, part3_ratios, height=0.58,
+    p3 = ax.barh(y_pos, part3_ratios, height=bar_height,
                  left=np.array(part4_ratios) + np.array(part2_ratios),
                  color='white', edgecolor='black', hatch='\\\\\\', linewidth=0.5,
                  label='Property Mangling')
-    p4 = ax.barh(y_pos, part1_ratios, height=0.58,
+    p4 = ax.barh(y_pos, part1_ratios, height=bar_height,
                  left=np.array(part4_ratios) + np.array(part2_ratios) + np.array(part3_ratios),
                  color='white', edgecolor='black', linewidth=0.5,
                  label='Base DCE' if not NO_DCE_LABEL else '_nolegend_')
 else:
     # Use colors
-    p1 = ax.barh(y_pos, part4_ratios, height=0.58, color='#D4A373', label='Branch Folding')
-    p2 = ax.barh(y_pos, part2_ratios, height=0.58, left=part4_ratios,
+    p1 = ax.barh(y_pos, part4_ratios, height=bar_height, color='#D4A373', label='Branch Folding')
+    p2 = ax.barh(y_pos, part2_ratios, height=bar_height, left=part4_ratios,
                  color='#7CB342', label='Constant Folding')
-    p3 = ax.barh(y_pos, part3_ratios, height=0.58,
+    p3 = ax.barh(y_pos, part3_ratios, height=bar_height,
                  left=np.array(part4_ratios) + np.array(part2_ratios),
                  color='#5B9BD5', label='Property Mangling')
-    p4 = ax.barh(y_pos, part1_ratios, height=0.58,
+    p4 = ax.barh(y_pos, part1_ratios, height=bar_height,
                  left=np.array(part4_ratios) + np.array(part2_ratios) + np.array(part3_ratios),
                  color='#E8956F', label='Base DCE' if not NO_DCE_LABEL else '_nolegend_')
 
