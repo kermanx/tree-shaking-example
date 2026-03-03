@@ -5,8 +5,10 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { gccWithTiming } from './cc.ts';
 import { getTestCaseConfig } from './config.ts';
+import { jsshaker } from './jsshaker.ts';
+import { gzipSize } from './gzip.ts';
 
-const WARMUP_RUNS = 1;
+const WARMUP_RUNS = 3;
 const BENCHMARK_RUNS = 3;
 const DEFAULT_DEPTH = 2;
 
@@ -24,7 +26,7 @@ async function benchmarkJsshaker() {
     bundled[name] = await readFile(bundledPath, 'utf-8');
   }
 
-  const results: Record<number, Record<string, number>> = {};
+  const results: Record<number, Record<string, { time: number; input: number; inputGz: number; optimized: number; optimizedGz: number; minified: number; minifiedGz: number }>> = {};
 
   for (let depth = 1; depth <= 5; depth++) {
     console.log(`\nTesting maxRecursionDepth=${depth}`);
@@ -32,11 +34,10 @@ async function benchmarkJsshaker() {
 
     for (const [name, code] of Object.entries(bundled)) {
       console.log(`  [${name}] Warming up...`);
+      const env = getTestCaseConfig(name).env;
 
       for (let i = 0; i < WARMUP_RUNS; i++) {
-        shakeSingleModule(code, {
-          preset: "smallest",
-          jsx: "react",
+        jsshaker({ name, code, env }, {
           maxRecursionDepth: depth,
         });
       }
@@ -46,23 +47,36 @@ async function benchmarkJsshaker() {
 
       for (let i = 0; i < BENCHMARK_RUNS; i++) {
         const start = performance.now();
-        const result = shakeSingleModule(code, {
-          preset: "smallest",
-          jsx: "react",
+        finalCode = await jsshaker({ name, code, env }, {
           maxRecursionDepth: depth,
         });
         times.push(performance.now() - start);
-        finalCode = result.output.code;
       }
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
-      results[depth][name] = avgTime;
 
       const config = getTestCaseConfig(name);
       const minified = await Optimizers.terser({ name, code: finalCode, env: config.env });
-      const size = minified.length;
 
-      console.log(`  [${name}] Time: ${avgTime.toFixed(2)}ms, Size: ${size}B`);
+      // Calculate all sizes
+      const input = code.length;
+      const inputGz = await gzipSize(code);
+      const optimized = finalCode.length;
+      const optimizedGz = await gzipSize(finalCode);
+      const minifiedSize = minified.length;
+      const minifiedGz = await gzipSize(minified);
+
+      results[depth][name] = {
+        time: avgTime,
+        input,
+        inputGz,
+        optimized,
+        optimizedGz,
+        minified: minifiedSize,
+        minifiedGz,
+      };
+
+      console.log(`  [${name}] Time: ${avgTime.toFixed(2)}ms, Input: ${input}B, Optimized: ${optimized}B, Minified: ${minifiedSize}B`);
     }
   }
 
@@ -71,7 +85,9 @@ async function benchmarkJsshaker() {
 
   // Also save depth=DEFAULT_DEPTH results to time.json
   const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
-  timeData.jsshaker = results[DEFAULT_DEPTH];
+  timeData.jsshaker = Object.fromEntries(
+    Object.entries(results[DEFAULT_DEPTH]).map(([name, data]) => [name, data.time])
+  );
   await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
   console.log(`Results for depth=${DEFAULT_DEPTH} saved to time.json`);
 }
