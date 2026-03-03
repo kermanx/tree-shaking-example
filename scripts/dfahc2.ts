@@ -4,8 +4,7 @@ import path from 'path';
 import os from 'os';
 import { transformToEs5 } from './dfahc.ts';
 
-const TIME_LIMIT_MS = 2 * 60 * 1000; // 2 minutes
-
+const TIME_LIMIT_MS = 30 * 1000; // 30 seconds
 export async function dfahc2({ name, code }: OptimizeOptions) {
   code = await transformToEs5(code);
 
@@ -152,7 +151,7 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
 
     await new Promise<void>((resolve) => {
       const timer = setTimeout(() => {
-        console.log(`[${name}] 2-minute time limit reached, stopping optimizer...`);
+        console.log(`[${name}] time limit reached, stopping optimizer...`);
         child.kill('SIGTERM');
         setTimeout(() => {
           try { child.kill('SIGKILL'); } catch { }
@@ -194,8 +193,8 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
     try {
       optimizedCode = await fs.readFile(resultPath, 'utf8');
     } catch {
-      console.warn(`[${name}] No result file found at ${resultPath}, returning original code`);
-      optimizedCode = code;
+      console.error(`[${name}] No result file found at ${resultPath}, returning original code`);
+      process.exit(1);
     }
 
     if (code.startsWith('"use strict";') || code.startsWith("'use strict';")) {
