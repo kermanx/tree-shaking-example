@@ -4,6 +4,7 @@ import { prepackSources } from 'prepack/lib/prepack-standalone.js'
 import { gcc } from './cc.ts';
 import assert from 'assert';
 import { dfahc, transformToEs5 } from './dfahc.ts';
+import { dfahc2 } from './dfahc2.ts';
 import { gp } from './gp.ts';
 import { shc } from './shc.ts';
 import { jsshaker } from './jsshaker.ts';
@@ -183,6 +184,7 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     });
   },
   dfahc,
+  dfahc2,
   gp,
   shc,
   dfahcBaseline({ code }) {

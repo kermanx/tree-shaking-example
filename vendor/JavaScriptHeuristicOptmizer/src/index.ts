@@ -85,6 +85,19 @@ var uniquePool = new pool(__dirname + '/Child.js', [configFile, retrial], { exec
 logger.Write(`Initializing Optmizer for ${configuration.libraries.length} libraries`);
 logger.Write(`Preparing libs environment`);
 
+process.on('SIGTERM', () => {
+    try {
+        if (optmizer && (optmizer as any).outter && (optmizer as any).actualHeuristic && (optmizer as any).actualHeuristic.bestIndividual) {
+            var bestCodeFile = path.join((optmizer as any).outter.directory, (optmizer as any).trialIndex + '.js');
+            fs.writeFileSync(bestCodeFile, (optmizer as any).actualHeuristic.bestIndividual.ToCode());
+            logger.Write(`[SIGTERM] Saved best individual to ${bestCodeFile}`);
+        }
+    } catch (e) {
+        logger.Write(`[SIGTERM] Failed to save best individual: ${e}`);
+    }
+    process.exit(0);
+});
+
 ParseConfigAndLibs();
 DisplayConfig();
 ExecuteTrials(configuration.startTrial);
