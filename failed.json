@@ -67,5 +67,8 @@
     "material-ui",
     "lodash-es",
     "rxjs"
+  ],
+  "rollup_dfahc2_terser": [
+    "d3"
   ]
 }
