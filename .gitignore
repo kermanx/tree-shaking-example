@@ -9,3 +9,4 @@ time.json
 ablation.json
 *.png
 out/
+memory.json

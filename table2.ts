@@ -39,9 +39,9 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   const testcases = Object.keys(data['rollup'] || {}).sort();
   const otherStageKeys = Object.keys(otherStages);
 
-  // Build table header
-  // Columns: Program + Baseline (Total) + Rolldown (×) + Other stages (%)
-  const numColumns = 1 + 1 + 1 + otherStageKeys.length; // Program + Baseline + Rolldown (×) + (%) × other stages
+  // Build table header with multi-level headers
+  // Columns: Program + Baseline (2 cols) + Optimizer (N cols)
+  const numColumns = 1 + 2 + otherStageKeys.length; // Program + (Baseline: ms + Rolldown) + other stages
   const columnSpec = 'lrr' + 'r'.repeat(otherStageKeys.length);
 
   let latex = '\\begin{table}[t]\n';
@@ -49,14 +49,19 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   latex += '  \\centering\n';
   latex += '  \\caption{Time overhead of different optimizers}\n';
   latex += '  \\label{tab:time}\n';
+  latex += '  \\setlength{\\tabcolsep}{3.5pt}\n';
   latex += `  \\begin{tabular}{${columnSpec}}\n`;
   latex += '    \\toprule\n';
 
-  // Header row
-  latex += '    Program & Baseline (ms) & Rolldown ($\\times$)';
+  // Top-level header row with multirow
+  latex += `    \\multirow{2}{*}[-0.5ex]{Program} & \\multicolumn{2}{c}{Baseline} & \\multicolumn{${otherStageKeys.length}}{c}{Optimizer ($\\times$)} \\\\\n`;
+  latex += '    \\cmidrule(lr){2-3} \\cmidrule(lr){4-' + (3 + otherStageKeys.length) + '}\n';
+  
+  // Sub-header row
+  latex += '    & Rollup+Terser (ms) & Rolldown ($\\times$)';
   for (const stageKey of otherStageKeys) {
     const displayName = otherStages[stageKey];
-    latex += ` & ${displayName} ($\\times$)`;
+    latex += ` & ${displayName}`;
   }
   latex += ' \\\\\n';
   latex += '    \\midrule\n';
