@@ -125,9 +125,9 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
     });
     return result.code;
   },
-  async gcc({ code }) {
+  async gcc({ code, env }) {
     try {
-      return await gcc(code, {
+      return await gcc(code, env, {
         compilationLevel: 'SIMPLE',
         languageIn: 'ECMASCRIPT_NEXT',
         languageOut: 'ECMASCRIPT_NEXT',
@@ -139,9 +139,9 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
       return ''
     }
   },
-  async gccAdv({ code }) {
+  async gccAdv({ code, env }) {
     try {
-      return await gcc(code, {
+      return await gcc(code, env, {
         compilationLevel: 'ADVANCED',
         languageIn: 'ECMASCRIPT_NEXT',
         languageOut: 'ECMASCRIPT_NEXT',

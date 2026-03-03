@@ -9,6 +9,8 @@ import "node:string_decoder";
 const balanced = (__unused_0D75, __unused_B4AA, str) => {
 	const r = range(0, 0, str);
 	return r && {
+		start: r[0],
+		end: r[1],
 		pre: str.slice(0, r[0]),
 		body: str.slice(r[0] + 1, r[1]),
 		post: str.slice(r[1] + 1)

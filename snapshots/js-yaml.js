@@ -1960,4 +1960,4 @@ var load_1 = load$1;
 var loader = { a: load_1 };
 var load = loader.a;
 var jsYaml = { a: load };
-console.log(jsYaml.a(process.env.YAML_STRING));
+console.log(jsYaml.a(globalThis.process.env.YAML_STRING));

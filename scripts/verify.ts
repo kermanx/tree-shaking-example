@@ -4,8 +4,19 @@ import path from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { getTestCaseNames } from './config.ts';
 
+const MANUAL_FAILED: [RegExp,RegExp][] = [
+  [/novnc/, /gccAdv/], // Cannot type
+  [/vuetify/, /gccAdv/], // TypeError: Invalid color: [object Object] Expected #hex, #hexa, rgb(), rgba(), hsl(), hsla(), object or number
+]
+
 interface FailedTests {
   [optimizer: string]: string[];
+}
+
+function isManuallyFailed(testName: string, toolchainKey: string): boolean {
+  return MANUAL_FAILED.some(([testPattern, optimizerPattern]) => 
+    testPattern.test(testName) && optimizerPattern.test(toolchainKey)
+  );
 }
 
 function loadFailedTests(): FailedTests {
@@ -50,6 +61,13 @@ async function main() {
     failedTests[toolchainKey] = [];
 
     for (const testName of names) {
+      // Check if this combination is manually marked as failed
+      if (isManuallyFailed(testName, toolchainKey)) {
+        console.log(`⚠️  ${testName}_${toolchainKey}.js (manually skipped)`);
+        failedTests[toolchainKey].push(testName);
+        continue;
+      }
+
       const bundledPath = path.join(
         process.cwd(),
         'dist',

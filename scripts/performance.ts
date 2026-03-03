@@ -240,9 +240,11 @@ async function benchmarkGcc() {
   for (const [name, code] of Object.entries(bundled)) {
     console.log(`[${name}] Warming up...`);
 
+    const env = getTestCaseConfig(name).env;
+
     for (let i = 0; i < WARMUP_RUNS; i++) {
       try {
-        await gccWithTiming(code, {
+        await gccWithTiming(code, env, {
           compilationLevel: 'SIMPLE',
           languageIn: 'ECMASCRIPT_NEXT',
           languageOut: 'ECMASCRIPT_NEXT',
@@ -258,7 +260,7 @@ async function benchmarkGcc() {
 
     for (let i = 0; i < BENCHMARK_RUNS; i++) {
       try {
-        const result = await gccWithTiming(code, {
+        const result = await gccWithTiming(code, env, {
           compilationLevel: 'SIMPLE',
           languageIn: 'ECMASCRIPT_NEXT',
           languageOut: 'ECMASCRIPT_NEXT',
@@ -303,9 +305,11 @@ async function benchmarkGccAdv() {
   for (const [name, code] of Object.entries(bundled)) {
     console.log(`[${name}] Warming up...`);
 
+    const env = getTestCaseConfig(name).env;
+
     for (let i = 0; i < WARMUP_RUNS; i++) {
       try {
-        await gccWithTiming(code, {
+        await gccWithTiming(code, env, {
           compilationLevel: 'ADVANCED',
           languageIn: 'ECMASCRIPT_NEXT',
           languageOut: 'ECMASCRIPT_NEXT',
@@ -321,7 +325,7 @@ async function benchmarkGccAdv() {
 
     for (let i = 0; i < BENCHMARK_RUNS; i++) {
       try {
-        const result = await gccWithTiming(code, {
+        const result = await gccWithTiming(code, env, {
           compilationLevel: 'ADVANCED',
           languageIn: 'ECMASCRIPT_NEXT',
           languageOut: 'ECMASCRIPT_NEXT',

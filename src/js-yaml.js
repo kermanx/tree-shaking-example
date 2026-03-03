@@ -1,3 +1,3 @@
 import JsYaml from 'js-yaml';
 
-console.log(JsYaml.load(process.env.YAML_STRING));
+console.log(JsYaml.load(globalThis.process.env.YAML_STRING));

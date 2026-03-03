@@ -19,11 +19,11 @@
     "antd",
     "glob",
     "novnc",
+    "vuetify",
     "js-yaml",
     "react-icons",
     "sentry",
-    "material-ui",
-    "lodash-es"
+    "material-ui"
   ],
   "rollup_lacuna3_terser": [
     "antd",
@@ -70,5 +70,16 @@
   ],
   "rollup_dfahc2_terser": [
     "d3"
+  ],
+  "rollup_gccAdv": [
+    "antd",
+    "d3",
+    "glob",
+    "novnc",
+    "vuetify",
+    "js-yaml",
+    "react-icons",
+    "sentry",
+    "material-ui"
   ]
 }

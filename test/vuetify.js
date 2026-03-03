@@ -102,8 +102,14 @@ try {
   // Run the original source file
   const expectedOutput = await runInDom(path.join(__dirname, '../dist/vuetify_rollup.js'));
 
+
   // Run the bundled file
   const actualOutput = await runInDom(path.resolve(bundlePath));
+
+
+  console.log(expectedOutput);
+  console.log('---');
+  console.log(actualOutput);
 
   // Compare outputs (normalize CSS class names and Vue-specific attributes)
   const normalizeOutput = (html) => html

@@ -315,7 +315,8 @@ export default function PrivateToDollarPlugin(): Plugin {
             // node.start 指向 '#' 的位置
             // node.end 指向标识符结束的位置
             // 我们只替换开头的第一个字符 '#'
-            s.overwrite(node.range![0], node.range![0] + 1, '$');
+            // @ts-expect-error
+            s.overwrite(node.start, node.start + 1, '$');
             hasChanged = true;
           }
         }

@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import binaryPath from 'google-closure-compiler-linux';
+import { join } from 'path';
 
 /**
  * Closure Compiler 的配置选项接口
@@ -7,7 +8,7 @@ import binaryPath from 'google-closure-compiler-linux';
  * 值为 true 时仅作为 flag 开关；值为数组时会多次传入该参数。
  */
 export interface ClosureCompilerOptions {
-  [key: string]: string | number | boolean | string[];
+  [key: string]: string | number | boolean | string[] | undefined;
 }
 
 /**
@@ -19,9 +20,10 @@ export interface ClosureCompilerOptions {
  */
 export function gcc(
   jsSource: string,
+  env: string,
   options: ClosureCompilerOptions = {}
 ): Promise<string> {
-  return gccWithTiming(jsSource, options).then(result => result.code);
+  return gccWithTiming(jsSource, env, options).then(result => result.code);
 }
 
 /**
@@ -33,6 +35,7 @@ export function gcc(
  */
 export function gccWithTiming(
   jsSource: string,
+  env: string,
   options: ClosureCompilerOptions = {}
 ): Promise<{ code: string; time: number }> {
   if (jsSource.includes('const Text = ') || jsSource.includes('var Symbol = root$1.Symbol')
@@ -44,6 +47,21 @@ export function gccWithTiming(
   if (jsSource.includes('supportsWebCodecsH264Decode = await _checkWebCodecsH264DecodeSupport')) {
     jsSource = `(async function(){${jsSource}})()`;
   }
+
+
+  // options.env ||= env === 'browser' ? 'BROWSER' : 'CUSTOM';
+  options.module_resolution ||= env === 'browser' ? 'BROWSER' : 'BROWSER_WITH_TRANSFORMED_PREFIXES';
+  options.browser_resolver_prefix_replacements ||= env === 'browser' ? undefined : [
+    'node:stream',
+    'node:url',
+    'node:path',
+    'fs',
+    'node:fs/promises',
+    'node:events',
+    'node:string_decoder',
+    'node:fs'
+  ].map(name => `${name}=${join(import.meta.dirname, 'cc-node-builtin.js')}`);
+  options['externs'] ||= join(import.meta.dirname, `cc-${env}-externs.js`);
 
   const startTime = performance.now();
 
