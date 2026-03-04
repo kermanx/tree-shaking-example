@@ -135,7 +135,7 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
     console.log(`[${name}] Library directory: ${libDir}`);
     console.log(`[${name}] Config: ${configPath}`);
 
-    const { spawn } = await import('node:child_process');
+    const { spawn, spawnSync } = await import('node:child_process');
 
     const configFilename = path.basename(configPath);
     const memory = code.length > 500000 ? 8192 : 4048;
@@ -146,15 +146,16 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
 
     const child = spawn('node', args, {
       cwd: optimizerPath,
-      stdio: 'inherit'
+      stdio: 'inherit',
+      detached: true  // 创建独立进程组，确保能杀死所有子孙进程
     });
 
     await new Promise<void>((resolve) => {
       const timer = setTimeout(() => {
         console.log(`[${name}] time limit reached, stopping optimizer...`);
-        child.kill('SIGTERM');
+        try { child.kill('SIGTERM'); } catch { }  // 只发给直接子进程，让optimizer优雅关闭workers并保存结果
         setTimeout(() => {
-          try { child.kill('SIGKILL'); } catch { }
+          try { process.kill(-child.pid!, 'SIGKILL'); } catch { }  // 兜底强杀整个进程组
         }, 5000);
       }, TIME_LIMIT_MS);
 
@@ -165,6 +166,17 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
         } else {
           console.log(`[${name}] Optimizer exited with code: ${exitCode}`);
         }
+        // 验证进程组内是否还有残留进程
+        try {
+          const survivors = spawnSync('ps', ['-eo', 'pid,pgid', '--no-headers'], { encoding: 'utf8' })
+            .stdout.split('\n')
+            .filter((line: string) => line.trim().split(/\s+/)[1] === String(child.pid));
+          if (survivors.length > 0) {
+            console.warn(`[${name}] WARNING: ${survivors.length} process(es) still alive in group, SIGKILL will clean up`);
+          } else {
+            console.log(`[${name}] All processes in group exited cleanly.`);
+          }
+        } catch { }
         resolve();
       });
 
@@ -193,8 +205,8 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
     try {
       optimizedCode = await fs.readFile(resultPath, 'utf8');
     } catch {
-      console.error(`[${name}] No result file found at ${resultPath}, returning original code`);
-      process.exit(1);
+      console.error(`[${name}] No result file found at ${resultPath}, skipping...`);
+      return '';
     }
 
     if (code.startsWith('"use strict";') || code.startsWith("'use strict';")) {
