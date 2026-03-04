@@ -13,7 +13,7 @@ const TOOLCHAINS: Record<string, string> = {
 
 const DEFAULT_BASELINE = "rollup_terser";
 const BASELINE_MAPPINGS: Record<string, string> = {
-  "rollup_dfahc_terser": "rollup_dfahcBaseline_terser"
+  "rollup_dfahc2_terser": "rollup_dfahcBaseline_terser"
 };
 
 const SHOW_GZ = true;
