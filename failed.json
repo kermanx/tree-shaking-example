@@ -69,7 +69,7 @@
     "rxjs"
   ],
   "rollup_dfahc2_terser": [
-    "d3"
+    "novnc"
   ],
   "rollup_gccAdv": [
     "antd",

@@ -8,7 +8,7 @@ const TOOLCHAINS: Record<string, string> = {
   "rollup_gccAdv_terser": "CC\\textsubscript{Adv.}",
   "rollup_lacuna2_terser": "Lacuna\\textsubscript{O2}",
   "rollup_lacuna3_terser": "Lacuna\\textsubscript{O3}",
-  "rollup_dfahc_terser": "DFAHC",
+  "rollup_dfahc2_terser": "DFAHC",
 };
 
 const DEFAULT_BASELINE = "rollup_terser";
@@ -203,6 +203,64 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
 
     latex += ' \\\\\n';
   }
+
+  // Add average row
+  latex += '    \\midrule\n';
+  latex += '    \\textbf{Average}';
+  
+  // Baseline column shows N/A
+  latex += ' & ';
+
+  // Calculate geometric mean for each optimizer column
+  for (let i = 1; i < toolchainKeys.length; i++) {
+    const toolchain = toolchainKeys[i];
+    
+    let product = 1;
+    let count = 0;
+    
+    for (const testcase of testcases) {
+      const testcaseData = data[testcase];
+      
+      // Determine the baseline for this toolchain
+      const baselineKey = BASELINE_MAPPINGS[toolchain] || DEFAULT_BASELINE;
+      const toolchainBaselineGzSize = testcaseData[baselineKey]?.gz_size || 0;
+      
+      // Check if this test case is in the ALL_FAIL list
+      const isAllFail = failedTests[toolchain]?.includes(testcase) || false;
+      
+      if (!testcaseData[toolchain] || isAllFail) {
+        continue;
+      }
+      
+      const toolchainData = testcaseData[toolchain];
+      const gzSize = toolchainData.gz_size;
+      const size = toolchainData.size;
+      
+      // Skip failed results (size <= 20)
+      if (size <= 20) {
+        continue;
+      }
+      
+      if (toolchainBaselineGzSize > 0) {
+        const reductionPercent = ((toolchainBaselineGzSize - gzSize) / toolchainBaselineGzSize) * 100;
+        // For geometric mean of percentages, we use (1 + reduction/100)
+        product *= (1 + reductionPercent / 100);
+        count++;
+      }
+    }
+    
+    if (count > 0) {
+      const geomean = Math.pow(product, 1 / count);
+      // Convert back to percentage: (geomean - 1) * 100
+      const avgReduction = (geomean - 1) * 100;
+      const avgStr = `${avgReduction.toFixed(1)}\\%`;
+      latex += ` & \\textbf{${avgStr}}`;
+    } else {
+      latex += ' & \\textbf{N/A}';
+    }
+  }
+  
+  latex += ' \\\\\n';
 
   latex += '    \\bottomrule\n';
   latex += '  \\end{tabular}\n';
