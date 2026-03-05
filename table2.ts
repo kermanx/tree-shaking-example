@@ -8,7 +8,7 @@ const OTHER_STAGES: Record<string, string> = {
   "gccAdv": "CC\\textsubscript{Adv.}",
   "lacuna2": "Lacuna\\textsubscript{O2}",
   "lacuna3": "Lacuna\\textsubscript{O3}",
-  "dfahc": "DFAHC",
+  // "dfahc": "DFAHC",
 };
 
 interface TimeData {

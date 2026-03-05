@@ -1,3 +1,4 @@
+import { shakeSingleModule } from 'jsshaker';
 import { bundlers } from './bundle.ts';
 import { gzipSize } from './gzip.ts';
 import { Optimizers } from './optimizer.ts';
@@ -32,6 +33,7 @@ export async function run({
     cjs,
     excludeReact: isJsShaker,
   });
+  const originalCode = code;
 
   console.log(`Bundled: ${code.length}B`);
 
@@ -69,6 +71,18 @@ export async function run({
   if (optimizers.length === 1 && optimizers[0] === 'jsshaker') {
     await mkdir(`./snapshots`, { recursive: true })
     await writeFile(`./snapshots/${name}.js`, code);
+
+    const formatted = shakeSingleModule(await Optimizers.rollup({
+      name,
+      code: originalCode,
+      env,
+    }), {
+      preset: 'disabled',
+      minify: false,
+    });
+
+    await writeFile(`./snapshots/${name}.orig.js`, formatted.output.code);
+
     console.log(`Wrote ./snapshots/${name}.js`);
   }
 }
