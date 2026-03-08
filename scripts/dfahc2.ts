@@ -4,7 +4,7 @@ import path from 'path';
 import os from 'os';
 import { transformToEs5 } from './dfahc.ts';
 
-const TIME_LIMIT_MS = 30 * 1000; // 30 seconds
+const TIME_LIMIT_MS = 2* 60 * 1000; // 30 seconds
 export async function dfahc2({ name, code }: OptimizeOptions) {
   code = await transformToEs5(code);
 
@@ -135,7 +135,7 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
     console.log(`[${name}] Library directory: ${libDir}`);
     console.log(`[${name}] Config: ${configPath}`);
 
-    const { spawn, spawnSync } = await import('node:child_process');
+    const { spawn } = await import('node:child_process');
 
     const configFilename = path.basename(configPath);
     const memory = code.length > 500000 ? 8192 : 4048;
@@ -151,39 +151,40 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
     });
 
     await new Promise<void>((resolve) => {
+      // Bug A fix: save inner SIGKILL timer reference so it can be cleared
+      let sigkillTimer: ReturnType<typeof setTimeout> | null = null;
+
       const timer = setTimeout(() => {
         console.log(`[${name}] time limit reached, stopping optimizer...`);
-        try { child.kill('SIGTERM'); } catch { }  // 只发给直接子进程，让optimizer优雅关闭workers并保存结果
-        setTimeout(() => {
+        try { child.kill('SIGTERM'); } catch { }  // 先优雅关闭，让optimizer保存结果
+        sigkillTimer = setTimeout(() => {
+          sigkillTimer = null;
           try { process.kill(-child.pid!, 'SIGKILL'); } catch { }  // 兜底强杀整个进程组
         }, 5000);
       }, TIME_LIMIT_MS);
 
-      child.on('exit', (exitCode, signal) => {
+      const cleanup = (exitCode: number | null, signal: string | null) => {
+        // Bug A fix: clear inner SIGKILL timer if it hasn't fired yet
         clearTimeout(timer);
+        if (sigkillTimer !== null) {
+          clearTimeout(sigkillTimer);
+          sigkillTimer = null;
+        }
+        // Bug B fix: unconditionally kill the entire process group to prevent orphans
+        try { process.kill(-child.pid!, 'SIGKILL'); } catch { }
         if (signal) {
           console.log(`[${name}] Optimizer stopped by signal: ${signal}`);
         } else {
           console.log(`[${name}] Optimizer exited with code: ${exitCode}`);
         }
-        // 验证进程组内是否还有残留进程
-        try {
-          const survivors = spawnSync('ps', ['-eo', 'pid,pgid', '--no-headers'], { encoding: 'utf8' })
-            .stdout.split('\n')
-            .filter((line: string) => line.trim().split(/\s+/)[1] === String(child.pid));
-          if (survivors.length > 0) {
-            console.warn(`[${name}] WARNING: ${survivors.length} process(es) still alive in group, SIGKILL will clean up`);
-          } else {
-            console.log(`[${name}] All processes in group exited cleanly.`);
-          }
-        } catch { }
         resolve();
-      });
+      };
+
+      child.on('exit', cleanup);
 
       child.on('error', (err) => {
-        clearTimeout(timer);
         console.error(`[${name}] Optimizer process error:`, err);
-        resolve();
+        cleanup(null, null);
       });
     });
 
@@ -219,9 +220,6 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
 
     await fs.unlink(configPath).catch(() => { });
 
-    const cleanupDelay = code.length > 100000 ? 10000 : 1000;
-    console.log(`[${name}] Waiting ${cleanupDelay / 1000}s for all processes to complete before cleanup...`);
-    await new Promise(resolve => setTimeout(resolve, cleanupDelay));
     return optimizedCode;
   } catch (error) {
     console.error(`[${name}] [heuristic] Optimization failed:`, error);
