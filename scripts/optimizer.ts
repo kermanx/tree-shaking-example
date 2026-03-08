@@ -153,21 +153,6 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
       return ''
     }
   },
-  async gccAdvNoPM({ code, env }) {
-    try {
-      return await gcc(code, env, {
-        compilationLevel: 'ADVANCED',
-        languageIn: 'ECMASCRIPT_NEXT',
-        languageOut: 'ECMASCRIPT_NEXT',
-        chunk_output_type: 'ES_MODULES',
-        jscomp_off: ['collapseProperties'],
-        // warningLevel: 'QUIET',
-      });
-    } catch (e) {
-      console.error('[gcc-adv] Compilation failed:', e);
-      return ''
-    }
-  },
   async prepack({ name, code }) {
     const res = prepackSources([{
       filePath: `${name}.js`,

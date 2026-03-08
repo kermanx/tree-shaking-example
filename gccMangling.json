@@ -1,0 +1,188 @@
+{
+  "antd": {
+    "byName": {
+      "mangled": 1696,
+      "notMangled": 724,
+      "total": 2420,
+      "rate": 0.7008264462809918,
+      "ratePct": "70.08%"
+    },
+    "weighted": {
+      "mangled": 8223,
+      "notMangled": 11651,
+      "total": 19874,
+      "rate": 0.41375666700211333,
+      "ratePct": "41.38%"
+    }
+  },
+  "d3": {
+    "byName": {
+      "mangled": 210,
+      "notMangled": 165,
+      "total": 375,
+      "rate": 0.56,
+      "ratePct": "56.00%"
+    },
+    "weighted": {
+      "mangled": 520,
+      "notMangled": 933,
+      "total": 1453,
+      "rate": 0.35788024776324845,
+      "ratePct": "35.79%"
+    }
+  },
+  "novnc": {
+    "byName": {
+      "mangled": 688,
+      "notMangled": 543,
+      "total": 1231,
+      "rate": 0.5588952071486596,
+      "ratePct": "55.89%"
+    },
+    "weighted": {
+      "mangled": 5390,
+      "notMangled": 3434,
+      "total": 8824,
+      "rate": 0.6108340888485947,
+      "ratePct": "61.08%"
+    }
+  },
+  "vuetify": {
+    "byName": {
+      "mangled": 579,
+      "notMangled": 390,
+      "total": 969,
+      "rate": 0.5975232198142415,
+      "ratePct": "59.75%"
+    },
+    "weighted": {
+      "mangled": 1838,
+      "notMangled": 2837,
+      "total": 4675,
+      "rate": 0.3931550802139037,
+      "ratePct": "39.32%"
+    }
+  },
+  "js-yaml": {
+    "byName": {
+      "mangled": 49,
+      "notMangled": 75,
+      "total": 124,
+      "rate": 0.3951612903225806,
+      "ratePct": "39.52%"
+    },
+    "weighted": {
+      "mangled": 200,
+      "notMangled": 841,
+      "total": 1041,
+      "rate": 0.19212295869356388,
+      "ratePct": "19.21%"
+    }
+  },
+  "react-icons": {
+    "byName": {
+      "mangled": 65,
+      "notMangled": 62,
+      "total": 127,
+      "rate": 0.5118110236220472,
+      "ratePct": "51.18%"
+    },
+    "weighted": {
+      "mangled": 150,
+      "notMangled": 163,
+      "total": 313,
+      "rate": 0.4792332268370607,
+      "ratePct": "47.92%"
+    }
+  },
+  "remeda": {
+    "byName": {
+      "mangled": 9,
+      "notMangled": 14,
+      "total": 23,
+      "rate": 0.391304347826087,
+      "ratePct": "39.13%"
+    },
+    "weighted": {
+      "mangled": 36,
+      "notMangled": 48,
+      "total": 84,
+      "rate": 0.42857142857142855,
+      "ratePct": "42.86%"
+    }
+  },
+  "sentry": {
+    "byName": {
+      "mangled": 227,
+      "notMangled": 212,
+      "total": 439,
+      "rate": 0.5170842824601367,
+      "ratePct": "51.71%"
+    },
+    "weighted": {
+      "mangled": 1111,
+      "notMangled": 1401,
+      "total": 2512,
+      "rate": 0.44227707006369427,
+      "ratePct": "44.23%"
+    }
+  },
+  "material-ui": {
+    "byName": {
+      "mangled": 454,
+      "notMangled": 296,
+      "total": 750,
+      "rate": 0.6053333333333333,
+      "ratePct": "60.53%"
+    },
+    "weighted": {
+      "mangled": 3921,
+      "notMangled": 4307,
+      "total": 8228,
+      "rate": 0.47654350996596984,
+      "ratePct": "47.65%"
+    }
+  },
+  "lodash-es": {
+    "byName": {
+      "mangled": 14,
+      "notMangled": 61,
+      "total": 75,
+      "rate": 0.18666666666666668,
+      "ratePct": "18.67%"
+    },
+    "weighted": {
+      "mangled": 49,
+      "notMangled": 328,
+      "total": 377,
+      "rate": 0.129973474801061,
+      "ratePct": "13.00%"
+    }
+  },
+  "rxjs": {
+    "byName": {
+      "mangled": 23,
+      "notMangled": 39,
+      "total": 62,
+      "rate": 0.3709677419354839,
+      "ratePct": "37.10%"
+    },
+    "weighted": {
+      "mangled": 128,
+      "notMangled": 188,
+      "total": 316,
+      "rate": 0.4050632911392405,
+      "ratePct": "40.51%"
+    }
+  },
+  "__average": {
+    "byName": {
+      "rate": 0.4905066872191117,
+      "ratePct": "49.05%"
+    },
+    "weighted": {
+      "rate": 0.39358282217271623,
+      "ratePct": "39.36%"
+    }
+  }
+}

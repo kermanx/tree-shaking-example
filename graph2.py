@@ -30,6 +30,12 @@ NO_DCE_LABEL = True
 # Configuration: Set to True to remove spacing between bars
 NO_BAR_SPACING = True
 
+# Configuration: Set the width of the figure in inches
+FIG_WIDTH = 8
+
+# Configuration: Minimum percentage value to display label on bar
+MIN_LABEL_VALUE = 3
+
 # Read ablation data
 with open('ablation.json', 'r') as f:
     data = json.load(f)
@@ -117,7 +123,7 @@ error_ratios.insert(0, 100 - total_dce_contribution - total_cf_contribution - to
 # Create horizontal stacked bar chart
 # When NO_BAR_SPACING is enabled, reduce figure height proportionally to maintain bar thickness
 fig_height_scale = 0.58 if NO_BAR_SPACING else 1.0
-fig, ax = plt.subplots(figsize=(12, len(test_cases) * 0.36 * fig_height_scale))
+fig, ax = plt.subplots(figsize=(FIG_WIDTH, len(test_cases) * 0.36 * fig_height_scale))
 
 y_pos = np.arange(len(test_cases))
 
@@ -216,16 +222,16 @@ for i, (bf, cf, pm, dce) in enumerate(zip(part4_ratios, part2_ratios, part3_rati
         bbox_props = None
         text_color = 'white'
     
-    if bf > 2:
+    if bf > MIN_LABEL_VALUE:
         ax.text(bf/2, i, f'{bf:.1f}%', ha='center', va='center', fontsize=8, 
-                color=text_color, weight='bold', bbox=bbox_props)
-    if cf > 2:
+                color=text_color, weight=600, bbox=bbox_props)
+    if cf > MIN_LABEL_VALUE:
         ax.text(bf + cf/2, i, f'{cf:.1f}%', ha='center', va='center', fontsize=8, 
-                color=text_color, weight='bold', bbox=bbox_props)
-    if pm > 2:
+                color=text_color, weight=600, bbox=bbox_props)
+    if pm > MIN_LABEL_VALUE:
         ax.text(bf + cf + pm/2, i, f'{pm:.1f}%', ha='center', va='center', fontsize=8, 
-                color=text_color, weight='bold', bbox=bbox_props)
-    if dce > 2 and not NO_DCE_LABEL:
+                color=text_color, weight=600, bbox=bbox_props)
+    if dce > MIN_LABEL_VALUE and not NO_DCE_LABEL:
         dce_start = bf + cf + pm
         
         if TRUNCATE_AT:
@@ -252,7 +258,7 @@ for i, (bf, cf, pm, dce) in enumerate(zip(part4_ratios, part2_ratios, part3_rati
             text_x = dce_start + dce / 2
         
         ax.text(text_x, i, f'{dce:.1f}%', ha='center', va='center', fontsize=8, 
-                color=text_color, weight='bold', bbox=bbox_props)
+                color=text_color, weight=600, bbox=bbox_props)
 
 plt.tight_layout()
 plt.savefig('ablation_analysis.png', dpi=300, bbox_inches='tight')

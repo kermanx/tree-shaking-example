@@ -44,6 +44,7 @@
 		"jsshaker": "link:../jsshaker/packages/napi",
 		"magic-string": "^0.30.21",
 		"memfs": "^4.56.10",
+		"meriyah": "^7.1.0",
 		"oxc-minify": "^0.111.0",
 		"parcel": "^2.16.3",
 		"prepack": "^0.2.54",

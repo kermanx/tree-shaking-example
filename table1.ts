@@ -97,7 +97,7 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
   let latex = '\\begin{table}[t]\n';
   latex += '  \\scriptsize\n';
   latex += '  \\centering\n';
-  latex += '  \\caption{Size improvement for target programs}\n';
+  latex += '  \\caption{Percentage of post-Gzip code size reduced compared to the Rollup + Terser baseline (higher is better). Bold values indicate the highest reduction among valid runs. Failures are marked as \\textit{Failed}, and results with incorrect semantics are denoted by strikethroughs.}\n';
   latex += '  \\label{tab:size-reduction}\n';
   latex += `  \\begin{tabular}{${columnSpec}}\n`;
   latex += '    \\toprule\n';

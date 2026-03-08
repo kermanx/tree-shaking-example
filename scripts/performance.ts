@@ -12,9 +12,7 @@ const WARMUP_RUNS = 3;
 const BENCHMARK_RUNS = 3;
 const DEFAULT_DEPTH = 2;
 
-type OptimizerType = 'jsshaker' | 'terser' | 'rollup' | 'gcc' | 'gccAdv' | 'lacuna2' | 'lacuna3' | 'esbuild' | 'rolldown';
-
-async function benchmarkJsshaker() {
+async function benchmarkJsshaker(depths = [1, 2, 3, 4, 5]) {
   const distFolder = join(import.meta.dirname, '../dist');
   const srcFolder = join(import.meta.dirname, '../src');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
@@ -28,7 +26,7 @@ async function benchmarkJsshaker() {
 
   const results: Record<number, Record<string, { time: number; input: number; inputGz: number; optimized: number; optimizedGz: number; minified: number; minifiedGz: number }>> = {};
 
-  for (let depth = 1; depth <= 5; depth++) {
+  for (const depth of depths) {
     console.log(`\nTesting maxRecursionDepth=${depth}`);
     results[depth] = {};
 
@@ -37,7 +35,7 @@ async function benchmarkJsshaker() {
       const env = getTestCaseConfig(name).env;
 
       for (let i = 0; i < WARMUP_RUNS; i++) {
-        jsshaker({ name, code, env }, {
+        await jsshaker({ name, code, env }, {
           maxRecursionDepth: depth,
         });
       }
@@ -90,6 +88,52 @@ async function benchmarkJsshaker() {
   );
   await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
   console.log(`Results for depth=${DEFAULT_DEPTH} saved to time.json`);
+}
+
+async function benchmarkJsshakerNoCache() {
+  const distFolder = join(import.meta.dirname, '../dist');
+  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
+  const bundled: Record<string, string> = {};
+
+  for (const file of srcFiles) {
+    const name = file.replace('.js', '');
+    const bundledPath = join(distFolder, `${name}_rollup.js`);
+    bundled[name] = await readFile(bundledPath, 'utf-8');
+  }
+
+  const results: Record<string, number> = {};
+
+  for (const [name, code] of Object.entries(bundled)) {
+    console.log(`[${name}] Warming up...`);
+    const env = getTestCaseConfig(name).env;
+
+    for (let i = 0; i < WARMUP_RUNS; i++) {
+      await jsshaker({ name, code, env }, {
+        enableFnCache: false,
+      });
+    }
+
+    const times: number[] = [];
+
+    for (let i = 0; i < BENCHMARK_RUNS; i++) {
+      const start = performance.now();
+      await jsshaker({ name, code, env }, {
+        enableFnCache: false,
+      });
+      times.push(performance.now() - start);
+    }
+
+    const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+    results[name] = avgTime;
+
+    console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
+  }
+
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  timeData.jsshakerNoCache = results;
+  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to time.json');
 }
 
 
@@ -511,12 +555,13 @@ async function benchmarkRolldown() {
 
 
 async function main() {
-  const optimizer = process.argv[2] as OptimizerType;
+  const optimizer = process.argv[2];
 
 
   if (!optimizer) {
     console.log('No optimizer specified, running all benchmarks...\n');
     await benchmarkJsshaker();
+    await benchmarkJsshakerNoCache();
     await benchmarkTerser();
     await benchmarkRollup();
     await benchmarkGcc();
@@ -538,7 +583,13 @@ async function main() {
 
   switch (optimizer) {
     case 'jsshaker':
+      await benchmarkJsshaker([DEFAULT_DEPTH]);
+      break;
+    case 'jsshakerDepths':
       await benchmarkJsshaker();
+      break;
+    case 'jsshakerNoCache':
+      await benchmarkJsshakerNoCache();
       break;
     case 'terser':
       await benchmarkTerser();
@@ -566,7 +617,7 @@ async function main() {
       break;
     default:
       console.error(`Unknown optimizer: ${optimizer}`);
-      console.error('Available: jsshaker, terser, rollup, gcc, gccAdv, lacuna2, lacuna3, esbuild, rolldown');
+      console.error('Available: jsshaker, jsshakerNoCache, terser, rollup, gcc, gccAdv, lacuna2, lacuna3, esbuild, rolldown');
       console.error('Or run without arguments to test all optimizers');
       process.exit(1);
   }
