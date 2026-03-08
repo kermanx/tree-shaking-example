@@ -10,6 +10,7 @@ const OTHER_STAGES: Record<string, string> = {
   "lacuna3": "Lacuna\\textsubscript{O3}",
   // "dfahc": "DFAHC",
 };
+const EXCLUDE_TERSER = ["gcc", "gccAdv"]
 
 interface TimeData {
   [stage: string]: {
@@ -34,33 +35,32 @@ function formatMultiplier(ratio: number): string {
   }
 }
 
-function generateLatexTable(data: TimeData, baselineStages: string[], otherStages: Record<string, string>): string {
+function generateLatexTable(data: TimeData): string {
   // Get all test cases (from rollup stage)
   const testcases = Object.keys(data['rollup'] || {}).sort();
-  const otherStageKeys = Object.keys(otherStages);
+  const otherStageKeys = Object.keys(OTHER_STAGES);
 
   // Build table header with multi-level headers
   // Columns: Program + Baseline (2 cols) + Optimizer (N cols)
-  const numColumns = 1 + 2 + otherStageKeys.length; // Program + (Baseline: ms + Rolldown) + other stages
-  const columnSpec = 'lrr' + 'r'.repeat(otherStageKeys.length);
+  const columnSpec = 'l@{\\hspace{-3pt}}rr' + 'r'.repeat(otherStageKeys.length);
 
-  let latex = '\\begin{table}[t]\n';
+  let latex = '\\begin{table}[H]\n';
   latex += '  \\scriptsize\n';
   latex += '  \\centering\n';
-  latex += '  \\caption{Time overhead of different optimizers}\n';
+  latex += "  \\caption{Comparison of build time overhead. Values represent the execution time ratio relative to the standard baseline (Rollup + Terser, RT). Rolldown (RD) is included as a Rust-based reference. Failed cases marked as ``---''.}\n";
   latex += '  \\label{tab:time}\n';
-  latex += '  \\setlength{\\tabcolsep}{3.5pt}\n';
+  latex += '  \\setlength{\\tabcolsep}{3pt}\n';
   latex += `  \\begin{tabular}{${columnSpec}}\n`;
   latex += '    \\toprule\n';
 
   // Top-level header row with multirow
-  latex += `    \\multirow{2}{*}[-0.5ex]{Program} & \\multicolumn{2}{c}{Baseline} & \\multicolumn{${otherStageKeys.length}}{c}{Optimizer ($\\times$)} \\\\\n`;
+  latex += `    \\multirow{2}{*}[-0.5ex]{Program} & \\multicolumn{2}{c}{With Baseline} & \\multicolumn{${otherStageKeys.length}}{c}{Optimizer ($\\times$)} \\\\\n`;
   latex += '    \\cmidrule(lr){2-3} \\cmidrule(lr){4-' + (3 + otherStageKeys.length) + '}\n';
   
   // Sub-header row
-  latex += '    & Rollup+Terser (ms) & Rolldown ($\\times$)';
+  latex += '    & R+T (ms) & RD ($\\times$)';
   for (const stageKey of otherStageKeys) {
-    const displayName = otherStages[stageKey];
+    const displayName = OTHER_STAGES[stageKey];
     latex += ` & ${displayName}`;
   }
   latex += ' \\\\\n';
@@ -70,8 +70,8 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   for (const testcase of testcases) {
     // Calculate baseline total time for this test case
     let baselineTotal = 0;
-    for (const stage of baselineStages) {
-      const time = data[stage]?.[testcase];
+    for (const stage of BASELINE_STAGES) {
+      const time = data[stage][testcase];
       if (time !== undefined) {
         baselineTotal += time;
       }
@@ -82,8 +82,8 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
     latex += `    ${escapedTestcase}`;
 
     // Output baseline times
-    // const rollupTime = data['rollup']?.[testcase];
-    // const terserTime = data['terser']?.[testcase];
+    // const rollupTime = data['rollup'][testcase];
+    // const terserTime = data['terser'][testcase];
 
     // const rollupStr = rollupTime !== undefined ? rollupTime.toFixed(1) : '---';
     // const terserStr = terserTime !== undefined ? terserTime.toFixed(1) : '---';
@@ -93,7 +93,7 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
     latex += ` & ${totalStr}`;
 
     // Output Rolldown ratio
-    const rolldownTime = data['rolldown']?.[testcase];
+    const rolldownTime = data['rolldown'][testcase];
     if (rolldownTime === undefined || baselineTotal === 0) {
       latex += ' & ---';
     } else {
@@ -102,19 +102,44 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
       latex += ` & ${rolldownMultiplierStr}`;
     }
 
+    // First pass: calculate all ratios to find the best (minimum)
+    // Note: time.json stores only optimizer overhead time
+    const ratios: Map<string, number> = new Map();
+    let minRatio = Infinity;
+    
+    for (const stageKey of otherStageKeys) {
+      const time = data[stageKey][testcase];
+      if (time !== undefined && baselineTotal > 0) {
+        const rollupTime = data['rollup'][testcase] || NaN;
+        const terserTime = data['terser'][testcase] || NaN;
+        // For gcc/gccAdv: they don't use terser, so ratio = (optimizer + rollup) / (rollup + terser)
+        // For others: ratio = (optimizer + rollup + terser) / (rollup + terser)
+        const numerator = EXCLUDE_TERSER.includes(stageKey) 
+          ? (time + rollupTime) 
+          : (time + rollupTime + terserTime);
+        const ratio = numerator / baselineTotal;
+        ratios.set(stageKey, ratio);
+        minRatio = Math.min(minRatio, ratio);
+      }
+    }
+
     // Output time and percentage for each other stage
     for (const stageKey of otherStageKeys) {
-      const time = data[stageKey]?.[testcase];
+      const time = data[stageKey][testcase];
 
       if (time === undefined) {
         latex += ' & ---';
       } else {
-        const ratio = baselineTotal > 0 ? (time / baselineTotal) : 0;
-        const multiplierStr = formatMultiplier(ratio);
-        // Bold if this is JsShaker (best performance)
-        const isBest = stageKey === 'jsshaker';
-        const formattedValue = isBest ? `\\textbf{${multiplierStr}}` : multiplierStr;
-        latex += ` & ${formattedValue}`;
+        const ratio = ratios.get(stageKey);
+        if (ratio === undefined) {
+          latex += ' & ---';
+        } else {
+          const multiplierStr = formatMultiplier(ratio);
+          // Bold if this is the best (minimum ratio)
+          const isBest = ratio === minRatio;
+          const formattedValue = isBest ? `\\textbf{${multiplierStr}}` : multiplierStr;
+          latex += ` & ${formattedValue}`;
+        }
       }
     }
 
@@ -129,8 +154,8 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   let rollupTotal = 0;
   let terserTotal = 0;
   for (const testcase of testcases) {
-    const rollupTime = data['rollup']?.[testcase];
-    const terserTime = data['terser']?.[testcase];
+    const rollupTime = data['rollup'][testcase];
+    const terserTime = data['terser'][testcase];
     if (rollupTime !== undefined) rollupTotal += rollupTime;
     if (terserTime !== undefined) terserTotal += terserTime;
   }
@@ -143,11 +168,11 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
   let rolldownProduct = 1;
   let rolldownCount = 0;
   for (const testcase of testcases) {
-    const rolldownTime = data['rolldown']?.[testcase];
+    const rolldownTime = data['rolldown'][testcase];
     if (rolldownTime !== undefined) {
       let baselineTotal = 0;
-      for (const stage of baselineStages) {
-        const baselineTime = data[stage]?.[testcase];
+      for (const stage of BASELINE_STAGES) {
+        const baselineTime = data[stage][testcase];
         if (baselineTime !== undefined) {
           baselineTotal += baselineTime;
         }
@@ -168,18 +193,25 @@ function generateLatexTable(data: TimeData, baselineStages: string[], otherStage
     let product = 1;
     let count = 0;
     for (const testcase of testcases) {
-      const time = data[stageKey]?.[testcase];
+      const time = data[stageKey][testcase];
       if (time !== undefined) {
         // Calculate baseline for this testcase
         let baselineTotal = 0;
-        for (const stage of baselineStages) {
-          const baselineTime = data[stage]?.[testcase];
+        for (const stage of BASELINE_STAGES) {
+          const baselineTime = data[stage][testcase];
           if (baselineTime !== undefined) {
             baselineTotal += baselineTime;
           }
         }
         if (baselineTotal > 0) {
-          const ratio = time / baselineTotal;
+          const rollupTime = data['rollup'][testcase] || NaN;
+          const terserTime = data['terser'][testcase] || NaN;
+          // For gcc/gccAdv: they don't use terser, so ratio = (optimizer + rollup) / (rollup + terser)
+          // For others: ratio = (optimizer + rollup + terser) / (rollup + terser)
+          const numerator = EXCLUDE_TERSER.includes(stageKey) 
+            ? (time + rollupTime) 
+            : (time + rollupTime + terserTime);
+          const ratio = numerator / baselineTotal;
           product *= ratio;
           count++;
         }
@@ -202,8 +234,45 @@ function main() {
   // Load data
   const times = loadTimes();
 
+  // Debug output: Calculate and print average times for rollup and terser
+  const testcases = Object.keys(times['rollup'] || {});
+  
+  // Calculate arithmetic mean (simple average)
+  let rollupTotal = 0;
+  let rollupCount = 0;
+  let terserTotal = 0;
+  let terserCount = 0;
+
+  for (const testcase of testcases) {
+    const rollupTime = times['rollup'][testcase];
+    const terserTime = times['terser'][testcase];
+    
+    if (rollupTime !== undefined) {
+      rollupTotal += rollupTime;
+      rollupCount++;
+    }
+    if (terserTime !== undefined) {
+      terserTotal += terserTime;
+      terserCount++;
+    }
+  }
+
+  const rollupAvg = rollupCount > 0 ? rollupTotal / rollupCount : 0;
+  const terserAvg = terserCount > 0 ? terserTotal / terserCount : 0;
+
+  console.log('=== Debug Output (Arithmetic Mean) ===');
+  console.log(`Rollup arithmetic mean: ${rollupAvg.toFixed(2)} ms`);
+  console.log(`Terser arithmetic mean: ${terserAvg.toFixed(2)} ms`);
+  console.log(`Total arithmetic mean (Rollup + Terser): ${(rollupAvg + terserAvg).toFixed(2)} ms`);
+  console.log('');
+  
+  // Note: The table uses geometric mean of ratios, not arithmetic mean of times
+  console.log('Note: The "Average" row in the table shows geometric mean of');
+  console.log('      time ratios, which is different from the arithmetic mean above.');
+  console.log('=====================================\n');
+
   // Generate LaTeX table
-  const latexTable = generateLatexTable(times, BASELINE_STAGES, OTHER_STAGES);
+  const latexTable = generateLatexTable(times);
 
   // Output to console
   console.log(latexTable);
