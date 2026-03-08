@@ -1,0 +1,324 @@
+{
+  "antd": {
+    "fnCache": {
+      "hitRate": 0.38367013096415875,
+      "hitRatePct": "38.37%",
+      "totalCalls": 204178,
+      "cacheAttempts": 204178,
+      "cacheHits": 78337,
+      "cacheMisses": 125732,
+      "cacheUpdates": 14628,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 34395,
+      "missStateUntrackable": 76818,
+      "missReadDepIncompatible": 109,
+      "missCacheEmpty": 125732
+    },
+    "mangling": {
+      "manglingRate": 0.04265708000214627,
+      "manglingRatePct": "4.27%",
+      "dynamic": 1166,
+      "staticAll": 18637,
+      "staticMangled": 795
+    }
+  },
+  "d3": {
+    "fnCache": {
+      "hitRate": 0.395,
+      "hitRatePct": "39.50%",
+      "totalCalls": 600,
+      "cacheAttempts": 600,
+      "cacheHits": 237,
+      "cacheMisses": 347,
+      "cacheUpdates": 168,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 54,
+      "missStateUntrackable": 141,
+      "missReadDepIncompatible": 16,
+      "missCacheEmpty": 347
+    },
+    "mangling": {
+      "manglingRate": 0.07028753993610223,
+      "manglingRatePct": "7.03%",
+      "dynamic": 40,
+      "staticAll": 626,
+      "staticMangled": 44
+    }
+  },
+  "glob": {
+    "fnCache": {
+      "hitRate": 0.2175925925925926,
+      "hitRatePct": "21.76%",
+      "totalCalls": 1080,
+      "cacheAttempts": 1080,
+      "cacheHits": 235,
+      "cacheMisses": 838,
+      "cacheUpdates": 454,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 33,
+      "missStateUntrackable": 358,
+      "missReadDepIncompatible": 7,
+      "missCacheEmpty": 838
+    },
+    "mangling": {
+      "manglingRate": 0.3251513113651648,
+      "manglingRatePct": "32.52%",
+      "dynamic": 67,
+      "staticAll": 2974,
+      "staticMangled": 967
+    }
+  },
+  "novnc": {
+    "fnCache": {
+      "hitRate": 0.3897932248130224,
+      "hitRatePct": "38.98%",
+      "totalCalls": 9092,
+      "cacheAttempts": 9092,
+      "cacheHits": 3544,
+      "cacheMisses": 5546,
+      "cacheUpdates": 1288,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 137,
+      "missStateUntrackable": 4123,
+      "missReadDepIncompatible": 2,
+      "missCacheEmpty": 5546
+    },
+    "mangling": {
+      "manglingRate": 0.12419129772929088,
+      "manglingRatePct": "12.42%",
+      "dynamic": 1431,
+      "staticAll": 7883,
+      "staticMangled": 979
+    }
+  },
+  "vuetify": {
+    "fnCache": {
+      "hitRate": 0.24307616221562808,
+      "hitRatePct": "24.31%",
+      "totalCalls": 20220,
+      "cacheAttempts": 20220,
+      "cacheHits": 4915,
+      "cacheMisses": 15218,
+      "cacheUpdates": 7675,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 698,
+      "missStateUntrackable": 6932,
+      "missReadDepIncompatible": 87,
+      "missCacheEmpty": 15218
+    },
+    "mangling": {
+      "manglingRate": 0.03374777975133215,
+      "manglingRatePct": "3.37%",
+      "dynamic": 284,
+      "staticAll": 4504,
+      "staticMangled": 152
+    }
+  },
+  "js-yaml": {
+    "fnCache": {
+      "hitRate": 0.49436266247143873,
+      "hitRatePct": "49.44%",
+      "totalCalls": 26697,
+      "cacheAttempts": 26697,
+      "cacheHits": 13198,
+      "cacheMisses": 13499,
+      "cacheUpdates": 151,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 4879,
+      "missStateUntrackable": 8469,
+      "missReadDepIncompatible": 0,
+      "missCacheEmpty": 13499
+    },
+    "mangling": {
+      "manglingRate": 0.021847070506454815,
+      "manglingRatePct": "2.18%",
+      "dynamic": 19,
+      "staticAll": 1007,
+      "staticMangled": 22
+    }
+  },
+  "react-icons": {
+    "fnCache": {
+      "hitRate": 0,
+      "hitRatePct": "0.00%",
+      "totalCalls": 35,
+      "cacheAttempts": 35,
+      "cacheHits": 0,
+      "cacheMisses": 35,
+      "cacheUpdates": 2,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 9,
+      "missStateUntrackable": 24,
+      "missReadDepIncompatible": 0,
+      "missCacheEmpty": 35
+    },
+    "mangling": {
+      "manglingRate": 0.15730337078651685,
+      "manglingRatePct": "15.73%",
+      "dynamic": 11,
+      "staticAll": 89,
+      "staticMangled": 14
+    }
+  },
+  "remeda": {
+    "fnCache": {
+      "hitRate": 0,
+      "hitRatePct": "0.00%",
+      "totalCalls": 36,
+      "cacheAttempts": 36,
+      "cacheHits": 0,
+      "cacheMisses": 36,
+      "cacheUpdates": 18,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 2,
+      "missStateUntrackable": 16,
+      "missReadDepIncompatible": 0,
+      "missCacheEmpty": 36
+    },
+    "mangling": {
+      "manglingRate": 0.04,
+      "manglingRatePct": "4.00%",
+      "dynamic": 2,
+      "staticAll": 75,
+      "staticMangled": 3
+    }
+  },
+  "sentry": {
+    "fnCache": {
+      "hitRate": 0.3236673773987207,
+      "hitRatePct": "32.37%",
+      "totalCalls": 2345,
+      "cacheAttempts": 2345,
+      "cacheHits": 759,
+      "cacheMisses": 1570,
+      "cacheUpdates": 676,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 127,
+      "missStateUntrackable": 783,
+      "missReadDepIncompatible": 16,
+      "missCacheEmpty": 1570
+    },
+    "mangling": {
+      "manglingRate": 0.03789636504253674,
+      "manglingRatePct": "3.79%",
+      "dynamic": 61,
+      "staticAll": 2586,
+      "staticMangled": 98
+    }
+  },
+  "material-ui": {
+    "fnCache": {
+      "hitRate": 0.46541747037751446,
+      "hitRatePct": "46.54%",
+      "totalCalls": 3629,
+      "cacheAttempts": 3629,
+      "cacheHits": 1689,
+      "cacheMisses": 1911,
+      "cacheUpdates": 1046,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 471,
+      "missStateUntrackable": 423,
+      "missReadDepIncompatible": 29,
+      "missCacheEmpty": 1911
+    },
+    "mangling": {
+      "manglingRate": 0.028694714131607336,
+      "manglingRatePct": "2.87%",
+      "dynamic": 291,
+      "staticAll": 4635,
+      "staticMangled": 133
+    }
+  },
+  "lodash-es": {
+    "fnCache": {
+      "hitRate": 0.3118811881188119,
+      "hitRatePct": "31.19%",
+      "totalCalls": 202,
+      "cacheAttempts": 202,
+      "cacheHits": 63,
+      "cacheMisses": 139,
+      "cacheUpdates": 90,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 13,
+      "missStateUntrackable": 36,
+      "missReadDepIncompatible": 0,
+      "missCacheEmpty": 139
+    },
+    "mangling": {
+      "manglingRate": 0.03225806451612903,
+      "manglingRatePct": "3.23%",
+      "dynamic": 41,
+      "staticAll": 124,
+      "staticMangled": 4
+    }
+  },
+  "rxjs": {
+    "fnCache": {
+      "hitRate": 0.17687074829931973,
+      "hitRatePct": "17.69%",
+      "totalCalls": 147,
+      "cacheAttempts": 147,
+      "cacheHits": 26,
+      "cacheMisses": 120,
+      "cacheUpdates": 78,
+      "missConfigDisabled": 0,
+      "missNonCopyableThis": 0,
+      "missNonCopyableArgs": 0,
+      "missRestParams": 0,
+      "missNonCopyableReturn": 13,
+      "missStateUntrackable": 30,
+      "missReadDepIncompatible": 1,
+      "missCacheEmpty": 120
+    },
+    "mangling": {
+      "manglingRate": 0,
+      "manglingRatePct": "0.00%",
+      "dynamic": 3,
+      "staticAll": 285,
+      "staticMangled": 0
+    }
+  },
+  "__average": {
+    "fnCache": {
+      "hitRate": 0.2834442964376006,
+      "hitRatePct": "28.34%"
+    },
+    "mangling": {
+      "manglingRate": 0.07616954948060675,
+      "manglingRatePct": "7.62%"
+    }
+  }
+}

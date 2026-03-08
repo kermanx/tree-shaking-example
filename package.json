@@ -64,6 +64,7 @@
 		"performance": "node --experimental-strip-types scripts/performance.ts",
 		"memory": "node --experimental-strip-types scripts/memory.ts",
 		"ablation": "node --experimental-strip-types scripts/ablation.ts",
+		"stats": "node --experimental-strip-types scripts/stats.ts",
 		"table2": "node --experimental-strip-types table2.ts"
 	}
 }
