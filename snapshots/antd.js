@@ -13992,15 +13992,15 @@ function makePrefixMap(styleProp, eventName) {
 }
 function getVendorPrefixes(domSupport, win) {
 	const prefixes = {
-		animationend: makePrefixMap("Animation", "AnimationEnd"),
-		transitionend: makePrefixMap("Transition", "TransitionEnd")
+		a: makePrefixMap("Animation", "AnimationEnd"),
+		b: makePrefixMap("Transition", "TransitionEnd")
 	};
 	if (domSupport) {
 		if (!("AnimationEvent" in win)) {
-			delete prefixes.animationend.animation;
+			delete prefixes.a.animation;
 		}
 		if (!("TransitionEvent" in win)) {
-			delete prefixes.transitionend.transition;
+			delete prefixes.b.transition;
 		}
 	}
 	return prefixes;
@@ -14028,8 +14028,8 @@ function getVendorPrefixedEventName(eventName) {
 	}
 	return "";
 }
-const internalAnimationEndName = getVendorPrefixedEventName("animationend");
-const internalTransitionEndName = getVendorPrefixedEventName("transitionend");
+const internalAnimationEndName = getVendorPrefixedEventName("a");
+const internalTransitionEndName = getVendorPrefixedEventName("b");
 const supportTransition = !!(internalAnimationEndName && internalTransitionEndName);
 const animationEndName = internalAnimationEndName || "animationend";
 const transitionEndName = internalTransitionEndName || "transitionend";
@@ -18259,8 +18259,8 @@ var rules = {
 	b: whitespace$1,
 	c: type$3,
 	d: range$1,
-	enum: enumRule,
-	e: pattern$4
+	e: enumRule,
+	f: pattern$4
 };
 var any = function(rule, value, callback, source, options) {
 	var errors = [];
@@ -18340,7 +18340,7 @@ var enumerable = function(rule, value, callback, source, options) {
 		}
 		rules.a(rule, value, source, errors, options);
 		if (value !== void 0) {
-			rules["enum"](rule, value, 0, errors, options);
+			rules["e"](rule, value, 0, errors, options);
 		}
 	}
 	callback(errors);
@@ -18437,7 +18437,7 @@ var pattern = function(rule, value, callback, source, options) {
 		}
 		rules.a(rule, value, source, errors, options);
 		if (!isEmptyValue(value, "string")) {
-			rules.e(rule, value, 0, errors, options);
+			rules.f(rule, value, 0, errors, options);
 		}
 	}
 	callback(errors);
@@ -18476,7 +18476,7 @@ var string = function(rule, value, callback, source, options) {
 		if (!isEmptyValue(value, "string")) {
 			rules.c(rule, value, source, errors, options);
 			rules.d(rule, value, 0, errors, options);
-			rules.e(rule, value, 0, errors, options);
+			rules.f(rule, value, 0, errors, options);
 			if (rule.whitespace === true) {
 				rules.b(rule, value, 0, errors, options);
 			}

@@ -9549,13 +9549,13 @@ function rol(d, g) {
 class LegacyCrypto {
 	constructor() {
 		this.a = {
-			"AES-ECB": AESECBCipher,
-			"AES-EAX": AESEAXCipher,
-			"DES-ECB": DESECBCipher,
-			"DES-CBC": DESCBCCipher,
+			"a": AESECBCipher,
+			"b": AESEAXCipher,
+			"c": DESECBCipher,
+			"d": DESCBCCipher,
 			"RSA-PKCS1-v1_5": RSACipher,
-			"DH": DHCipher,
-			"MD5": MD5
+			"e": DHCipher,
+			"f": MD5
 		};
 	}
 	b(algorithm, key, data) {
@@ -9591,7 +9591,7 @@ class LegacyCrypto {
 		return key.exportKey();
 	}
 	g(__unused_11EB, data) {
-		const alg = this.a["MD5"];
+		const alg = this.a["f"];
 		return alg(data);
 	}
 	h(algorithm, key, length) {
@@ -9611,7 +9611,7 @@ class RA2Cipher {
 		this.b = new Uint8Array(16);
 	}
 	async c(key) {
-		this.a = await legacyCrypto.d(0, key, { a: "AES-EAX" });
+		this.a = await legacyCrypto.d(0, key, { a: "b" });
 	}
 	async d(message) {
 		const ad = new Uint8Array([(message.length & 65280) >>> 8, message.length & 255]);
@@ -12564,7 +12564,7 @@ class RFB extends EventTargetMixin {
 		let prime = this._sock.rQshiftBytes(keyLength);
 		let serverPublicKey = this._sock.rQshiftBytes(keyLength);
 		let clientKey = legacyCrypto.e({
-			name: "DH",
+			name: "e",
 			g: generator,
 			p: prime
 		});
@@ -12589,7 +12589,7 @@ class RFB extends EventTargetMixin {
 		}
 		credentials[64 + password.length] = 0;
 		const key = await legacyCrypto.g(0, sharedKey);
-		const cipher = await legacyCrypto.d(0, key, { a: "AES-ECB" }, 0, ["encrypt"]);
+		const cipher = await legacyCrypto.d(0, key, { a: "a" }, 0, ["encrypt"]);
 		const encrypted = await legacyCrypto.b({ name: "AES-ECB" }, cipher, credentials);
 		this._rfbCredentials.ardCredentials = encrypted;
 		this._rfbCredentials.ardPublicKey = clientPublicKey;
@@ -12745,13 +12745,13 @@ class RFB extends EventTargetMixin {
 		const p = this._sock.rQshiftBytes(8);
 		const A = this._sock.rQshiftBytes(8);
 		const dhKey = legacyCrypto.e({
-			name: "DH",
+			name: "e",
 			g,
 			p
 		});
 		const B = legacyCrypto.f(0, dhKey.publicKey);
 		const secret = legacyCrypto.h({ public: A }, dhKey.privateKey, 64);
-		const key = legacyCrypto.d(0, secret, { a: "DES-CBC" });
+		const key = legacyCrypto.d(0, secret, { a: "d" });
 		const username = encodeUTF8(this._rfbCredentials.username).substring(0, 255);
 		const password = encodeUTF8(this._rfbCredentials.password).substring(0, 63);
 		let usernameBytes = new Uint8Array(256);
@@ -13557,7 +13557,7 @@ class RFB extends EventTargetMixin {
 	}
 	static d(password, challenge) {
 		const passwordChars = password.split("").map((c) => c.charCodeAt(0));
-		const key = legacyCrypto.d(0, passwordChars, { a: "DES-ECB" });
+		const key = legacyCrypto.d(0, passwordChars, { a: "c" });
 		return legacyCrypto.b({ name: "a" }, key, challenge);
 	}
 }
