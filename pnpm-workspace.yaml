@@ -1,6 +1,8 @@
 packages:
   - .
   - vendor/*
+  - '!vendor/excalidraw'
+  - '!vendor/vue-vben-admin'
   - vendor/Lacuna/analyzers/*
 
 onlyBuiltDependencies:
