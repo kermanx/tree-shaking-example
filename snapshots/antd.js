@@ -396,7 +396,7 @@ function requireReactJsxRuntime_production() {
 			props: maybeKey
 		};
 	}
-	reactJsxRuntime_production.b = jsxProd;
+	reactJsxRuntime_production.a = jsxProd;
 	return reactJsxRuntime_production;
 }
 function requireJsxRuntime() {
@@ -457,7 +457,7 @@ function requireScheduler_production() {
 				return localDate.now() - initialTime;
 			};
 		}
-		var taskQueue = [], timerQueue = [], taskIdCounter = 1, currentTask = null, currentPriorityLevel = 3, isPerformingWork = false, isHostCallbackScheduled = false, isHostTimeoutScheduled = false, needsPaint = false, localSetTimeout = setTimeout, localClearTimeout = clearTimeout, localSetImmediate = setImmediate;
+		var taskQueue = [], timerQueue = [], taskIdCounter = 1, currentTask = null, currentPriorityLevel = 3, isPerformingWork = false, isHostCallbackScheduled = false, isHostTimeoutScheduled = false, needsPaint = false, localSetTimeout = "function" === typeof setTimeout ? setTimeout : null, localClearTimeout = "function" === typeof clearTimeout ? clearTimeout : null, localSetImmediate = "undefined" !== typeof setImmediate ? setImmediate : null;
 		function advanceTimers(currentTime) {
 			for (var timer = peek(timerQueue); null !== timer;) {
 				if (null === timer.callback) pop(timerQueue);
@@ -531,11 +531,18 @@ function requireScheduler_production() {
 			}
 		}
 		var schedulePerformWorkUntilDeadline;
-		{
+		if ("function" === typeof localSetImmediate) schedulePerformWorkUntilDeadline = function() {
+			localSetImmediate(performWorkUntilDeadline);
+		};
+		else if ("undefined" !== typeof MessageChannel) {
+			var channel = new MessageChannel(), port = channel.port2;
+			channel.port1.onmessage = performWorkUntilDeadline;
 			schedulePerformWorkUntilDeadline = function() {
-				localSetImmediate(performWorkUntilDeadline);
+				port.postMessage(null);
 			};
-		}
+		} else schedulePerformWorkUntilDeadline = function() {
+			localSetTimeout(performWorkUntilDeadline, 0);
+		};
 		function requestHostTimeout(callback, ms) {
 			taskTimeoutID = localSetTimeout(function() {
 				callback(exports$1.a());
@@ -826,7 +833,7 @@ function requireReactDomClient_production() {
 						Object.defineProperty(Fake.prototype, "props", { set: function() {
 							throw Error();
 						} });
-						if (Reflect.construct) {
+						if ("object" === typeof Reflect && Reflect.construct) {
 							try {
 								Reflect.construct(Fake, []);
 							} catch (x) {
@@ -8426,7 +8433,14 @@ function requireReactDomClient_production() {
 		currentPopstateTransitionEvent = null;
 		return false;
 	}
-	var scheduleTimeout = setTimeout, cancelTimeout = clearTimeout, scheduleMicrotask = queueMicrotask;
+	var scheduleTimeout = "function" === typeof setTimeout ? setTimeout : void 0, cancelTimeout = "function" === typeof clearTimeout ? clearTimeout : void 0, localPromise = "function" === typeof Promise ? Promise : void 0, scheduleMicrotask = "function" === typeof queueMicrotask ? queueMicrotask : "undefined" !== typeof localPromise ? function(callback) {
+		return localPromise.resolve(null).then(callback).catch(handleErrorInNextTick);
+	} : scheduleTimeout;
+	function handleErrorInNextTick(error) {
+		setTimeout(function() {
+			throw error;
+		});
+	}
 	function isSingletonScope(type) {
 		return "head" === type;
 	}
@@ -9605,7 +9619,7 @@ function isObject(obj) {
 function createEmpty(source) {
 	return Array.isArray(source) ? [] : {};
 }
-const keys = Reflect.ownKeys;
+const keys = typeof Reflect === "undefined" ? Object.keys : Reflect.ownKeys;
 // ================================ Merge ================================
 /**
 * Merge multiple objects. Support custom merge logic.
@@ -11748,7 +11762,7 @@ var statisticToken = function(token) {
 	var tokenKeys;
 	var proxy = token;
 	var flush = noop;
-	if (enableStatistic && true) {
+	if (enableStatistic && typeof Proxy !== "undefined") {
 		tokenKeys = new Set();
 		proxy = new Proxy(token, { get: function(obj, prop) {
 			if (recording) {
@@ -13846,10 +13860,10 @@ const IconBase = (props) => {
 		ref: svgRef
 	});
 };
-IconBase.c = setTwoToneColors;
+IconBase.a = setTwoToneColors;
 function setTwoToneColor(twoToneColor) {
 	const [primaryColor, secondaryColor] = normalizeTwoToneColors(twoToneColor);
-	return IconBase.c({
+	return IconBase.a({
 		a: primaryColor,
 		b: secondaryColor
 	});
@@ -13978,15 +13992,15 @@ function makePrefixMap(styleProp, eventName) {
 }
 function getVendorPrefixes(domSupport, win) {
 	const prefixes = {
-		a: makePrefixMap("Animation", "AnimationEnd"),
-		b: makePrefixMap("Transition", "TransitionEnd")
+		animationend: makePrefixMap("Animation", "AnimationEnd"),
+		transitionend: makePrefixMap("Transition", "TransitionEnd")
 	};
 	if (domSupport) {
 		if (!("AnimationEvent" in win)) {
-			delete prefixes.a.animation;
+			delete prefixes.animationend.animation;
 		}
 		if (!("TransitionEvent" in win)) {
-			delete prefixes.b.transition;
+			delete prefixes.transitionend.transition;
 		}
 	}
 	return prefixes;
@@ -14014,8 +14028,8 @@ function getVendorPrefixedEventName(eventName) {
 	}
 	return "";
 }
-const internalAnimationEndName = getVendorPrefixedEventName("a");
-const internalTransitionEndName = getVendorPrefixedEventName("b");
+const internalAnimationEndName = getVendorPrefixedEventName("animationend");
+const internalTransitionEndName = getVendorPrefixedEventName("transitionend");
 const supportTransition = !!(internalAnimationEndName && internalTransitionEndName);
 const animationEndName = internalAnimationEndName || "animationend";
 const transitionEndName = internalTransitionEndName || "transitionend";
@@ -18245,8 +18259,8 @@ var rules = {
 	b: whitespace$1,
 	c: type$3,
 	d: range$1,
-	e: enumRule,
-	f: pattern$4
+	enum: enumRule,
+	e: pattern$4
 };
 var any = function(rule, value, callback, source, options) {
 	var errors = [];
@@ -18326,7 +18340,7 @@ var enumerable = function(rule, value, callback, source, options) {
 		}
 		rules.a(rule, value, source, errors, options);
 		if (value !== void 0) {
-			rules["e"](rule, value, 0, errors, options);
+			rules["enum"](rule, value, 0, errors, options);
 		}
 	}
 	callback(errors);
@@ -18423,7 +18437,7 @@ var pattern = function(rule, value, callback, source, options) {
 		}
 		rules.a(rule, value, source, errors, options);
 		if (!isEmptyValue(value, "string")) {
-			rules.f(rule, value, 0, errors, options);
+			rules.e(rule, value, 0, errors, options);
 		}
 	}
 	callback(errors);
@@ -18462,7 +18476,7 @@ var string = function(rule, value, callback, source, options) {
 		if (!isEmptyValue(value, "string")) {
 			rules.c(rule, value, source, errors, options);
 			rules.d(rule, value, 0, errors, options);
-			rules.f(rule, value, 0, errors, options);
+			rules.e(rule, value, 0, errors, options);
 			if (rule.whitespace === true) {
 				rules.b(rule, value, 0, errors, options);
 			}
@@ -28488,4 +28502,4 @@ const generatePicker = (generateConfig) => {
 const DatePicker = generatePicker(dayjsGenerateConfig);
 const container = document.getElementById("root");
 const root = ReactDOM.a(container);
-root.render(jsxRuntimeExports.b(React__default.StrictMode, { children: jsxRuntimeExports.b(DatePicker, {}) }));
+root.render(jsxRuntimeExports.a(React__default.StrictMode, { children: jsxRuntimeExports.a(DatePicker, {}) }));
