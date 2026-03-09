@@ -6774,14 +6774,14 @@ const cachedImplementations = {};
 * - `fetch`: This can be wrapped by e.g. ad-blockers, causing an infinite loop when a request is blocked.
 */
 function getNativeImplementation() {
-	const cached = cachedImplementations["a"];
+	const cached = cachedImplementations["fetch"];
 	if (cached) {
 		return cached;
 	}
 	let impl = WINDOW["fetch"];
 	// Fast path to avoid DOM I/O
 	if (isNativeFunction(impl)) {
-		return cachedImplementations["a"] = impl.bind(WINDOW);
+		return cachedImplementations["fetch"] = impl.bind(WINDOW);
 	}
 	const document = WINDOW.document;
 	// eslint-disable-next-line deprecation/deprecation
@@ -6805,11 +6805,11 @@ function getNativeImplementation() {
 	if (!impl) {
 		return impl;
 	}
-	return cachedImplementations["a"] = impl.bind(WINDOW);
+	return cachedImplementations["fetch"] = impl.bind(WINDOW);
 }
 /** Clear a cached implementation. */
 function clearCachedImplementation() {
-	cachedImplementations["a"] = void 0;
+	cachedImplementations["fetch"] = void 0;
 }
 const SENTRY_XHR_DATA_KEY = "__sentry_xhr_v3__";
 /**

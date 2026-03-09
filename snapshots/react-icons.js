@@ -13,7 +13,7 @@ function requireReact_production() {
 			props
 		};
 	}
-	react_production.n = function(defaultValue) {
+	react_production.a = function(defaultValue) {
 		defaultValue = {
 			$$typeof: REACT_CONTEXT_TYPE,
 			_currentValue: defaultValue,
@@ -27,7 +27,7 @@ function requireReact_production() {
 		};
 		return defaultValue;
 	};
-	react_production.o = function(type, config, children) {
+	react_production.b = function(type, config, children) {
 		var propName, props = {}, key = null;
 		if (null != config) for (propName in void 0 !== config.key && (key = "" + config.key), config) hasOwnProperty.call(config, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (props[propName] = config[propName]);
 		var childrenLength = arguments.length - 2;
@@ -55,23 +55,23 @@ var DefaultContext = {
 	style: void 0,
 	attr: void 0
 };
-var IconContext = reactExports.n(DefaultContext);
+var IconContext = reactExports.a(DefaultContext);
 var __assign = function() {
 	__assign = Object.assign;
 	return __assign.apply(0, arguments);
 };
 function Tree2Element(tree) {
 	return tree && tree.map(function(node, i) {
-		return reactExports.o(node.tag, __assign({ key: i }, node.attr), Tree2Element(node.child));
+		return reactExports.b(node.tag, __assign({ key: i }, node.attr), Tree2Element(node.child));
 	});
 }
 function GenIcon(data) {
 	return function() {
-		return reactExports.o(IconBase, __assign({ attr: __assign({}, data.b) }, void 0), Tree2Element(data.a));
+		return reactExports.b(IconBase, __assign({ attr: __assign({}, data.b) }, void 0), Tree2Element(data.a));
 	};
 }
 function IconBase() {
-	return reactExports.o(IconContext.Consumer);
+	return reactExports.b(IconContext.Consumer);
 }
 var FaBeer = function() {
 	return GenIcon({

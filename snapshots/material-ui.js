@@ -103,9 +103,9 @@ function requireReact_production() {
 			forEachFunc.apply(0, arguments);
 		});
 	} };
-	react_production.b = Children;
-	react_production.i = ReactSharedInternals;
-	react_production.n = function(defaultValue) {
+	react_production.a = Children;
+	react_production.b = ReactSharedInternals;
+	react_production.c = function(defaultValue) {
 		defaultValue = {
 			$$typeof: REACT_CONTEXT_TYPE,
 			_currentValue: defaultValue,
@@ -119,7 +119,7 @@ function requireReact_production() {
 		};
 		return defaultValue;
 	};
-	react_production.o = function(type, config, children) {
+	react_production.d = function(type, config, children) {
 		var propName, props = {}, key = null;
 		if (null != config) for (propName in void 0 !== config.key && (key = "" + config.key), config) hasOwnProperty.call(config, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (props[propName] = config[propName]);
 		var childrenLength = arguments.length - 2;
@@ -131,22 +131,22 @@ function requireReact_production() {
 		if (type && type.defaultProps) for (propName in childrenLength = type.defaultProps, childrenLength) void 0 === props[propName] && (props[propName] = childrenLength[propName]);
 		return ReactElement(type, key, props);
 	};
-	react_production.q = function(render) {
+	react_production.e = function(render) {
 		return {
 			$$typeof: REACT_FORWARD_REF_TYPE,
 			render
 		};
 	};
-	react_production.z = function(Context) {
+	react_production.f = function(Context) {
 		return ReactSharedInternals.a.useContext(Context);
 	};
-	react_production.C = function(create, deps) {
+	react_production.g = function(create, deps) {
 		return ReactSharedInternals.a.useEffect(create, deps);
 	};
-	react_production.I = function(create, deps) {
+	react_production.h = function(create, deps) {
 		return ReactSharedInternals.a.useMemo(create, deps);
 	};
-	react_production.L = function(initialValue) {
+	react_production.i = function(initialValue) {
 		return ReactSharedInternals.a.useRef(initialValue);
 	};
 	return react_production;
@@ -3601,7 +3601,7 @@ var defaultOptions = {
 	sheetsManager,
 	sheetsRegistry: null
 };
-var StylesContext = React__default.n(defaultOptions);
+var StylesContext = React__default.c(defaultOptions);
 // We use the same empty object to ref count the styles that don't need a theme object.
 var noopTheme = {};
 var noopTheme$1 = noopTheme;
@@ -3741,9 +3741,9 @@ function detach(_ref4) {
 	}
 }
 function useSynchronousEffect(func, values) {
-	var key = React__default.L([]);
+	var key = React__default.i([]);
 	var output;
-	var currentKey = React__default.I(function() {
+	var currentKey = React__default.h(function() {
 		return {};
 	}, values);
 	// "the first render", or "memo dropped the value"
@@ -3751,7 +3751,7 @@ function useSynchronousEffect(func, values) {
 		key.current = currentKey;
 		output = func();
 	}
-	React__default.C(function() {
+	React__default.g(function() {
 		return function() {
 			if (output) {
 				output();
@@ -3778,9 +3778,9 @@ function makeStyles(stylesOrCreator) {
 	var useStyles = function() {
 		var props = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : {};
 		var theme = defaultTheme;
-		var stylesOptions = _extends({}, React__default.z(StylesContext), stylesOptions2);
-		var instance = React__default.L();
-		var shouldUpdate = React__default.L();
+		var stylesOptions = _extends({}, React__default.f(StylesContext), stylesOptions2);
+		var instance = React__default.i();
+		var shouldUpdate = React__default.i();
 		useSynchronousEffect(function() {
 			var current = {
 				name,
@@ -3796,7 +3796,7 @@ function makeStyles(stylesOrCreator) {
 				detach(current);
 			};
 		}, [, ,]);
-		React__default.C(function() {
+		React__default.g(function() {
 			if (shouldUpdate.current) {
 				update(instance.current, props);
 			}
@@ -3973,7 +3973,7 @@ var withStyles$1 = function(stylesOrCreator) {
 			name: name || void 0,
 			classNamePrefix
 		}, stylesOptions));
-		var WithStyles = React__default.q(function(props, ref) {
+		var WithStyles = React__default.e(function(props, ref) {
 			var innerRef = props.innerRef, other = _objectWithoutProperties(props, ["classes", "innerRef"]);
 			// the actual props Component might receive due to merging with defaultProps.
 			// So copying it here would give us the same result in the wrapper as well.
@@ -3996,7 +3996,7 @@ var withStyles$1 = function(stylesOrCreator) {
 					more.theme = theme;
 				}
 			}
-			return React__default.o(Component, _extends({
+			return React__default.d(Component, _extends({
 				ref: innerRef || ref,
 				classes
 			}, more));
@@ -4048,7 +4048,7 @@ var styles = function(theme) {
 		outlined: { border: "1px solid ".concat(theme.palette.divider) }
 	}, elevations);
 };
-var Paper = reactExports.q(function(props, ref) {
+var Paper = reactExports.e(function(props, ref) {
 	var classes = props.classes, className = props.className, _props$component = props.component, Component = _props$component === void 0 ? "div" : _props$component, _props$square = props.square, square = _props$square === void 0 ? false : _props$square, _props$elevation = props.elevation, elevation = _props$elevation === void 0 ? 1 : _props$elevation, _props$variant = props.variant, variant = _props$variant === void 0 ? "elevation" : _props$variant, other = _objectWithoutProperties(props, [
 		"classes",
 		"className",
@@ -4057,7 +4057,7 @@ var Paper = reactExports.q(function(props, ref) {
 		"elevation",
 		"variant"
 	]);
-	return reactExports.o(Component, _extends({
+	return reactExports.d(Component, _extends({
 		className: clsx(classes.root, className, variant === "outlined" ? classes.outlined : classes["elevation".concat(elevation)], !square && classes.rounded),
 		ref
 	}, other));
@@ -4236,7 +4236,7 @@ function requireReactDomServerLegacy_browser_production() {
 	function sanitizeURL(url) {
 		return isJavaScriptProtocol.test("" + url) ? "javascript:throw new Error('React has blocked a javascript: URL as a security precaution.')" : url;
 	}
-	var ReactSharedInternals = React.i, sharedNotPendingObject = {
+	var ReactSharedInternals = React.b, sharedNotPendingObject = {
 		pending: false,
 		data: null,
 		method: null,
@@ -4527,7 +4527,7 @@ function requireReactDomServerLegacy_browser_production() {
 	}
 	function flattenOptionChildren(children) {
 		var content = "";
-		React.b.a(children, function(child) {
+		React.a.a(children, function(child) {
 			null != child && (content += child);
 		});
 		return content;
@@ -5975,7 +5975,7 @@ function requireReactDomServerLegacy_browser_production() {
 						Object.defineProperty(Fake.prototype, "props", { set: function() {
 							throw Error();
 						} });
-						if (Reflect.construct) {
+						if ("object" === typeof Reflect && Reflect.construct) {
 							try {
 								Reflect.construct(Fake, []);
 							} catch (x) {
@@ -7815,4 +7815,4 @@ function requireServer_browser() {
 }
 var server_browserExports = requireServer_browser();
 var ReactDOMServer = getDefaultExportFromCjs(server_browserExports);
-console.log(ReactDOMServer.a(React__default.o(Paper$1, null, "Hello")));
+console.log(ReactDOMServer.a(React__default.d(Paper$1, null, "Hello")));
