@@ -76,6 +76,23 @@ async function runOptimizer(): Promise<string> {
     return bundlers[optimizerName]({ name, entry: inputPath, env, cjs: false, excludeReact: false });
   }
   const code = await readFile(inputPath, 'utf-8');
+  
+  // Special handling for jsshaker with environment variables
+  if (optimizerName === 'jsshaker') {
+    const { jsshaker } = await import('./jsshaker.ts');
+    const options: any = {};
+    
+    if (process.env.JSSHAKER_NO_CACHE === '1') {
+      options.enableFnCache = false;
+    }
+    
+    if (process.env.JSSHAKER_DEPTH) {
+      options.maxRecursionDepth = parseInt(process.env.JSSHAKER_DEPTH, 10);
+    }
+    
+    return jsshaker({ name, code, env }, options);
+  }
+  
   return Optimizers[optimizerName]({ name, code, env });
 }
 

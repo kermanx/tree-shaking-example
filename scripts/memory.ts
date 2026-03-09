@@ -69,7 +69,8 @@ const MEMORY_RUNS = 3;
 const PAGE_SIZE = 4096;
 
 type OptimizerType =
-  | 'jsshaker' | 'terser' | 'rollup' | 'gcc' | 'gccAdv'
+  | 'jsshaker'
+  | 'terser' | 'rollup' | 'gcc' | 'gccAdv'
   | 'lacuna2' | 'lacuna3' | 'esbuild' | 'rolldown';
 
 // ── types ────────────────────────────────────────────────────────────────────
@@ -388,21 +389,248 @@ async function benchmarkMemory(optimizer: OptimizerType): Promise<void> {
   console.log(`\nResults saved to memory.json`);
 }
 
+// ── special jsshaker variants ────────────────────────────────────────────────
+
+async function benchmarkJsshakerNoCache(): Promise<void> {
+  const distFolder = join(import.meta.dirname, '../dist');
+  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
+
+  const results: Record<string, FileSummary> = {};
+
+  console.log(`\n${'─'.repeat(72)}`);
+  console.log(`Memory benchmark: jsshakerNoCache`);
+  console.log(`${'─'.repeat(72)}`);
+  console.log(
+    `  ${'file'.padEnd(14)} run  baseline  +delta  =total   heap   ext   finalRSS`,
+  );
+
+  for (const file of srcFiles) {
+    const name = file.replace('.js', '');
+    const inputPath = join(distFolder, `${name}_rollup.js`);
+
+    if (!existsSync(inputPath)) {
+      console.log(`  [${name}] input not found — skipping`);
+      continue;
+    }
+
+    const runs: MemoryResult[] = [];
+
+    for (let i = 0; i < MEMORY_RUNS; i++) {
+      process.stdout.write(
+        `  ${name.padEnd(14)} ${i + 1}/${MEMORY_RUNS}  `,
+      );
+      // Pass enableFnCache:false via environment to memory-worker
+      process.env.JSSHAKER_NO_CACHE = '1';
+      const result = await spawnMemoryWorker('jsshaker', inputPath, name, 'code');
+      delete process.env.JSSHAKER_NO_CACHE;
+      
+      if (result) {
+        runs.push(result);
+        const b = result.baselineRss / 1024 / 1024;
+        const d = result.peakRssDelta / 1024 / 1024;
+        process.stdout.write(
+          `${fmt(b)} MB  +${fmt(d)} MB  =${fmt(b + d)} MB` +
+          `  heap+${fmt(result.peakHeapDelta / 1024 / 1024)} MB\n`,
+        );
+      } else {
+        process.stdout.write('FAILED\n');
+      }
+    }
+
+    if (runs.length === 0) {
+      console.log(`  [${name}] all runs failed — skipping`);
+      continue;
+    }
+
+    const baselineRssMB = median(runs.map(r => r.baselineRss)) / 1024 / 1024;
+    const peakRssDeltaMB = median(runs.map(r => r.peakRssDelta)) / 1024 / 1024;
+    const peakHeapMB = median(runs.map(r => r.peakHeapDelta)) / 1024 / 1024;
+    const peakExternalMB = median(runs.map(r => r.peakExternalDelta)) / 1024 / 1024;
+    const finalRssMB = median(runs.map(r => r.finalRssDelta)) / 1024 / 1024;
+    const finalHeapMB = median(runs.map(r => r.finalHeapDelta)) / 1024 / 1024;
+
+    results[name] = {
+      baselineRssMB,
+      peakRssDeltaMB,
+      totalPeakRssMB: baselineRssMB + peakRssDeltaMB,
+      peakHeapMB,
+      peakExternalMB,
+      finalRssMB,
+      finalHeapMB,
+    };
+
+    console.log(
+      `  ${name.padEnd(14)} med  ${fmt(baselineRssMB)} MB` +
+      `  +${fmt(peakRssDeltaMB)} MB  =${fmt(baselineRssMB + peakRssDeltaMB)} MB` +
+      `  heap+${fmt(peakHeapMB)} MB` +
+      `  ext+${fmt(peakExternalMB)} MB` +
+      `  finalRSS+${fmt(finalRssMB)} MB`,
+    );
+  }
+
+  // Compute average
+  const dataEntries = Object.entries(results).filter(([k]) => k !== '_average');
+  if (dataEntries.length > 0) {
+    const avg = (key: keyof FileSummary): number =>
+      dataEntries.reduce((sum, [, v]) => sum + v[key], 0) / dataEntries.length;
+    results['_average'] = {
+      baselineRssMB: avg('baselineRssMB'),
+      peakRssDeltaMB: avg('peakRssDeltaMB'),
+      totalPeakRssMB: avg('totalPeakRssMB'),
+      peakHeapMB: avg('peakHeapMB'),
+      peakExternalMB: avg('peakExternalMB'),
+      finalRssMB: avg('finalRssMB'),
+      finalHeapMB: avg('finalHeapMB'),
+    };
+  }
+
+  const memoryPath = join(import.meta.dirname, '../memory.json');
+  const memoryData = JSON.parse(await readFile(memoryPath, 'utf-8').catch(() => '{}'));
+  memoryData['jsshakerNoCache'] = results;
+
+  memoryData['_average'] ??= {};
+  const repVal =
+    dataEntries.reduce((s, [, v]) => s + v.totalPeakRssMB, 0) / dataEntries.length;
+  memoryData['_average']['jsshakerNoCache'] = repVal;
+
+  await writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+  console.log(`\nResults saved to memory.json`);
+}
+
+async function benchmarkJsshakerDepths(): Promise<void> {
+  const distFolder = join(import.meta.dirname, '../dist');
+  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
+  const depths = [1, 2, 3, 4, 5];
+
+  const memoryPath = join(import.meta.dirname, '../memory.json');
+  const memoryData = JSON.parse(await readFile(memoryPath, 'utf-8').catch(() => '{}'));
+
+  for (const depth of depths) {
+    const optimizerName = `jsshakerDepth${depth}`;
+    const results: Record<string, FileSummary> = {};
+
+    console.log(`\n${'─'.repeat(72)}`);
+    console.log(`Memory benchmark: ${optimizerName}`);
+    console.log(`${'─'.repeat(72)}`);
+    console.log(
+      `  ${'file'.padEnd(14)} run  baseline  +delta  =total   heap   ext   finalRSS`,
+    );
+
+    for (const file of srcFiles) {
+      const name = file.replace('.js', '');
+      const inputPath = join(distFolder, `${name}_rollup.js`);
+
+      if (!existsSync(inputPath)) {
+        console.log(`  [${name}] input not found — skipping`);
+        continue;
+      }
+
+      const runs: MemoryResult[] = [];
+
+      for (let i = 0; i < MEMORY_RUNS; i++) {
+        process.stdout.write(
+          `  ${name.padEnd(14)} ${i + 1}/${MEMORY_RUNS}  `,
+        );
+        // Pass maxRecursionDepth via environment to memory-worker
+        process.env.JSSHAKER_DEPTH = depth.toString();
+        const result = await spawnMemoryWorker('jsshaker', inputPath, name, 'code');
+        delete process.env.JSSHAKER_DEPTH;
+        
+        if (result) {
+          runs.push(result);
+          const b = result.baselineRss / 1024 / 1024;
+          const d = result.peakRssDelta / 1024 / 1024;
+          process.stdout.write(
+            `${fmt(b)} MB  +${fmt(d)} MB  =${fmt(b + d)} MB` +
+            `  heap+${fmt(result.peakHeapDelta / 1024 / 1024)} MB\n`,
+          );
+        } else {
+          process.stdout.write('FAILED\n');
+        }
+      }
+
+      if (runs.length === 0) {
+        console.log(`  [${name}] all runs failed — skipping`);
+        continue;
+      }
+
+      const baselineRssMB = median(runs.map(r => r.baselineRss)) / 1024 / 1024;
+      const peakRssDeltaMB = median(runs.map(r => r.peakRssDelta)) / 1024 / 1024;
+      const peakHeapMB = median(runs.map(r => r.peakHeapDelta)) / 1024 / 1024;
+      const peakExternalMB = median(runs.map(r => r.peakExternalDelta)) / 1024 / 1024;
+      const finalRssMB = median(runs.map(r => r.finalRssDelta)) / 1024 / 1024;
+      const finalHeapMB = median(runs.map(r => r.finalHeapDelta)) / 1024 / 1024;
+
+      results[name] = {
+        baselineRssMB,
+        peakRssDeltaMB,
+        totalPeakRssMB: baselineRssMB + peakRssDeltaMB,
+        peakHeapMB,
+        peakExternalMB,
+        finalRssMB,
+        finalHeapMB,
+      };
+
+      console.log(
+        `  ${name.padEnd(14)} med  ${fmt(baselineRssMB)} MB` +
+        `  +${fmt(peakRssDeltaMB)} MB  =${fmt(baselineRssMB + peakRssDeltaMB)} MB` +
+        `  heap+${fmt(peakHeapMB)} MB` +
+        `  ext+${fmt(peakExternalMB)} MB` +
+        `  finalRSS+${fmt(finalRssMB)} MB`,
+      );
+    }
+
+    // Compute average
+    const dataEntries = Object.entries(results).filter(([k]) => k !== '_average');
+    if (dataEntries.length > 0) {
+      const avg = (key: keyof FileSummary): number =>
+        dataEntries.reduce((sum, [, v]) => sum + v[key], 0) / dataEntries.length;
+      results['_average'] = {
+        baselineRssMB: avg('baselineRssMB'),
+        peakRssDeltaMB: avg('peakRssDeltaMB'),
+        totalPeakRssMB: avg('totalPeakRssMB'),
+        peakHeapMB: avg('peakHeapMB'),
+        peakExternalMB: avg('peakExternalMB'),
+        finalRssMB: avg('finalRssMB'),
+        finalHeapMB: avg('finalHeapMB'),
+      };
+    }
+
+    memoryData[optimizerName] = results;
+
+    memoryData['_average'] ??= {};
+    const repVal =
+      dataEntries.reduce((s, [, v]) => s + v.totalPeakRssMB, 0) / dataEntries.length;
+    memoryData['_average'][optimizerName] = repVal;
+  }
+
+  await writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
+  console.log(`\nResults for all depths saved to memory.json`);
+}
+
 async function benchmarkAllMemory(): Promise<void> {
   const optimizers: OptimizerType[] = [
-    'jsshaker', 'terser', 'rollup', 'gcc', 'gccAdv',
+    'jsshaker',
+    'terser', 'rollup', 'gcc', 'gccAdv',
     'lacuna2', 'lacuna3', 'esbuild', 'rolldown',
   ];
   for (const optimizer of optimizers) {
     await benchmarkMemory(optimizer);
   }
+  
+  // Special jsshaker variants
+  await benchmarkJsshakerNoCache();
+  await benchmarkJsshakerDepths();
+  
   console.log('\nAll memory benchmarks completed!');
 }
 
 // ── entry point ──────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  const arg = process.argv[2] as OptimizerType | undefined;
+  const arg = process.argv[2];
 
   if (!arg) {
     console.log('No optimizer specified — running all memory benchmarks...');
@@ -410,18 +638,30 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Special cases for jsshaker variants
+  if (arg === 'jsshakerNoCache') {
+    await benchmarkJsshakerNoCache();
+    return;
+  }
+
+  if (arg === 'jsshakerDepths') {
+    await benchmarkJsshakerDepths();
+    return;
+  }
+
   const valid: OptimizerType[] = [
-    'jsshaker', 'terser', 'rollup', 'gcc', 'gccAdv',
+    'jsshaker',
+    'terser', 'rollup', 'gcc', 'gccAdv',
     'lacuna2', 'lacuna3', 'esbuild', 'rolldown',
   ];
 
-  if (!valid.includes(arg)) {
+  if (!valid.includes(arg as OptimizerType)) {
     console.error(`Unknown optimizer: ${arg}`);
-    console.error(`Available: ${valid.join(', ')}`);
+    console.error(`Available: ${valid.join(', ')}, jsshakerNoCache, jsshakerDepths`);
     process.exit(1);
   }
 
-  await benchmarkMemory(arg);
+  await benchmarkMemory(arg as OptimizerType);
 }
 
 main().catch(console.error);
