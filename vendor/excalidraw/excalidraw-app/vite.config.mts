@@ -1,4 +1,9 @@
 import path from "path";
+import { existsSync } from "node:fs";
+import { writeFile, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { spawn } from "node:child_process";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import svgrPlugin from "vite-plugin-svgr";
@@ -8,6 +13,42 @@ import checker from "vite-plugin-checker";
 import { createHtmlPlugin } from "vite-plugin-html";
 import Sitemap from "vite-plugin-sitemap";
 import { woff2BrowserPlugin } from "../scripts/woff2/woff2-vite-plugins";
+
+function ClocPlugin() {
+  const files = new Set<string>();
+  return {
+    name: "cloc-plugin",
+    transform: {
+      order: "pre" as const,
+      handler(_code: string, id: string) {
+        id = id.split("?")[0];
+        id = id[0] === "\0" ? id.slice(1) : id;
+        if (existsSync(id)) files.add(id);
+        return null;
+      },
+    },
+    async closeBundle() {
+      const listPath = join(tmpdir(), `cloc-list-${Date.now()}.txt`);
+      await writeFile(listPath, Array.from(files).join("\n"), "utf-8");
+      const result = await new Promise<string>((resolve, reject) => {
+        const child = spawn("cloc", ["--list-file", listPath, "--json", "--quiet"]);
+        let out = "";
+        child.stdout.on("data", (d: Buffer) => (out += d));
+        child.on("close", (code: number) => (code === 0 ? resolve(out) : reject(new Error(`cloc exit ${code}`))));
+        child.on("error", reject);
+      });
+      await unlink(listPath).catch(() => {});
+      const json = JSON.parse(result);
+      console.error("\n=== CLOC RESULT ===");
+      console.error(`Total files processed: ${files.size}`);
+      for (const [lang, stats] of Object.entries(json)) {
+        if (lang === "header") continue;
+        const s = stats as any;
+        console.error(`${lang}: files=${s.nFiles} code=${s.code} comment=${s.comment} blank=${s.blank}`);
+      }
+    },
+  };
+}
 export default defineConfig(({ mode }) => {
   // To load .env variables
   const envVars = loadEnv(mode, `../`);
@@ -118,6 +159,7 @@ export default defineConfig(({ mode }) => {
       assetsInlineLimit: 0,
     },
     plugins: [
+      ClocPlugin(),
       Sitemap({
         hostname: "https://excalidraw.com",
         outDir: "build",
