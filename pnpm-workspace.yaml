@@ -3,6 +3,8 @@ packages:
   - vendor/*
   - '!vendor/excalidraw'
   - '!vendor/vue-vben-admin'
+  - '!vendor/tldraw'
+  - vendor/bulletproof-react/apps/react-vite
   - vendor/Lacuna/analyzers/*
 
 onlyBuiltDependencies:
@@ -12,8 +14,12 @@ onlyBuiltDependencies:
   - esbuild
   - lmdb
   - msgpackr-extract
+  - msw
+  - phantomjs-prebuilt-that-works
   - puppeteer
+  - unrs-resolver
   - v8-profiler-next
+  - websocket
 
 overrides:
   esprima-ast-utils: 0.0.7

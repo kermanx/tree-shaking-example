@@ -22,6 +22,7 @@ transition: slide-left
 comark: true
 # duration of the presentation
 duration: 35min
+monaco: dev
 ---
 
 # Welcome to Slidev

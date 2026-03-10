@@ -12,7 +12,7 @@
     "scripts/*/src/**/*.ts",
     "scripts/*/src/**/*.json"
   ],
-  "globalEnv": ["NODE_ENV"],
+  "globalEnv": ["NODE_ENV", "NO_MIN", "CLOC"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
