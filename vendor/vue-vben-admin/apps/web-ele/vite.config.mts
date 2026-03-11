@@ -14,7 +14,7 @@ function ClocPlugin() {
       handler(_code: string, id: string) {
         const file = extractFile(id);
         if (file) files.add(file);
-        
+
         return null;
       },
     },
@@ -39,11 +39,12 @@ export default defineConfig(() => {
         }),
       ],
       build: {
-        minify: process.env.NO_MIN ? false : 'esbuild',
+        minify: false,
         rollupOptions: {
           output: {
             manualChunks: undefined,
             inlineDynamicImports: true,
+            entryFileNames: 'assets/index.mjs',
           },
         },
       },

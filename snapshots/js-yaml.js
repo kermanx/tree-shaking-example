@@ -76,8 +76,21 @@ function getLine(buffer, lineStart, lineEnd, position, maxLineLength) {
 function padStart(string, max) {
 	return common.b(" ", max - string.length) + string;
 }
-function makeSnippet(mark) {
+function makeSnippet(mark, options) {
+	options = Object.create(null);
 	if (!mark.buffer) return null;
+	{
+		options.a = 79;
+	}
+	{
+		options.b = 1;
+	}
+	{
+		options.c = 3;
+	}
+	{
+		options.d = 2;
+	}
 	var re = /\r?\n|\r|\0/g;
 	var lineStarts = [0];
 	var lineEnds = [];
@@ -92,20 +105,20 @@ function makeSnippet(mark) {
 	}
 	if (foundLineNo < 0) foundLineNo = lineStarts.length - 1;
 	var result = "", i, line;
-	var lineNoLength = Math.min(mark.line + 2, lineEnds.length).toString().length;
-	var maxLineLength = 79 - (1 + lineNoLength + 3);
-	for (i = 1; i <= 3; i++) {
+	var lineNoLength = Math.min(mark.line + options.d, lineEnds.length).toString().length;
+	var maxLineLength = options.a - (options.b + lineNoLength + 3);
+	for (i = 1; i <= options.c; i++) {
 		if (foundLineNo - i < 0) break;
 		line = getLine(mark.buffer, lineStarts[foundLineNo - i], lineEnds[foundLineNo - i], mark.position - (lineStarts[foundLineNo] - lineStarts[foundLineNo - i]), maxLineLength);
-		result = common.b(" ", 1) + padStart((mark.line - i + 1).toString(), lineNoLength) + " | " + line.str + "\n" + result;
+		result = common.b(" ", options.b) + padStart((mark.line - i + 1).toString(), lineNoLength) + " | " + line.str + "\n" + result;
 	}
 	line = getLine(mark.buffer, lineStarts[foundLineNo], lineEnds[foundLineNo], mark.position, maxLineLength);
-	result += common.b(" ", 1) + padStart((mark.line + 1).toString(), lineNoLength) + " | " + line.str + "\n";
-	result += common.b("-", 1 + lineNoLength + 3 + line.pos) + "^" + "\n";
-	for (i = 1; i <= 2; i++) {
+	result += common.b(" ", options.b) + padStart((mark.line + 1).toString(), lineNoLength) + " | " + line.str + "\n";
+	result += common.b("-", options.b + lineNoLength + 3 + line.pos) + "^" + "\n";
+	for (i = 1; i <= options.d; i++) {
 		if (foundLineNo + i >= lineEnds.length) break;
 		line = getLine(mark.buffer, lineStarts[foundLineNo + i], lineEnds[foundLineNo + i], mark.position - (lineStarts[foundLineNo] - lineStarts[foundLineNo + i]), maxLineLength);
-		result += common.b(" ", 1) + padStart((mark.line + i + 1).toString(), lineNoLength) + " | " + line.str + "\n";
+		result += common.b(" ", options.b) + padStart((mark.line + i + 1).toString(), lineNoLength) + " | " + line.str + "\n";
 	}
 	return result.replace(/\n$/, "");
 }

@@ -16,6 +16,7 @@ export const testCases: Record<string, TestCaseConfig> = {
   'lodash-es': { env: 'browser' },
   'rxjs': { env: 'browser' },
   'slidev-demo': { env: 'browser' },
+  'vben-ele': { env: 'browser' },
 };
 
 export function getTestCaseNames(): string[] {

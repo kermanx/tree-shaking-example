@@ -94,3 +94,17 @@ var navigation;
  * @type {!Navigation}
  */
 Window.prototype.navigation;
+
+// sessionStorage
+/** @type {!Object} */
+var sessionStorage;
+sessionStorage.getItem = function(name) {};
+sessionStorage.setItem = function(name, value) {};
+sessionStorage.removeItem = function(name) {};
+sessionStorage.clear = function() {};
+
+// innerWidth, innerHeight
+/** @type {number} */
+var innerWidth;
+/** @type {number} */
+var innerHeight;

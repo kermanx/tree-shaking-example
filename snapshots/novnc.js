@@ -4871,6 +4871,8 @@ function ZStream() {
 	this.next_in = 0;
 	/* number of bytes available at input */
 	this.avail_in = 0;
+	/* next output byte should be put there */
+	this.output = null;
 	this.next_out = 0;
 	/* remaining free space at output */
 	this.avail_out = 0;
