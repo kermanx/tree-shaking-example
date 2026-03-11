@@ -106,7 +106,6 @@ async function main() {
       r.fnCache.totalCalls.toString(),
       r.fnCache.cacheAttempts.toString(),
       r.fnCache.cacheHits.toString(),
-      r.fnCache.cacheMisses.toString(),
       r.fnCache.cacheUpdates.toString(),
     ]),
     [
@@ -115,7 +114,6 @@ async function main() {
       round(avg(results.map(r => r.fnCache.totalCalls))),
       round(avg(results.map(r => r.fnCache.cacheAttempts))),
       round(avg(results.map(r => r.fnCache.cacheHits))),
-      round(avg(results.map(r => r.fnCache.cacheMisses))),
       round(avg(results.map(r => r.fnCache.cacheUpdates))),
     ],
   );

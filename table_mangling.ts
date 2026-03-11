@@ -37,26 +37,24 @@ function loadGccMangling(): GccManglingData {
 }
 
 function generateLatexTable(rows: ManglingRow[], jsAvg: number, gccAvg: number): string {
-  let latex = '\\begin{table}[t]\n';
-  latex += '  \\scriptsize\n';
-  latex += '  \\centering\n';
-  latex += '  \\caption{Identifier mangling comparison between JsShaker and Google Closure Compiler. For JsShaker, staticAll shows the total number of static identifiers analyzed; for CC, total shows the weighted occurrence count. Mangling rates indicate the proportion of identifiers successfully shortened.}\n';
-  latex += '  \\label{tab:mangling-comparison}\n';
+  const avgCombinedTotal = rows.reduce((sum, r) => sum + (r.gccTotal + r.jsShakerStaticAll) / 2, 0) / rows.length;
+  let latex = '';
   latex += '  \\begin{tabular}{lrrrr}\n';
   latex += '    \\toprule\n';
-  latex += '    Program & CC\\textsubscript{Adv.} Total & CC\\textsubscript{Adv.} Rate (\\%) & JsShaker Total & JsShaker Rate (\\%) \\\\\n';
+  latex += '    Program & Total & CC\\textsubscript{Adv.} (\\%) & JsShaker (\\%) & JsShaker/CC (\\%) \\\\\n';
   latex += '    \\midrule\n';
 
   for (const row of rows) {
     const escapedName = row.name.replace(/_/g, '\\_');
-    latex += `    ${escapedName} & ${row.gccTotal.toLocaleString('en-US')} & ${(row.gccRate * 100).toFixed(2)} & ${row.jsShakerStaticAll.toLocaleString('en-US')} & ${(row.jsShakerRate * 100).toFixed(2)} \\\\\n`;
+    const combinedTotal = (row.gccTotal + row.jsShakerStaticAll) / 2;
+    const ratio = row.gccRate === 0 ? 0 : (row.jsShakerRate / row.gccRate) * 100;
+    latex += `    ${escapedName} & ${combinedTotal.toLocaleString('en-US', { maximumFractionDigits: 0 })} & ${(row.gccRate * 100).toFixed(2)} & ${(row.jsShakerRate * 100).toFixed(2)} & ${ratio.toFixed(2)} \\\\\n`;
   }
 
   latex += '    \\midrule\n';
-  latex += `    \\textbf{Average} & & \\textbf{${(gccAvg * 100).toFixed(2)}} & & \\textbf{${(jsAvg * 100).toFixed(2)}} \\\\\n`;
+  latex += `    \\textbf{Average} & \\textbf{${avgCombinedTotal.toLocaleString('en-US', { maximumFractionDigits: 0 })}} & \\textbf{${(gccAvg * 100).toFixed(2)}} & \\textbf{${(jsAvg * 100).toFixed(2)}} & \\textbf{${((jsAvg / gccAvg) * 100).toFixed(2)}} \\\\\n`;
   latex += '    \\bottomrule\n';
   latex += '  \\end{tabular}\n';
-  latex += '\\end{table}\n';
 
   return latex;
 }

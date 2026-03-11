@@ -31,10 +31,10 @@ NO_DCE_LABEL = True
 NO_BAR_SPACING = True
 
 # Configuration: Set the width of the figure in inches
-FIG_WIDTH = 8
+FIG_WIDTH = 6
 
 # Configuration: Minimum percentage value to display label on bar
-MIN_LABEL_VALUE = 3
+MIN_LABEL_VALUE = 5.3
 
 # Read ablation data
 with open('ablation.json', 'r') as f:
@@ -213,6 +213,8 @@ ax.grid(axis='x', alpha=0.3, linestyle='--')
 
 # Add percentage labels on bars (order: BF, CF, PM, DCE)
 for i, (bf, cf, pm, dce) in enumerate(zip(part4_ratios, part2_ratios, part3_ratios, part1_ratios)):
+    is_average_row = test_cases[i] == 'Average'
+
     # Only show labels if segment is large enough
     if NO_COLOR:
         # For black and white mode, add white background box for text clarity
@@ -222,16 +224,16 @@ for i, (bf, cf, pm, dce) in enumerate(zip(part4_ratios, part2_ratios, part3_rati
         bbox_props = None
         text_color = 'white'
     
-    if bf > MIN_LABEL_VALUE:
+    if is_average_row or bf > MIN_LABEL_VALUE:
         ax.text(bf/2, i, f'{bf:.1f}%', ha='center', va='center', fontsize=8, 
                 color=text_color, weight=600, bbox=bbox_props)
-    if cf > MIN_LABEL_VALUE:
+    if is_average_row or cf > MIN_LABEL_VALUE:
         ax.text(bf + cf/2, i, f'{cf:.1f}%', ha='center', va='center', fontsize=8, 
                 color=text_color, weight=600, bbox=bbox_props)
-    if pm > MIN_LABEL_VALUE:
+    if is_average_row or pm > MIN_LABEL_VALUE:
         ax.text(bf + cf + pm/2, i, f'{pm:.1f}%', ha='center', va='center', fontsize=8, 
                 color=text_color, weight=600, bbox=bbox_props)
-    if dce > MIN_LABEL_VALUE and not NO_DCE_LABEL:
+    if (is_average_row or dce > MIN_LABEL_VALUE) and not NO_DCE_LABEL:
         dce_start = bf + cf + pm
         
         if TRUNCATE_AT:

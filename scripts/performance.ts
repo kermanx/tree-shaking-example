@@ -78,8 +78,10 @@ async function benchmarkJsshaker(depths = [1, 2, 3, 4, 5]) {
     }
   }
 
-  await writeFile(join(import.meta.dirname, '../maxRecursionDepth.json'), JSON.stringify(results, null, 2));
-  console.log('\nResults saved to maxRecursionDepth.json');
+  if (depths.length === 5) {
+    await writeFile(join(import.meta.dirname, '../maxRecursionDepth.json'), JSON.stringify(results, null, 2));
+    console.log('\nResults saved to maxRecursionDepth.json');
+  }
 
   // Also save depth=DEFAULT_DEPTH results to time.json
   const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
@@ -581,45 +583,47 @@ async function main() {
     return;
   }
 
-  switch (optimizer) {
-    case 'jsshaker':
-      await benchmarkJsshaker([DEFAULT_DEPTH]);
-      break;
-    case 'jsshakerDepths':
-      await benchmarkJsshaker();
-      break;
-    case 'jsshakerNoCache':
-      await benchmarkJsshakerNoCache();
-      break;
-    case 'terser':
-      await benchmarkTerser();
-      break;
-    case 'rollup':
-      await benchmarkRollup();
-      break;
-    case 'gcc':
-      await benchmarkGcc();
-      break;
-    case 'gccAdv':
-      await benchmarkGccAdv();
-      break;
-    case 'lacuna2':
-      await benchmarkLacuna(2);
-      break;
-    case 'lacuna3':
-      await benchmarkLacuna(3);
-      break;
-    case 'esbuild':
-      await benchmarkEsbuild();
-      break;
-    case 'rolldown':
-      await benchmarkRolldown();
-      break;
-    default:
-      console.error(`Unknown optimizer: ${optimizer}`);
-      console.error('Available: jsshaker, jsshakerNoCache, terser, rollup, gcc, gccAdv, lacuna2, lacuna3, esbuild, rolldown');
-      console.error('Or run without arguments to test all optimizers');
-      process.exit(1);
+  for (const o of optimizer.split(',').map(s => s.trim())) {
+    switch (o) {
+      case 'jsshaker':
+        await benchmarkJsshaker([DEFAULT_DEPTH]);
+        break;
+      case 'jsshakerDepths':
+        await benchmarkJsshaker();
+        break;
+      case 'jsshakerNoCache':
+        await benchmarkJsshakerNoCache();
+        break;
+      case 'terser':
+        await benchmarkTerser();
+        break;
+      case 'rollup':
+        await benchmarkRollup();
+        break;
+      case 'gcc':
+        await benchmarkGcc();
+        break;
+      case 'gccAdv':
+        await benchmarkGccAdv();
+        break;
+      case 'lacuna2':
+        await benchmarkLacuna(2);
+        break;
+      case 'lacuna3':
+        await benchmarkLacuna(3);
+        break;
+      case 'esbuild':
+        await benchmarkEsbuild();
+        break;
+      case 'rolldown':
+        await benchmarkRolldown();
+        break;
+      default:
+        console.error(`Unknown optimizer: ${o}`);
+        console.error('Available: jsshaker, jsshakerNoCache, terser, rollup, gcc, gccAdv, lacuna2, lacuna3, esbuild, rolldown');
+        console.error('Or run without arguments to test all optimizers');
+        process.exit(1);
+    }
   }
 }
 
