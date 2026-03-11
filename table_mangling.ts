@@ -44,16 +44,16 @@ function generateLatexTable(rows: ManglingRow[], jsAvg: number, gccAvg: number):
   latex += '  \\label{tab:mangling-comparison}\n';
   latex += '  \\begin{tabular}{lrrrr}\n';
   latex += '    \\toprule\n';
-  latex += '    Program & JsShaker Static & JsShaker Rate & CC Total & CC Rate \\\\\n';
+  latex += '    Program & CC\\textsubscript{Adv.} Total & CC\\textsubscript{Adv.} Rate (\\%) & JsShaker Total & JsShaker Rate (\\%) \\\\\n';
   latex += '    \\midrule\n';
 
   for (const row of rows) {
     const escapedName = row.name.replace(/_/g, '\\_');
-    latex += `    ${escapedName} & ${row.jsShakerStaticAll.toLocaleString('en-US')} & ${(row.jsShakerRate * 100).toFixed(2)}\\% & ${row.gccTotal.toLocaleString('en-US')} & ${(row.gccRate * 100).toFixed(2)}\\% \\\\\n`;
+    latex += `    ${escapedName} & ${row.gccTotal.toLocaleString('en-US')} & ${(row.gccRate * 100).toFixed(2)} & ${row.jsShakerStaticAll.toLocaleString('en-US')} & ${(row.jsShakerRate * 100).toFixed(2)} \\\\\n`;
   }
 
   latex += '    \\midrule\n';
-  latex += `    \\textbf{Average} & & \\textbf{${(jsAvg * 100).toFixed(2)}\\%} & & \\textbf{${(gccAvg * 100).toFixed(2)}\\%} \\\\\n`;
+  latex += `    \\textbf{Average} & & \\textbf{${(gccAvg * 100).toFixed(2)}} & & \\textbf{${(jsAvg * 100).toFixed(2)}} \\\\\n`;
   latex += '    \\bottomrule\n';
   latex += '  \\end{tabular}\n';
   latex += '\\end{table}\n';
@@ -96,6 +96,10 @@ function main() {
 
   // Output to console
   console.log(latexTable);
+  
+  // Output comparison ratio
+  const ratio = (jsAvg / gccAvg) * 100;
+  console.log(`\nJsShaker mangling rate is ${ratio.toFixed(2)}% of CC mangling rate (${(jsAvg * 100).toFixed(2)}% / ${(gccAvg * 100).toFixed(2)}%)`);
 }
 
 main();

@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { existsSync } from 'node:fs';
 import { cwd } from 'node:process';
-import { countTotalLines } from './cloc.ts';
+import { countTotalLines, countTotalSize, extractFile, extractPackages } from './cloc.ts';
 
 interface BundleOptions {
   name: string;
@@ -211,13 +211,8 @@ function ClocPlugin(name: string) {
     transform: {
       order: 'pre',
       async handler(_code: string, id: string) {
-        id = id.split('?')[0];
-        id = id[0] === '\0' ? id.slice(1) : id;
-        if (!existsSync(id)) {
-          console.log(`Warning: file ${JSON.stringify(id)} does not exist`);
-        } else {
-          files.add(id);
-        }
+        const file = extractFile(id);
+        if (file) files.add(file);
         return null;
       }
     },
@@ -250,30 +245,6 @@ function ClocPlugin(name: string) {
   } satisfies import('rollup').Plugin;
 }
 
-import fsp from 'node:fs/promises';
-async function countTotalSize(files: Set<string>) {
-  const sizes = await Promise.all(
-    Array.from(files).map(async (file) => {
-      const stat = await fsp.stat(file);
-      return stat.size;
-    })
-  );
-  return sizes.reduce((a, b) => a + b, 0);
-}
-
-function extractPackages(files: Set<string>): Set<string> {
-  const packages = new Set<string>();
-  for (const file of files) {
-    // 匹配所有 node_modules/ 后的包名，取最后一个（支持 pnpm 的 .pnpm 目录结构）
-    const matches = file.matchAll(/node_modules\/(@[^/]+\/[^/]+|[^/@]+)/g);
-    const matchArray = Array.from(matches);
-    if (matchArray.length > 0) {
-      const lastMatch = matchArray[matchArray.length - 1];
-      packages.add(lastMatch[1]);
-    }
-  }
-  return packages;
-}
 
 function SkipCSS() {
   return {

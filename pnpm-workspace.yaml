@@ -15,7 +15,6 @@ onlyBuiltDependencies:
   - lmdb
   - msgpackr-extract
   - msw
-  - phantomjs-prebuilt-that-works
   - puppeteer
   - unrs-resolver
   - v8-profiler-next

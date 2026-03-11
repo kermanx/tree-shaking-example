@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { writeFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 // 1. 定义精确的类型接口
 export interface ClocLanguageStats {
@@ -97,4 +97,77 @@ function runCloc(args: string[]): Promise<ClocResult> {
       reject(new Error(`Failed to spawn cloc. Is it installed? Details: ${err.message}`));
     });
   });
+}
+
+
+import fsp from 'node:fs/promises';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+
+export function extractFile(id: string) {
+  id = id.split("?")[0];
+  id = id[0] === "\0" ? id.slice(1) : id;
+  if (id.endsWith('ts') || id.endsWith('tsx') || id.endsWith('js') || id.endsWith('jsx') || id.endsWith('svg')
+    || id.endsWith('vue') || id.endsWith('svelte') || id.endsWith('json'))
+    if (existsSync(id)) return id;
+  return null;
+}
+
+
+export async function countTotalSize(files: Set<string>) {
+  const sizes = await Promise.all(
+    Array.from(files).map(async (file) => {
+      const stat = await fsp.stat(file);
+      return stat.size;
+    })
+  );
+  return sizes.reduce((a, b) => a + b, 0);
+}
+
+
+export function extractPackages(files: Set<string>): Set<string> {
+  const packages = new Set<string>();
+  for (const file of files) {
+    // 匹配所有 node_modules/ 后的包名，取最后一个（支持 pnpm 的 .pnpm 目录结构）
+    const matches = file.matchAll(/node_modules\/(@[^/]+\/[^/]+|[^/@]+)/g);
+    const matchArray = Array.from(matches);
+    if (matchArray.length > 0) {
+      const lastMatch = matchArray[matchArray.length - 1];
+      packages.add(lastMatch[1]);
+    }
+  }
+  return packages;
+}
+
+const allPkgsPath = resolve(import.meta.dirname, '../allPackages.json');
+const allFilesPath = resolve(import.meta.dirname, '../allFiles.json');
+
+export function updateAllFilesAndPackages(newFiles: Set<string>, newPackages: Set<string>): void {
+  const oldAllPkgs = existsSync(allPkgsPath) ? JSON.parse(readFileSync(allPkgsPath, 'utf-8')) : [];
+  const newAllPkgs = [...new Set([...oldAllPkgs, ...newPackages])].sort();
+  writeFileSync(allPkgsPath, JSON.stringify(newAllPkgs, null, 2), 'utf-8');
+
+  const oldAllFiles = existsSync(allFilesPath) ? JSON.parse(readFileSync(allFilesPath, 'utf-8')) : [];
+  const newAllFiles = [...new Set([...oldAllFiles, ...newFiles])].sort();
+  writeFileSync(allFilesPath, JSON.stringify(newAllFiles, null, 2), 'utf-8');
+}
+
+if (import.meta.main) {
+  // Input: allPackages.json, allFiles.json
+  // Output: Total LOC, Total Size, Total Files, Total Packages
+  const files = new Set<string>(JSON.parse(readFileSync(allFilesPath, 'utf-8')));
+  const packages = new Set<string>(JSON.parse(readFileSync(allPkgsPath, 'utf-8')));
+
+  const totalLines = await countTotalLines(files);
+  const totalSize = await countTotalSize(files);
+
+  console.log(`Total Lines: ${totalLines.nFiles} files, ${totalLines.code} lines of code, ${totalLines.comment} comments, ${totalLines.blank} blank lines`);
+  console.log(`Total Size: ${totalSize} bytes`);
+  console.log(`Total Packages: ${packages.size}`);
+
+  const allSuffixes = new Set<string>();
+  for (const file of files) {
+    const suffix = file.split('.').pop();
+    if (suffix) allSuffixes.add(suffix);
+  }
+  console.log(`File Suffixes: ${Array.from(allSuffixes).sort().join(', ')}`);
 }

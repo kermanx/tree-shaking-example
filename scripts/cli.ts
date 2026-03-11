@@ -3,6 +3,7 @@ import { run } from './run.ts';
 import { existsSync, } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { getTestCaseNames, getTestCaseConfig } from './config.ts';
+import { updateAllFilesAndPackages } from './cloc.ts';
 
 export const summary: any = {};
 
@@ -81,6 +82,8 @@ async function main() {
           allPackages.add(lastMatch[1]);
         }
       }
+
+      updateAllFilesAndPackages(allFiles, allPackages);
 
       // 统计总体积
       const { stat } = await import('node:fs/promises');
