@@ -26,14 +26,25 @@ function ClocPlugin() {
 }
 
 export default defineConfig({
-  plugins: [ClocPlugin()],
+  plugins: [
+    ClocPlugin(),
+    {
+      name: 'override-config',
+      enforce: 'post',
+      config: {
+        order: 'post',
+        handler(config) {
+          // @ts-expect-error
+          config.build.rollupOptions.output.manualChunks = undefined
+          // @ts-expect-error
+          config.build.rollupOptions.output.inlineDynamicImports = {}
+          // @ts-expect-error
+          config.build.rollupOptions.output.entryFileNames = 'assets/index.mjs'
+        }
+      }
+    }
+  ],
   build: {
     minify: false,
-    // rollupOptions: {
-    // output: {
-    //   manualChunks: {},
-    //   inlineDynamicImports: true,
-    // },
-    // },
   },
 })

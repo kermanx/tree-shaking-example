@@ -3,13 +3,13 @@ var react_production = {};
 function requireReact_production() {
 	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context");
 	var hasOwnProperty = Object.prototype.hasOwnProperty;
-	function ReactElement(type, key, props) {
-		var refProp = props.ref;
+	function ReactElement(type, key, self, __unused_A493, __unused_A182, props) {
+		self = props.ref;
 		return {
 			$$typeof: REACT_ELEMENT_TYPE,
 			type,
 			key,
-			ref: void 0 !== refProp ? refProp : null,
+			ref: void 0 !== self ? self : null,
 			props
 		};
 	}
@@ -37,7 +37,7 @@ function requireReact_production() {
 			props.children = childArray;
 		}
 		if (type && type.defaultProps) for (propName in childrenLength = type.defaultProps, childrenLength) void 0 === props[propName] && (props[propName] = childrenLength[propName]);
-		return ReactElement(type, key, props);
+		return ReactElement(type, key, 0, 0, 0, props);
 	};
 	return react_production;
 }

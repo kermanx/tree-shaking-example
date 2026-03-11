@@ -39,7 +39,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
     const bundle = await rollup({
       input: entry,
       plugins: [
-        // PrivateToDollarPlugin(),
+        PrivateToDollarPlugin(),
         ClocPlugin(name),
         SkipCSS(),
         replace({

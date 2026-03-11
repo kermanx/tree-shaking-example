@@ -15,6 +15,7 @@ export const testCases: Record<string, TestCaseConfig> = {
   'material-ui': { env: 'browser' },
   'lodash-es': { env: 'browser' },
   'rxjs': { env: 'browser' },
+  'slidev-demo': { env: 'browser' },
 };
 
 export function getTestCaseNames(): string[] {

@@ -70,7 +70,7 @@ const slashPattern = /\\\\/g;
 const openPattern = /\\{/g;
 const closePattern = /\\}/g;
 const commaPattern = /\\,/g;
-const periodPattern = /\\./g;
+const periodPattern = /\\\./g;
 const EXPANSION_MAX = 1e5;
 function numeric(str) {
 	return !isNaN(str) ? parseInt(str, 10) : str.charCodeAt(0);
@@ -431,6 +431,7 @@ const unescape = (s, { windowsPathsNoEscape = false, magicalBraces = true } = {}
 	return windowsPathsNoEscape ? s.replace(/\[([^\/\\{}])\]/g, "$1") : s.replace(/((?!\\).|^)\[([^\/\\{}])\]/g, "$1$2").replace(/\\([^\/{}])/g, "$1");
 };
 // parse a single path portion
+var _a;
 const types = new Set([
 	"!",
 	"?",
@@ -439,6 +440,107 @@ const types = new Set([
 	"@"
 ]);
 const isExtglobType = (c) => types.has(c);
+const isExtglobAST = (c) => isExtglobType(c.type);
+// Map of which extglob types can adopt the children of a nested extglob
+//
+// anything but ! can adopt a matching type:
+// +(a|+(b|c)|d) => +(a|b|c|d)
+// *(a|*(b|c)|d) => *(a|b|c|d)
+// @(a|@(b|c)|d) => @(a|b|c|d)
+// ?(a|?(b|c)|d) => ?(a|b|c|d)
+//
+// * can adopt anything, because 0 or repetition is allowed
+// *(a|?(b|c)|d) => *(a|b|c|d)
+// *(a|+(b|c)|d) => *(a|b|c|d)
+// *(a|@(b|c)|d) => *(a|b|c|d)
+//
+// + can adopt @, because 1 or repetition is allowed
+// +(a|@(b|c)|d) => +(a|b|c|d)
+//
+// + and @ CANNOT adopt *, because 0 would be allowed
+// +(a|*(b|c)|d) => would match "", on *(b|c)
+// @(a|*(b|c)|d) => would match "", on *(b|c)
+//
+// + and @ CANNOT adopt ?, because 0 would be allowed
+// +(a|?(b|c)|d) => would match "", on ?(b|c)
+// @(a|?(b|c)|d) => would match "", on ?(b|c)
+//
+// ? can adopt @, because 0 or 1 is allowed
+// ?(a|@(b|c)|d) => ?(a|b|c|d)
+//
+// ? and @ CANNOT adopt * or +, because >1 would be allowed
+// ?(a|*(b|c)|d) => would match bbb on *(b|c)
+// @(a|*(b|c)|d) => would match bbb on *(b|c)
+// ?(a|+(b|c)|d) => would match bbb on +(b|c)
+// @(a|+(b|c)|d) => would match bbb on +(b|c)
+//
+// ! CANNOT adopt ! (nothing else can either)
+// !(a|!(b|c)|d) => !(a|b|c|d) would fail to match on b (not not b|c)
+//
+// ! can adopt @
+// !(a|@(b|c)|d) => !(a|b|c|d)
+//
+// ! CANNOT adopt *
+// !(a|*(b|c)|d) => !(a|b|c|d) would match on bbb, not allowed
+//
+// ! CANNOT adopt +
+// !(a|+(b|c)|d) => !(a|b|c|d) would match on bbb, not allowed
+//
+// ! CANNOT adopt ?
+// x!(a|?(b|c)|d) => x!(a|b|c|d) would fail to match "x"
+const adoptionMap = new Map([
+	["!", ["@"]],
+	["?", ["?", "@"]],
+	["@", ["@"]],
+	["*", [
+		"*",
+		"+",
+		"?",
+		"@"
+	]],
+	["+", ["+", "@"]]
+]);
+// nested extglobs that can be adopted in, but with the addition of
+// a blank '' element.
+const adoptionWithSpaceMap = new Map([
+	["!", ["?"]],
+	["@", ["?"]],
+	["+", ["?", "*"]]
+]);
+// union of the previous two maps
+const adoptionAnyMap = new Map([
+	["!", ["?", "@"]],
+	["?", ["?", "@"]],
+	["@", ["?", "@"]],
+	["*", [
+		"*",
+		"+",
+		"?",
+		"@"
+	]],
+	["+", [
+		"+",
+		"@",
+		"?",
+		"*"
+	]]
+]);
+// Extglobs that can take over their parent if they are the only child
+// the key is parent, value maps child to resulting extglob parent type
+// '@' is omitted because it's a special case. An `@` extglob with a single
+// member can always be usurped by that subpattern.
+const usurpMap = new Map([
+	["!", new Map([["!", "@"]])],
+	["?", new Map([["*", "*"], ["+", "*"]])],
+	["@", new Map([
+		["!", "!"],
+		["?", "?"],
+		["@", "@"],
+		["*", "*"],
+		["+", "+"]
+	])],
+	["+", new Map([["?", "*"], ["*", "*"]])]
+]);
 // Patterns that get prepended to bind to the start of either the
 // entire string, or just a single path portion, to prevent dots
 // and/or traversal patterns, when needed.
@@ -462,79 +564,96 @@ const star$1 = qmark$1 + "*?";
 const starNoEmpty = qmark$1 + "+?";
 // remove the \ chars that we added if we end up doing a nonmagic compare
 // const deslash = (s: string) => s.replace(/\\(.)/g, '$1')
+let ID = 0;
 class AST {
 	type;
-	#root;
-	#hasMagic;
-	#uflag = false;
-	#parts = [];
-	#parent;
-	#parentIndex;
-	#negs;
-	#filledNegs = false;
-	#options;
-	#toString;
+	$root;
+	$hasMagic;
+	$uflag = false;
+	$parts = [];
+	$parent;
+	$parentIndex;
+	$negs;
+	$filledNegs = false;
+	$options;
+	$toString;
 	// set to true if it's an extglob with no children
 	// (which really means one child of '')
-	#emptyExt = false;
+	$emptyExt = false;
+	id = ++ID;
+	get depth() {
+		return (this.$parent?.depth ?? -1) + 1;
+	}
+	[Symbol.for("nodejs.util.inspect.custom")]() {
+		return {
+			"@@type": "AST",
+			id: this.id,
+			type: this.type,
+			root: this.$root.id,
+			parent: this.$parent?.id,
+			depth: this.depth,
+			partsLength: this.$parts.length,
+			parts: this.$parts
+		};
+	}
 	constructor(type, parent, options = {}) {
 		this.type = type;
 		// extglobs are inherently magical
-		if (type) this.#hasMagic = true;
-		this.#parent = parent;
-		this.#root = this.#parent ? this.#parent.#root : this;
-		this.#options = this.#root === this ? options : this.#root.#options;
-		this.#negs = this.#root === this ? [] : this.#root.#negs;
-		if (type === "!" && !this.#root.#filledNegs) this.#negs.push(this);
-		this.#parentIndex = this.#parent ? this.#parent.#parts.length : 0;
+		if (type) this.$hasMagic = true;
+		this.$parent = parent;
+		this.$root = this.$parent ? this.$parent.$root : this;
+		this.$options = this.$root === this ? options : this.$root.$options;
+		this.$negs = this.$root === this ? [] : this.$root.$negs;
+		if (type === "!" && !this.$root.$filledNegs) this.$negs.push(this);
+		this.$parentIndex = this.$parent ? this.$parent.$parts.length : 0;
 	}
 	get hasMagic() {
 		/* c8 ignore start */
-		if (this.#hasMagic !== undefined) return this.#hasMagic;
+		if (this.$hasMagic !== undefined) return this.$hasMagic;
 		/* c8 ignore stop */
-		for (const p of this.#parts) {
+		for (const p of this.$parts) {
 			if (typeof p === "string") continue;
-			if (p.type || p.hasMagic) return this.#hasMagic = true;
+			if (p.type || p.hasMagic) return this.$hasMagic = true;
 		}
 		// note: will be undefined until we generate the regexp src and find out
-		return this.#hasMagic;
+		return this.$hasMagic;
 	}
 	// reconstructs the pattern
 	toString() {
-		if (this.#toString !== undefined) return this.#toString;
+		if (this.$toString !== undefined) return this.$toString;
 		if (!this.type) {
-			return this.#toString = this.#parts.map((p) => String(p)).join("");
+			return this.$toString = this.$parts.map((p) => String(p)).join("");
 		} else {
-			return this.#toString = this.type + "(" + this.#parts.map((p) => String(p)).join("|") + ")";
+			return this.$toString = this.type + "(" + this.$parts.map((p) => String(p)).join("|") + ")";
 		}
 	}
-	#fillNegs() {
+	$fillNegs() {
 		/* c8 ignore start */
-		if (this !== this.#root) throw new Error("should only call on root");
-		if (this.#filledNegs) return this;
+		if (this !== this.$root) throw new Error("should only call on root");
+		if (this.$filledNegs) return this;
 		/* c8 ignore stop */
 		// call toString() once to fill this out
 		this.toString();
-		this.#filledNegs = true;
+		this.$filledNegs = true;
 		let n;
-		while (n = this.#negs.pop()) {
+		while (n = this.$negs.pop()) {
 			if (n.type !== "!") continue;
 			// walk up the tree, appending everthing that comes AFTER parentIndex
 			let p = n;
-			let pp = p.#parent;
+			let pp = p.$parent;
 			while (pp) {
-				for (let i = p.#parentIndex + 1; !pp.type && i < pp.#parts.length; i++) {
-					for (const part of n.#parts) {
+				for (let i = p.$parentIndex + 1; !pp.type && i < pp.$parts.length; i++) {
+					for (const part of n.$parts) {
 						/* c8 ignore start */
 						if (typeof part === "string") {
 							throw new Error("string part in extglob AST??");
 						}
 						/* c8 ignore stop */
-						part.copyIn(pp.#parts[i]);
+						part.copyIn(pp.$parts[i]);
 					}
 				}
 				p = pp;
-				pp = p.#parent;
+				pp = p.$parent;
 			}
 		}
 		return this;
@@ -543,59 +662,60 @@ class AST {
 		for (const p of parts) {
 			if (p === "") continue;
 			/* c8 ignore start */
-			if (typeof p !== "string" && !(p instanceof AST && p.#parent === this)) {
+			if (typeof p !== "string" && !(p instanceof _a && p.$parent === this)) {
 				throw new Error("invalid part: " + p);
 			}
 			/* c8 ignore stop */
-			this.#parts.push(p);
+			this.$parts.push(p);
 		}
 	}
 	toJSON() {
-		const ret = this.type === null ? this.#parts.slice().map((p) => typeof p === "string" ? p : p.toJSON()) : [this.type, ...this.#parts.map((p) => p.toJSON())];
+		const ret = this.type === null ? this.$parts.slice().map((p) => typeof p === "string" ? p : p.toJSON()) : [this.type, ...this.$parts.map((p) => p.toJSON())];
 		if (this.isStart() && !this.type) ret.unshift([]);
-		if (this.isEnd() && (this === this.#root || this.#root.#filledNegs && this.#parent?.type === "!")) {
+		if (this.isEnd() && (this === this.$root || this.$root.$filledNegs && this.$parent?.type === "!")) {
 			ret.push({});
 		}
 		return ret;
 	}
 	isStart() {
-		if (this.#root === this) return true;
+		if (this.$root === this) return true;
 		// if (this.type) return !!this.#parent?.isStart()
-		if (!this.#parent?.isStart()) return false;
-		if (this.#parentIndex === 0) return true;
+		if (!this.$parent?.isStart()) return false;
+		if (this.$parentIndex === 0) return true;
 		// if everything AHEAD of this is a negation, then it's still the "start"
-		const p = this.#parent;
-		for (let i = 0; i < this.#parentIndex; i++) {
-			const pp = p.#parts[i];
-			if (!(pp instanceof AST && pp.type === "!")) {
+		const p = this.$parent;
+		for (let i = 0; i < this.$parentIndex; i++) {
+			const pp = p.$parts[i];
+			if (!(pp instanceof _a && pp.type === "!")) {
 				return false;
 			}
 		}
 		return true;
 	}
 	isEnd() {
-		if (this.#root === this) return true;
-		if (this.#parent?.type === "!") return true;
-		if (!this.#parent?.isEnd()) return false;
-		if (!this.type) return this.#parent?.isEnd();
+		if (this.$root === this) return true;
+		if (this.$parent?.type === "!") return true;
+		if (!this.$parent?.isEnd()) return false;
+		if (!this.type) return this.$parent?.isEnd();
 		// if not root, it'll always have a parent
 		/* c8 ignore start */
-		const pl = this.#parent ? this.#parent.#parts.length : 0;
+		const pl = this.$parent ? this.$parent.$parts.length : 0;
 		/* c8 ignore stop */
-		return this.#parentIndex === pl - 1;
+		return this.$parentIndex === pl - 1;
 	}
 	copyIn(part) {
 		if (typeof part === "string") this.push(part);
 		else this.push(part.clone(this));
 	}
 	clone(parent) {
-		const c = new AST(this.type, parent);
-		for (const p of this.#parts) {
+		const c = new _a(this.type, parent);
+		for (const p of this.$parts) {
 			c.copyIn(p);
 		}
 		return c;
 	}
-	static #parseAST(str, ast, pos, opt) {
+	static $parseAST(str, ast, pos, opt, extDepth) {
+		const maxDepth = opt.maxExtglobRecursion ?? 2;
 		let escaping = false;
 		let inBrace = false;
 		let braceStart = -1;
@@ -630,11 +750,14 @@ class AST {
 					acc += c;
 					continue;
 				}
-				if (!opt.noext && isExtglobType(c) && str.charAt(i) === "(") {
+				// we don't have to check for adoption here, because that's
+				// done at the other recursion point.
+				const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i) === "(" && extDepth <= maxDepth;
+				if (doRecurse) {
 					ast.push(acc);
 					acc = "";
-					const ext = new AST(c, ast);
-					i = AST.#parseAST(str, ext, i, opt);
+					const ext = new _a(c, ast);
+					i = _a.$parseAST(str, ext, i, opt, extDepth + 1);
 					ast.push(ext);
 					continue;
 				}
@@ -646,7 +769,7 @@ class AST {
 		// some kind of extglob, pos is at the (
 		// find the next | or )
 		let i = pos + 1;
-		let part = new AST(null, ast);
+		let part = new _a(null, ast);
 		const parts = [];
 		let acc = "";
 		while (i < str.length) {
@@ -675,24 +798,27 @@ class AST {
 				acc += c;
 				continue;
 			}
-			if (isExtglobType(c) && str.charAt(i) === "(") {
+			const doRecurse = !opt.noext && isExtglobType(c) && str.charAt(i) === "(" && (extDepth <= maxDepth || ast && ast.$canAdoptType(c));
+			/* c8 ignore stop */
+			if (doRecurse) {
+				const depthAdd = ast && ast.$canAdoptType(c) ? 0 : 1;
 				part.push(acc);
 				acc = "";
-				const ext = new AST(c, part);
+				const ext = new _a(c, part);
 				part.push(ext);
-				i = AST.#parseAST(str, ext, i, opt);
+				i = _a.$parseAST(str, ext, i, opt, extDepth + depthAdd);
 				continue;
 			}
 			if (c === "|") {
 				part.push(acc);
 				acc = "";
 				parts.push(part);
-				part = new AST(null, ast);
+				part = new _a(null, ast);
 				continue;
 			}
 			if (c === ")") {
-				if (acc === "" && ast.#parts.length === 0) {
-					ast.#emptyExt = true;
+				if (acc === "" && ast.$parts.length === 0) {
+					ast.$emptyExt = true;
 				}
 				part.push(acc);
 				acc = "";
@@ -705,13 +831,75 @@ class AST {
 		// if we got here, it was a malformed extglob! not an extglob, but
 		// maybe something else in there.
 		ast.type = null;
-		ast.#hasMagic = undefined;
-		ast.#parts = [str.substring(pos - 1)];
+		ast.$hasMagic = undefined;
+		ast.$parts = [str.substring(pos - 1)];
 		return i;
 	}
+	$canAdoptWithSpace(child) {
+		return this.$canAdopt(child, adoptionWithSpaceMap);
+	}
+	$canAdopt(child, map = adoptionMap) {
+		if (!child || typeof child !== "object" || child.type !== null || child.$parts.length !== 1 || this.type === null) {
+			return false;
+		}
+		const gc = child.$parts[0];
+		if (!gc || typeof gc !== "object" || gc.type === null) {
+			return false;
+		}
+		return this.$canAdoptType(gc.type, map);
+	}
+	$canAdoptType(c, map = adoptionAnyMap) {
+		return !!map.get(this.type)?.includes(c);
+	}
+	$adoptWithSpace(child, index) {
+		const gc = child.$parts[0];
+		const blank = new _a(null, gc, this.options);
+		blank.$parts.push("");
+		gc.push(blank);
+		this.$adopt(child, index);
+	}
+	$adopt(child, index) {
+		const gc = child.$parts[0];
+		this.$parts.splice(index, 1, ...gc.$parts);
+		for (const p of gc.$parts) {
+			if (typeof p === "object") p.$parent = this;
+		}
+		this.$toString = undefined;
+	}
+	$canUsurpType(c) {
+		const m = usurpMap.get(this.type);
+		return !!m?.has(c);
+	}
+	$canUsurp(child) {
+		if (!child || typeof child !== "object" || child.type !== null || child.$parts.length !== 1 || this.type === null || this.$parts.length !== 1) {
+			return false;
+		}
+		const gc = child.$parts[0];
+		if (!gc || typeof gc !== "object" || gc.type === null) {
+			return false;
+		}
+		return this.$canUsurpType(gc.type);
+	}
+	$usurp(child) {
+		const m = usurpMap.get(this.type);
+		const gc = child.$parts[0];
+		const nt = m?.get(gc.type);
+		/* c8 ignore start - impossible */
+		if (!nt) return false;
+		/* c8 ignore stop */
+		this.$parts = gc.$parts;
+		for (const p of this.$parts) {
+			if (typeof p === "object") {
+				p.$parent = this;
+			}
+		}
+		this.type = nt;
+		this.$toString = undefined;
+		this.$emptyExt = false;
+	}
 	static fromGlob(pattern, options = {}) {
-		const ast = new AST(null, undefined, options);
-		AST.#parseAST(pattern, ast, 0, options);
+		const ast = new _a(null, undefined, options);
+		_a.$parseAST(pattern, ast, 0, options, 0);
 		return ast;
 	}
 	// returns the regular expression if there's magic, or the unescaped
@@ -719,25 +907,25 @@ class AST {
 	toMMPattern() {
 		// should only be called on root
 		/* c8 ignore start */
-		if (this !== this.#root) return this.#root.toMMPattern();
+		if (this !== this.$root) return this.$root.toMMPattern();
 		/* c8 ignore stop */
 		const glob = this.toString();
 		const [re, body, hasMagic, uflag] = this.toRegExpSource();
 		// if we're in nocase mode, and not nocaseMagicOnly, then we do
 		// still need a regular expression if we have to case-insensitively
 		// match capital/lowercase characters.
-		const anyMagic = hasMagic || this.#hasMagic || this.#options.nocase && !this.#options.nocaseMagicOnly && glob.toUpperCase() !== glob.toLowerCase();
+		const anyMagic = hasMagic || this.$hasMagic || this.$options.nocase && !this.$options.nocaseMagicOnly && glob.toUpperCase() !== glob.toLowerCase();
 		if (!anyMagic) {
 			return body;
 		}
-		const flags = (this.#options.nocase ? "i" : "") + (uflag ? "u" : "");
+		const flags = (this.$options.nocase ? "i" : "") + (uflag ? "u" : "");
 		return Object.assign(new RegExp(`^${re}$`, flags), {
 			_src: re,
 			_glob: glob
 		});
 	}
 	get options() {
-		return this.#options;
+		return this.$options;
 	}
 	// returns the string match, the regexp source, whether there's magic
 	// in the regexp (so a regular expression is required) and whether or
@@ -809,24 +997,27 @@ class AST {
 	// is ^(?!\.), we can just prepend (?!\.) to the pattern (either root
 	// or start or whatever) and prepend ^ or / at the Regexp construction.
 	toRegExpSource(allowDot) {
-		const dot = allowDot ?? !!this.#options.dot;
-		if (this.#root === this) this.#fillNegs();
-		if (!this.type) {
-			const noEmpty = this.isStart() && this.isEnd() && !this.#parts.some((s) => typeof s !== "string");
-			const src = this.#parts.map((p) => {
-				const [re, _, hasMagic, uflag] = typeof p === "string" ? AST.#parseGlob(p, this.#hasMagic, noEmpty) : p.toRegExpSource(allowDot);
-				this.#hasMagic = this.#hasMagic || hasMagic;
-				this.#uflag = this.#uflag || uflag;
+		const dot = allowDot ?? !!this.$options.dot;
+		if (this.$root === this) {
+			this.$flatten();
+			this.$fillNegs();
+		}
+		if (!isExtglobAST(this)) {
+			const noEmpty = this.isStart() && this.isEnd() && !this.$parts.some((s) => typeof s !== "string");
+			const src = this.$parts.map((p) => {
+				const [re, _, hasMagic, uflag] = typeof p === "string" ? _a.$parseGlob(p, this.$hasMagic, noEmpty) : p.toRegExpSource(allowDot);
+				this.$hasMagic = this.$hasMagic || hasMagic;
+				this.$uflag = this.$uflag || uflag;
 				return re;
 			}).join("");
 			let start = "";
 			if (this.isStart()) {
-				if (typeof this.#parts[0] === "string") {
+				if (typeof this.$parts[0] === "string") {
 					// this is the string that will match the start of the pattern,
 					// so we need to protect against dots and such.
 					// '.' and '..' cannot match unless the pattern is that exactly,
 					// even if it starts with . or dot:true is set.
-					const dotTravAllowed = this.#parts.length === 1 && justDots.has(this.#parts[0]);
+					const dotTravAllowed = this.$parts.length === 1 && justDots.has(this.$parts[0]);
 					if (!dotTravAllowed) {
 						const aps = addPatternStart;
 						// check if we have a possibility of matching . or ..,
@@ -841,15 +1032,15 @@ class AST {
 			}
 			// append the "end of path portion" pattern to negation tails
 			let end = "";
-			if (this.isEnd() && this.#root.#filledNegs && this.#parent?.type === "!") {
+			if (this.isEnd() && this.$root.$filledNegs && this.$parent?.type === "!") {
 				end = "(?:$|\\/)";
 			}
 			const final = start + src + end;
 			return [
 				final,
 				unescape(src),
-				this.#hasMagic = !!this.#hasMagic,
-				this.#uflag
+				this.$hasMagic = !!this.$hasMagic,
+				this.$uflag
 			];
 		}
 		// We need to calculate the body *twice* if it's a repeat pattern
@@ -858,14 +1049,15 @@ class AST {
 		const repeated = this.type === "*" || this.type === "+";
 		// some kind of extglob
 		const start = this.type === "!" ? "(?:(?!(?:" : "(?:";
-		let body = this.#partsToRegExp(dot);
+		let body = this.$partsToRegExp(dot);
 		if (this.isStart() && this.isEnd() && !body && this.type !== "!") {
 			// invalid extglob, has to at least be *something* present, if it's
 			// the entire path portion.
 			const s = this.toString();
-			this.#parts = [s];
-			this.type = null;
-			this.#hasMagic = undefined;
+			const me = this;
+			me.$parts = [s];
+			me.type = null;
+			me.$hasMagic = undefined;
 			return [
 				s,
 				unescape(this.toString()),
@@ -873,8 +1065,7 @@ class AST {
 				false
 			];
 		}
-		// XXX abstract out this map method
-		let bodyDotAllowed = !repeated || allowDot || dot || !startNoDot ? "" : this.#partsToRegExp(true);
+		let bodyDotAllowed = !repeated || allowDot || dot || !startNoDot ? "" : this.$partsToRegExp(true);
 		if (bodyDotAllowed === body) {
 			bodyDotAllowed = "";
 		}
@@ -883,7 +1074,7 @@ class AST {
 		}
 		// an empty !() is exactly equivalent to a starNoEmpty
 		let final = "";
-		if (this.type === "!" && this.#emptyExt) {
+		if (this.type === "!" && this.$emptyExt) {
 			final = (this.isStart() && !dot ? startNoDot : "") + starNoEmpty;
 		} else {
 			const close = this.type === "!" ? "))" + (this.isStart() && !dot && !allowDot ? startNoDot : "") + star$1 + ")" : this.type === "@" ? ")" : this.type === "?" ? ")?" : this.type === "+" && bodyDotAllowed ? ")" : this.type === "*" && bodyDotAllowed ? `)?` : `)${this.type}`;
@@ -892,12 +1083,45 @@ class AST {
 		return [
 			final,
 			unescape(body),
-			this.#hasMagic = !!this.#hasMagic,
-			this.#uflag
+			this.$hasMagic = !!this.$hasMagic,
+			this.$uflag
 		];
 	}
-	#partsToRegExp(dot) {
-		return this.#parts.map((p) => {
+	$flatten() {
+		if (!isExtglobAST(this)) {
+			for (const p of this.$parts) {
+				if (typeof p === "object") {
+					p.$flatten();
+				}
+			}
+		} else {
+			// do up to 10 passes to flatten as much as possible
+			let iterations = 0;
+			let done = false;
+			do {
+				done = true;
+				for (let i = 0; i < this.$parts.length; i++) {
+					const c = this.$parts[i];
+					if (typeof c === "object") {
+						c.$flatten();
+						if (this.$canAdopt(c)) {
+							done = false;
+							this.$adopt(c, i);
+						} else if (this.$canAdoptWithSpace(c)) {
+							done = false;
+							this.$adoptWithSpace(c, i);
+						} else if (this.$canUsurp(c)) {
+							done = false;
+							this.$usurp(c);
+						}
+					}
+				}
+			} while (!done && ++iterations < 10);
+		}
+		this.$toString = undefined;
+	}
+	$partsToRegExp(dot) {
+		return this.$parts.map((p) => {
 			// extglob ASTs should only contain parent ASTs
 			/* c8 ignore start */
 			if (typeof p === "string") {
@@ -906,20 +1130,31 @@ class AST {
 			/* c8 ignore stop */
 			// can ignore hasMagic, because extglobs are already always magic
 			const [re, _, _hasMagic, uflag] = p.toRegExpSource(dot);
-			this.#uflag = this.#uflag || uflag;
+			this.$uflag = this.$uflag || uflag;
 			return re;
 		}).filter((p) => !(this.isStart() && this.isEnd()) || !!p).join("|");
 	}
-	static #parseGlob(glob, hasMagic, noEmpty = false) {
+	static $parseGlob(glob, hasMagic, noEmpty = false) {
 		let escaping = false;
 		let re = "";
 		let uflag = false;
+		// multiple stars that aren't globstars coalesce into one *
+		let inStar = false;
 		for (let i = 0; i < glob.length; i++) {
 			const c = glob.charAt(i);
 			if (escaping) {
 				escaping = false;
 				re += (reSpecials.has(c) ? "\\" : "") + c;
 				continue;
+			}
+			if (c === "*") {
+				if (inStar) continue;
+				inStar = true;
+				re += noEmpty && /^[*]+$/.test(glob) ? starNoEmpty : star$1;
+				hasMagic = true;
+				continue;
+			} else {
+				inStar = false;
 			}
 			if (c === "\\") {
 				if (i === glob.length - 1) {
@@ -939,11 +1174,6 @@ class AST {
 					continue;
 				}
 			}
-			if (c === "*") {
-				re += noEmpty && glob === "*" ? starNoEmpty : star$1;
-				hasMagic = true;
-				continue;
-			}
 			if (c === "?") {
 				re += qmark$1;
 				hasMagic = true;
@@ -959,6 +1189,7 @@ class AST {
 		];
 	}
 }
+_a = AST;
 /**
 * Escape all magic characters in a glob pattern.
 *
@@ -1118,7 +1349,7 @@ const braceExpand = (pattern, options = {}) => {
 		// shortcut. no need to expand.
 		return [pattern];
 	}
-	return expand(pattern);
+	return expand(pattern, { max: options.braceExpandMax });
 };
 minimatch.braceExpand = braceExpand;
 // parse a component of the expanded set.
@@ -1163,15 +1394,19 @@ class Minimatch {
 	isWindows;
 	platform;
 	windowsNoMagicRoot;
+	maxGlobstarRecursion;
 	regexp;
 	constructor(pattern, options = {}) {
 		assertValidPattern(pattern);
 		options = options || {};
 		this.options = options;
+		this.maxGlobstarRecursion = options.maxGlobstarRecursion ?? 200;
 		this.pattern = pattern;
 		this.platform = options.platform || defaultPlatform$2;
 		this.isWindows = this.platform === "win32";
-		this.windowsPathsNoEscape = !!options.windowsPathsNoEscape || options.allowWindowsEscape === false;
+		// avoid the annoying deprecation flag lol
+		const awe = "allowWindow" + "sEscape";
+		this.windowsPathsNoEscape = !!options.windowsPathsNoEscape || options[awe] === false;
 		if (this.windowsPathsNoEscape) {
 			this.pattern = this.pattern.replace(/\\/g, "/");
 		}
@@ -1268,7 +1503,7 @@ class Minimatch {
 	// to the right as possible, even if it increases the number
 	// of patterns that we have to process.
 	preprocess(globParts) {
-		// if we're not in globstar mode, then turn all ** into *
+		// if we're not in globstar mode, then turn ** into *
 		if (this.options.noglobstar) {
 			for (let i = 0; i < globParts.length; i++) {
 				for (let j = 0; j < globParts[i].length; j++) {
@@ -1524,7 +1759,8 @@ class Minimatch {
 	// out of pattern, then that's fine, as long as all
 	// the parts match.
 	matchOne(file, pattern, partial = false) {
-		const options = this.options;
+		let fileStartIndex = 0;
+		let patternStartIndex = 0;
 		// UNC paths like //?/X:/... can match X:/... and vice versa
 		// Drive letters in absolute drive or unc paths are always compared
 		// case-insensitively.
@@ -1537,13 +1773,11 @@ class Minimatch {
 			const pdi = patternUNC ? 3 : patternDrive ? 0 : undefined;
 			if (typeof fdi === "number" && typeof pdi === "number") {
 				const [fd, pd] = [file[fdi], pattern[pdi]];
+				// start matching at the drive letter index of each
 				if (fd.toLowerCase() === pd.toLowerCase()) {
 					pattern[pdi] = fd;
-					if (pdi > fdi) {
-						pattern = pattern.slice(pdi);
-					} else if (fdi > pdi) {
-						file = file.slice(fdi);
-					}
+					patternStartIndex = pdi;
+					fileStartIndex = fdi;
 				}
 			}
 		}
@@ -1553,100 +1787,170 @@ class Minimatch {
 		if (optimizationLevel >= 2) {
 			file = this.levelTwoFileOptimize(file);
 		}
-		this.debug("matchOne", this, {
-			file,
-			pattern
-		});
-		this.debug("matchOne", file.length, pattern.length);
-		for (var fi = 0, pi = 0, fl = file.length, pl = pattern.length; fi < fl && pi < pl; fi++, pi++) {
+		if (pattern.includes(GLOBSTAR)) {
+			return this.$matchGlobstar(file, pattern, partial, fileStartIndex, patternStartIndex);
+		}
+		return this.$matchOne(file, pattern, partial, fileStartIndex, patternStartIndex);
+	}
+	$matchGlobstar(file, pattern, partial, fileIndex, patternIndex) {
+		// split the pattern into head, tail, and middle of ** delimited parts
+		const firstgs = pattern.indexOf(GLOBSTAR, patternIndex);
+		const lastgs = pattern.lastIndexOf(GLOBSTAR);
+		// split the pattern up into globstar-delimited sections
+		// the tail has to be at the end, and the others just have
+		// to be found in order from the head.
+		const [head, body, tail] = partial ? [
+			pattern.slice(patternIndex, firstgs),
+			pattern.slice(firstgs + 1),
+			[]
+		] : [
+			pattern.slice(patternIndex, firstgs),
+			pattern.slice(firstgs + 1, lastgs),
+			pattern.slice(lastgs + 1)
+		];
+		// check the head, from the current file/pattern index.
+		if (head.length) {
+			const fileHead = file.slice(fileIndex, fileIndex + head.length);
+			if (!this.$matchOne(fileHead, head, partial, 0, 0)) {
+				return false;
+			}
+			fileIndex += head.length;
+			patternIndex += head.length;
+		}
+		// now we know the head matches!
+		// if the last portion is not empty, it MUST match the end
+		// check the tail
+		let fileTailMatch = 0;
+		if (tail.length) {
+			// if head + tail > file, then we cannot possibly match
+			if (tail.length + fileIndex > file.length) return false;
+			// try to match the tail
+			let tailStart = file.length - tail.length;
+			if (this.$matchOne(file, tail, partial, tailStart, 0)) {
+				fileTailMatch = tail.length;
+			} else {
+				// affordance for stuff like a/**/* matching a/b/
+				// if the last file portion is '', and there's more to the pattern
+				// then try without the '' bit.
+				if (file[file.length - 1] !== "" || fileIndex + tail.length === file.length) {
+					return false;
+				}
+				tailStart--;
+				if (!this.$matchOne(file, tail, partial, tailStart, 0)) {
+					return false;
+				}
+				fileTailMatch = tail.length + 1;
+			}
+		}
+		// now we know the tail matches!
+		// the middle is zero or more portions wrapped in **, possibly
+		// containing more ** sections.
+		// so a/**/b/**/c/**/d has become **/b/**/c/**
+		// if it's empty, it means a/**/b, just verify we have no bad dots
+		// if there's no tail, so it ends on /**, then we must have *something*
+		// after the head, or it's not a matc
+		if (!body.length) {
+			let sawSome = !!fileTailMatch;
+			for (let i = fileIndex; i < file.length - fileTailMatch; i++) {
+				const f = String(file[i]);
+				sawSome = true;
+				if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
+					return false;
+				}
+			}
+			// in partial mode, we just need to get past all file parts
+			return partial || sawSome;
+		}
+		// now we know that there's one or more body sections, which can
+		// be matched anywhere from the 0 index (because the head was pruned)
+		// through to the length-fileTailMatch index.
+		// split the body up into sections, and note the minimum index it can
+		// be found at (start with the length of all previous segments)
+		// [section, before, after]
+		const bodySegments = [[[], 0]];
+		let currentBody = bodySegments[0];
+		let nonGsParts = 0;
+		const nonGsPartsSums = [0];
+		for (const b of body) {
+			if (b === GLOBSTAR) {
+				nonGsPartsSums.push(nonGsParts);
+				currentBody = [[], 0];
+				bodySegments.push(currentBody);
+			} else {
+				currentBody[0].push(b);
+				nonGsParts++;
+			}
+		}
+		let i = bodySegments.length - 1;
+		const fileLength = file.length - fileTailMatch;
+		for (const b of bodySegments) {
+			b[1] = fileLength - (nonGsPartsSums[i--] + b[0].length);
+		}
+		return !!this.$matchGlobStarBodySections(file, bodySegments, fileIndex, 0, partial, 0, !!fileTailMatch);
+	}
+	// return false for "nope, not matching"
+	// return null for "not matching, cannot keep trying"
+	$matchGlobStarBodySections(file, bodySegments, fileIndex, bodyIndex, partial, globStarDepth, sawTail) {
+		// take the first body segment, and walk from fileIndex to its "after"
+		// value at the end
+		// If it doesn't match at that position, we increment, until we hit
+		// that final possible position, and give up.
+		// If it does match, then advance and try to rest.
+		// If any of them fail we keep walking forward.
+		// this is still a bit recursively painful, but it's more constrained
+		// than previous implementations, because we never test something that
+		// can't possibly be a valid matching condition.
+		const bs = bodySegments[bodyIndex];
+		if (!bs) {
+			// just make sure that there's no bad dots
+			for (let i = fileIndex; i < file.length; i++) {
+				sawTail = true;
+				const f = file[i];
+				if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
+					return false;
+				}
+			}
+			return sawTail;
+		}
+		// have a non-globstar body section to test
+		const [body, after] = bs;
+		while (fileIndex <= after) {
+			const m = this.$matchOne(file.slice(0, fileIndex + body.length), body, partial, fileIndex, 0);
+			// if limit exceeded, no match. intentional false negative,
+			// acceptable break in correctness for security.
+			if (m && globStarDepth < this.maxGlobstarRecursion) {
+				// match! see if the rest match. if so, we're done!
+				const sub = this.$matchGlobStarBodySections(file, bodySegments, fileIndex + body.length, bodyIndex + 1, partial, globStarDepth + 1, sawTail);
+				if (sub !== false) {
+					return sub;
+				}
+			}
+			const f = file[fileIndex];
+			if (f === "." || f === ".." || !this.options.dot && f.startsWith(".")) {
+				return false;
+			}
+			fileIndex++;
+		}
+		// walked off. no point continuing
+		return partial || null;
+	}
+	$matchOne(file, pattern, partial, fileIndex, patternIndex) {
+		let fi;
+		let pi;
+		let pl;
+		let fl;
+		for (fi = fileIndex, pi = patternIndex, fl = file.length, pl = pattern.length; fi < fl && pi < pl; fi++, pi++) {
 			this.debug("matchOne loop");
-			var p = pattern[pi];
-			var f = file[fi];
+			let p = pattern[pi];
+			let f = file[fi];
 			this.debug(pattern, p, f);
 			// should be impossible.
 			// some invalid regexp stuff in the set.
 			/* c8 ignore start */
-			if (p === false) {
+			if (p === false || p === GLOBSTAR) {
 				return false;
 			}
 			/* c8 ignore stop */
-			if (p === GLOBSTAR) {
-				this.debug("GLOBSTAR", [
-					pattern,
-					p,
-					f
-				]);
-				// "**"
-				// a/**/b/**/c would match the following:
-				// a/b/x/y/z/c
-				// a/x/y/z/b/c
-				// a/b/x/b/x/c
-				// a/b/c
-				// To do this, take the rest of the pattern after
-				// the **, and see if it would match the file remainder.
-				// If so, return success.
-				// If not, the ** "swallows" a segment, and try again.
-				// This is recursively awful.
-				//
-				// a/**/b/**/c matching a/b/x/y/z/c
-				// - a matches a
-				// - doublestar
-				//   - matchOne(b/x/y/z/c, b/**/c)
-				//     - b matches b
-				//     - doublestar
-				//       - matchOne(x/y/z/c, c) -> no
-				//       - matchOne(y/z/c, c) -> no
-				//       - matchOne(z/c, c) -> no
-				//       - matchOne(c, c) yes, hit
-				var fr = fi;
-				var pr = pi + 1;
-				if (pr === pl) {
-					this.debug("** at the end");
-					// a ** at the end will just swallow the rest.
-					// We have found a match.
-					// however, it will not swallow /.x, unless
-					// options.dot is set.
-					// . and .. are *never* matched by **, for explosively
-					// exponential reasons.
-					for (; fi < fl; fi++) {
-						if (file[fi] === "." || file[fi] === ".." || !options.dot && file[fi].charAt(0) === ".") return false;
-					}
-					return true;
-				}
-				// ok, let's see if we can swallow whatever we can.
-				while (fr < fl) {
-					var swallowee = file[fr];
-					this.debug("\nglobstar while", file, fr, pattern, pr, swallowee);
-					// XXX remove this slice.  Just pass the start index.
-					if (this.matchOne(file.slice(fr), pattern.slice(pr), partial)) {
-						this.debug("globstar found match!", fr, fl, swallowee);
-						// found a match.
-						return true;
-					} else {
-						// can't swallow "." or ".." ever.
-						// can only swallow ".foo" when explicitly asked.
-						if (swallowee === "." || swallowee === ".." || !options.dot && swallowee.charAt(0) === ".") {
-							this.debug("dot detected!", file, fr, pattern, pr);
-							break;
-						}
-						// ** swallows a segment, and continue.
-						this.debug("globstar swallow a segment, and continue");
-						fr++;
-					}
-				}
-				// no match was found.
-				// However, in partial mode, we can't say this is necessarily over.
-				/* c8 ignore start */
-				if (partial) {
-					// ran out of file
-					this.debug("\n>>> no match, partial?", file, fr, pattern, pr);
-					if (fr === fl) {
-						return true;
-					}
-				}
-				/* c8 ignore stop */
-				return false;
-			}
 			// something other than **
 			// non-magic patterns just have to match exactly
 			// patterns with magic have been turned into regexps.
@@ -1883,1499 +2187,605 @@ minimatch.AST = AST;
 minimatch.Minimatch = Minimatch;
 minimatch.escape = escape;
 minimatch.unescape = unescape;
-/**
-* @module LRUCache
-*/
-const defaultPerf = typeof performance === "object" && performance && typeof performance.now === "function" ? performance : Date;
-const warned = new Set();
-/* c8 ignore start */
-const PROCESS = typeof process === "object" && !!process ? process : {};
-/* c8 ignore start */
-const emitWarning = (msg, type, code, fn) => {
-	typeof PROCESS.emitWarning === "function" ? PROCESS.emitWarning(msg, type, code, fn) : console.error(`[${code}] ${type}: ${msg}`);
-};
-let AC = globalThis.AbortController;
-let AS = globalThis.AbortSignal;
-/* c8 ignore start */
-if (typeof AC === "undefined") {
-	//@ts-ignore
-	AS = class AbortSignal {
+var M = typeof performance == "object" && performance && typeof performance.now == "function" ? performance : Date, I = new Set(), R = typeof process == "object" && process ? process : {}, x = (a, t, e, i) => {
+	typeof R.emitWarning == "function" ? R.emitWarning(a, t, e, i) : console.error(`[${e}] ${t}: ${a}`);
+}, C = globalThis.AbortController, D = globalThis.AbortSignal;
+if (typeof C > "u") {
+	D = class {
 		onabort;
 		_onabort = [];
 		reason;
 		aborted = false;
-		addEventListener(_, fn) {
-			this._onabort.push(fn);
+		addEventListener(i, s) {
+			this._onabort.push(s);
 		}
-	};
-	//@ts-ignore
-	AC = class AbortController {
+	}, C = class {
 		constructor() {
-			warnACPolyfill();
+			t();
 		}
-		signal = new AS();
-		abort(reason) {
-			if (this.signal.aborted) return;
-			//@ts-ignore
-			this.signal.reason = reason;
-			//@ts-ignore
-			this.signal.aborted = true;
-			//@ts-ignore
-			for (const fn of this.signal._onabort) {
-				fn(reason);
+		signal = new D();
+		abort(i) {
+			if (!this.signal.aborted) {
+				this.signal.reason = i, this.signal.aborted = true;
+				for (let s of this.signal._onabort) s(i);
+				this.signal.onabort?.(i);
 			}
-			this.signal.onabort?.(reason);
 		}
 	};
-	let printACPolyfillWarning = PROCESS.env?.LRU_CACHE_IGNORE_AC_WARNING !== "1";
-	const warnACPolyfill = () => {
-		if (!printACPolyfillWarning) return;
-		printACPolyfillWarning = false;
-		emitWarning("AbortController is not defined. If using lru-cache in " + "node 14, load an AbortController polyfill from the " + "`node-abort-controller` package. A minimal polyfill is " + "provided for use by LRUCache.fetch(), but it should not be " + "relied upon in other contexts (eg, passing it to other APIs that " + "use AbortController/AbortSignal might have undesirable effects). " + "You may disable this with LRU_CACHE_IGNORE_AC_WARNING=1 in the env.", "NO_ABORT_CONTROLLER", "ENOTSUP", warnACPolyfill);
+	let a = R.env?.LRU_CACHE_IGNORE_AC_WARNING !== "1", t = () => {
+		a && (a = false, x("AbortController is not defined. If using lru-cache in node 14, load an AbortController polyfill from the `node-abort-controller` package. A minimal polyfill is provided for use by LRUCache.fetch(), but it should not be relied upon in other contexts (eg, passing it to other APIs that use AbortController/AbortSignal might have undesirable effects). You may disable this with LRU_CACHE_IGNORE_AC_WARNING=1 in the env.", "NO_ABORT_CONTROLLER", "ENOTSUP", t));
 	};
 }
-/* c8 ignore stop */
-const shouldWarn = (code) => !warned.has(code);
-const isPosInt = (n) => n && n === Math.floor(n) && n > 0 && isFinite(n);
-/* c8 ignore start */
-// This is a little bit ridiculous, tbh.
-// The maximum array length is 2^32-1 or thereabouts on most JS impls.
-// And well before that point, you're caching the entire world, I mean,
-// that's ~32GB of just integers for the next/prev links, plus whatever
-// else to hold that many keys and values.  Just filling the memory with
-// zeroes at init time is brutal when you get that big.
-// But why not be complete?
-// Maybe in the future, these limits will have expanded.
-const getUintArray = (max) => !isPosInt(max) ? null : max <= Math.pow(2, 8) ? Uint8Array : max <= Math.pow(2, 16) ? Uint16Array : max <= Math.pow(2, 32) ? Uint32Array : max <= Number.MAX_SAFE_INTEGER ? ZeroArray : null;
-/* c8 ignore stop */
-class ZeroArray extends Array {
-	constructor(size) {
-		super(size);
-		this.fill(0);
+var G = (a) => !I.has(a), y = (a) => a && a === Math.floor(a) && a > 0 && isFinite(a), U = (a) => y(a) ? a <= Math.pow(2, 8) ? Uint8Array : a <= Math.pow(2, 16) ? Uint16Array : a <= Math.pow(2, 32) ? Uint32Array : a <= Number.MAX_SAFE_INTEGER ? z : null : null, z = class extends Array {
+	constructor(t) {
+		super(t), this.fill(0);
 	}
-}
-class Stack {
+}, W = class a {
 	heap;
 	length;
-	// private constructor
-	static #constructing = false;
-	static create(max) {
-		const HeapCls = getUintArray(max);
-		if (!HeapCls) return [];
-		Stack.#constructing = true;
-		const s = new Stack(max, HeapCls);
-		Stack.#constructing = false;
-		return s;
+	static$o = false;
+	static create(t) {
+		let e = U(t);
+		if (!e) return [];
+		a.$o = true;
+		let i = new a(t, e);
+		return a.$o = false, i;
 	}
-	constructor(max, HeapCls) {
-		/* c8 ignore start */
-		if (!Stack.#constructing) {
-			throw new TypeError("instantiate Stack using Stack.create(n)");
-		}
-		/* c8 ignore stop */
-		this.heap = new HeapCls(max);
-		this.length = 0;
+	constructor(t, e) {
+		if (!a.$o) throw new TypeError("instantiate Stack using Stack.create(n)");
+		this.heap = new e(t), this.length = 0;
 	}
-	push(n) {
-		this.heap[this.length++] = n;
+	push(t) {
+		this.heap[this.length++] = t;
 	}
 	pop() {
 		return this.heap[--this.length];
 	}
-}
-/**
-* Default export, the thing you're using this module to get.
-*
-* The `K` and `V` types define the key and value types, respectively. The
-* optional `FC` type defines the type of the `context` object passed to
-* `cache.fetch()` and `cache.memo()`.
-*
-* Keys and values **must not** be `null` or `undefined`.
-*
-* All properties from the options object (with the exception of `max`,
-* `maxSize`, `fetchMethod`, `memoMethod`, `dispose` and `disposeAfter`) are
-* added as normal public members. (The listed options are read-only getters.)
-*
-* Changing any of these will alter the defaults for subsequent method calls.
-*/
-class LRUCache {
-	// options that cannot be changed without disaster
-	#max;
-	#maxSize;
-	#dispose;
-	#onInsert;
-	#disposeAfter;
-	#fetchMethod;
-	#memoMethod;
-	#perf;
-	/**
-	* {@link LRUCache.OptionsBase.perf}
-	*/
+}, L = class a {
+	$o;
+	$c;
+	$w;
+	$C;
+	$S;
+	$L;
+	$I;
+	$m;
 	get perf() {
-		return this.#perf;
+		return this.$m;
 	}
-	/**
-	* {@link LRUCache.OptionsBase.ttl}
-	*/
 	ttl;
-	/**
-	* {@link LRUCache.OptionsBase.ttlResolution}
-	*/
 	ttlResolution;
-	/**
-	* {@link LRUCache.OptionsBase.ttlAutopurge}
-	*/
 	ttlAutopurge;
-	/**
-	* {@link LRUCache.OptionsBase.updateAgeOnGet}
-	*/
 	updateAgeOnGet;
-	/**
-	* {@link LRUCache.OptionsBase.updateAgeOnHas}
-	*/
 	updateAgeOnHas;
-	/**
-	* {@link LRUCache.OptionsBase.allowStale}
-	*/
 	allowStale;
-	/**
-	* {@link LRUCache.OptionsBase.noDisposeOnSet}
-	*/
 	noDisposeOnSet;
-	/**
-	* {@link LRUCache.OptionsBase.noUpdateTTL}
-	*/
 	noUpdateTTL;
-	/**
-	* {@link LRUCache.OptionsBase.maxEntrySize}
-	*/
 	maxEntrySize;
-	/**
-	* {@link LRUCache.OptionsBase.sizeCalculation}
-	*/
 	sizeCalculation;
-	/**
-	* {@link LRUCache.OptionsBase.noDeleteOnFetchRejection}
-	*/
 	noDeleteOnFetchRejection;
-	/**
-	* {@link LRUCache.OptionsBase.noDeleteOnStaleGet}
-	*/
 	noDeleteOnStaleGet;
-	/**
-	* {@link LRUCache.OptionsBase.allowStaleOnFetchAbort}
-	*/
 	allowStaleOnFetchAbort;
-	/**
-	* {@link LRUCache.OptionsBase.allowStaleOnFetchRejection}
-	*/
 	allowStaleOnFetchRejection;
-	/**
-	* {@link LRUCache.OptionsBase.ignoreFetchAbort}
-	*/
 	ignoreFetchAbort;
-	// computed properties
-	#size;
-	#calculatedSize;
-	#keyMap;
-	#keyList;
-	#valList;
-	#next;
-	#prev;
-	#head;
-	#tail;
-	#free;
-	#disposed;
-	#sizes;
-	#starts;
-	#ttls;
-	#autopurgeTimers;
-	#hasDispose;
-	#hasFetchMethod;
-	#hasDisposeAfter;
-	#hasOnInsert;
-	/**
-	* Do not call this method unless you need to inspect the
-	* inner workings of the cache.  If anything returned by this
-	* object is modified in any way, strange breakage may occur.
-	*
-	* These fields are private for a reason!
-	*
-	* @internal
-	*/
-	static unsafeExposeInternals(c) {
+	$n;
+	$_;
+	$s;
+	$i;
+	$t;
+	$a;
+	$u;
+	$l;
+	$h;
+	$b;
+	$r;
+	$y;
+	$A;
+	$d;
+	$g;
+	$T;
+	$v;
+	$f;
+	$x;
+	static unsafeExposeInternals(t) {
 		return {
-			starts: c.#starts,
-			ttls: c.#ttls,
-			autopurgeTimers: c.#autopurgeTimers,
-			sizes: c.#sizes,
-			keyMap: c.#keyMap,
-			keyList: c.#keyList,
-			valList: c.#valList,
-			next: c.#next,
-			prev: c.#prev,
+			starts: t.$A,
+			ttls: t.$d,
+			autopurgeTimers: t.$g,
+			sizes: t.$y,
+			keyMap: t.$s,
+			keyList: t.$i,
+			valList: t.$t,
+			next: t.$a,
+			prev: t.$u,
 			get head() {
-				return c.#head;
+				return t.$l;
 			},
 			get tail() {
-				return c.#tail;
+				return t.$h;
 			},
-			free: c.#free,
-			isBackgroundFetch: (p) => c.#isBackgroundFetch(p),
-			backgroundFetch: (k, index, options, context) => c.#backgroundFetch(k, index, options, context),
-			moveToTail: (index) => c.#moveToTail(index),
-			indexes: (options) => c.#indexes(options),
-			rindexes: (options) => c.#rindexes(options),
-			isStale: (index) => c.#isStale(index)
+			free: t.$b,
+			isBackgroundFetch: (e) => t.$e(e),
+			backgroundFetch: (e, i, s, h) => t.$G(e, i, s, h),
+			moveToTail: (e) => t.$D(e),
+			indexes: (e) => t.$F(e),
+			rindexes: (e) => t.$O(e),
+			isStale: (e) => t.$p(e)
 		};
 	}
-	// Protected read-only members
-	/**
-	* {@link LRUCache.OptionsBase.max} (read-only)
-	*/
 	get max() {
-		return this.#max;
+		return this.$o;
 	}
-	/**
-	* {@link LRUCache.OptionsBase.maxSize} (read-only)
-	*/
 	get maxSize() {
-		return this.#maxSize;
+		return this.$c;
 	}
-	/**
-	* The total computed size of items in the cache (read-only)
-	*/
 	get calculatedSize() {
-		return this.#calculatedSize;
+		return this.$_;
 	}
-	/**
-	* The number of items stored in the cache (read-only)
-	*/
 	get size() {
-		return this.#size;
+		return this.$n;
 	}
-	/**
-	* {@link LRUCache.OptionsBase.fetchMethod} (read-only)
-	*/
 	get fetchMethod() {
-		return this.#fetchMethod;
+		return this.$L;
 	}
 	get memoMethod() {
-		return this.#memoMethod;
+		return this.$I;
 	}
-	/**
-	* {@link LRUCache.OptionsBase.dispose} (read-only)
-	*/
 	get dispose() {
-		return this.#dispose;
+		return this.$w;
 	}
-	/**
-	* {@link LRUCache.OptionsBase.onInsert} (read-only)
-	*/
 	get onInsert() {
-		return this.#onInsert;
+		return this.$C;
 	}
-	/**
-	* {@link LRUCache.OptionsBase.disposeAfter} (read-only)
-	*/
 	get disposeAfter() {
-		return this.#disposeAfter;
+		return this.$S;
 	}
-	constructor(options) {
-		const { max = 0, ttl, ttlResolution = 1, ttlAutopurge, updateAgeOnGet, updateAgeOnHas, allowStale, dispose, onInsert, disposeAfter, noDisposeOnSet, noUpdateTTL, maxSize = 0, maxEntrySize = 0, sizeCalculation, fetchMethod, memoMethod, noDeleteOnFetchRejection, noDeleteOnStaleGet, allowStaleOnFetchRejection, allowStaleOnFetchAbort, ignoreFetchAbort, perf } = options;
-		if (perf !== undefined) {
-			if (typeof perf?.now !== "function") {
-				throw new TypeError("perf option must have a now() method if specified");
-			}
+	constructor(t) {
+		let { max: e = 0, ttl: i, ttlResolution: s = 1, ttlAutopurge: h, updateAgeOnGet: n, updateAgeOnHas: o, allowStale: r, dispose: f, onInsert: m, disposeAfter: c, noDisposeOnSet: d, noUpdateTTL: g, maxSize: A = 0, maxEntrySize: p = 0, sizeCalculation: _, fetchMethod: l, memoMethod: w, noDeleteOnFetchRejection: b, noDeleteOnStaleGet: S, allowStaleOnFetchRejection: u, allowStaleOnFetchAbort: T, ignoreFetchAbort: F, perf: v } = t;
+		if (v !== void 0 && typeof v?.now != "function") throw new TypeError("perf option must have a now() method if specified");
+		if (this.$m = v ?? M, e !== 0 && !y(e)) throw new TypeError("max option must be a nonnegative integer");
+		let O = e ? U(e) : Array;
+		if (!O) throw new Error("invalid max value: " + e);
+		if (this.$o = e, this.$c = A, this.maxEntrySize = p || this.$c, this.sizeCalculation = _, this.sizeCalculation) {
+			if (!this.$c && !this.maxEntrySize) throw new TypeError("cannot set sizeCalculation without setting maxSize or maxEntrySize");
+			if (typeof this.sizeCalculation != "function") throw new TypeError("sizeCalculation set to non-function");
 		}
-		this.#perf = perf ?? defaultPerf;
-		if (max !== 0 && !isPosInt(max)) {
-			throw new TypeError("max option must be a nonnegative integer");
+		if (w !== void 0 && typeof w != "function") throw new TypeError("memoMethod must be a function if defined");
+		if (this.$I = w, l !== void 0 && typeof l != "function") throw new TypeError("fetchMethod must be a function if specified");
+		if (this.$L = l, this.$v = !!l, this.$s = new Map(), this.$i = new Array(e).fill(void 0), this.$t = new Array(e).fill(void 0), this.$a = new O(e), this.$u = new O(e), this.$l = 0, this.$h = 0, this.$b = W.create(e), this.$n = 0, this.$_ = 0, typeof f == "function" && (this.$w = f), typeof m == "function" && (this.$C = m), typeof c == "function" ? (this.$S = c, this.$r = []) : (this.$S = void 0, this.$r = void 0), this.$T = !!this.$w, this.$x = !!this.$C, this.$f = !!this.$S, this.noDisposeOnSet = !!d, this.noUpdateTTL = !!g, this.noDeleteOnFetchRejection = !!b, this.allowStaleOnFetchRejection = !!u, this.allowStaleOnFetchAbort = !!T, this.ignoreFetchAbort = !!F, this.maxEntrySize !== 0) {
+			if (this.$c !== 0 && !y(this.$c)) throw new TypeError("maxSize must be a positive integer if specified");
+			if (!y(this.maxEntrySize)) throw new TypeError("maxEntrySize must be a positive integer if specified");
+			this.$B();
 		}
-		const UintArray = max ? getUintArray(max) : Array;
-		if (!UintArray) {
-			throw new Error("invalid max value: " + max);
+		if (this.allowStale = !!r, this.noDeleteOnStaleGet = !!S, this.updateAgeOnGet = !!n, this.updateAgeOnHas = !!o, this.ttlResolution = y(s) || s === 0 ? s : 1, this.ttlAutopurge = !!h, this.ttl = i || 0, this.ttl) {
+			if (!y(this.ttl)) throw new TypeError("ttl must be a positive integer if specified");
+			this.$j();
 		}
-		this.#max = max;
-		this.#maxSize = maxSize;
-		this.maxEntrySize = maxEntrySize || this.#maxSize;
-		this.sizeCalculation = sizeCalculation;
-		if (this.sizeCalculation) {
-			if (!this.#maxSize && !this.maxEntrySize) {
-				throw new TypeError("cannot set sizeCalculation without setting maxSize or maxEntrySize");
-			}
-			if (typeof this.sizeCalculation !== "function") {
-				throw new TypeError("sizeCalculation set to non-function");
-			}
-		}
-		if (memoMethod !== undefined && typeof memoMethod !== "function") {
-			throw new TypeError("memoMethod must be a function if defined");
-		}
-		this.#memoMethod = memoMethod;
-		if (fetchMethod !== undefined && typeof fetchMethod !== "function") {
-			throw new TypeError("fetchMethod must be a function if specified");
-		}
-		this.#fetchMethod = fetchMethod;
-		this.#hasFetchMethod = !!fetchMethod;
-		this.#keyMap = new Map();
-		this.#keyList = new Array(max).fill(undefined);
-		this.#valList = new Array(max).fill(undefined);
-		this.#next = new UintArray(max);
-		this.#prev = new UintArray(max);
-		this.#head = 0;
-		this.#tail = 0;
-		this.#free = Stack.create(max);
-		this.#size = 0;
-		this.#calculatedSize = 0;
-		if (typeof dispose === "function") {
-			this.#dispose = dispose;
-		}
-		if (typeof onInsert === "function") {
-			this.#onInsert = onInsert;
-		}
-		if (typeof disposeAfter === "function") {
-			this.#disposeAfter = disposeAfter;
-			this.#disposed = [];
-		} else {
-			this.#disposeAfter = undefined;
-			this.#disposed = undefined;
-		}
-		this.#hasDispose = !!this.#dispose;
-		this.#hasOnInsert = !!this.#onInsert;
-		this.#hasDisposeAfter = !!this.#disposeAfter;
-		this.noDisposeOnSet = !!noDisposeOnSet;
-		this.noUpdateTTL = !!noUpdateTTL;
-		this.noDeleteOnFetchRejection = !!noDeleteOnFetchRejection;
-		this.allowStaleOnFetchRejection = !!allowStaleOnFetchRejection;
-		this.allowStaleOnFetchAbort = !!allowStaleOnFetchAbort;
-		this.ignoreFetchAbort = !!ignoreFetchAbort;
-		// NB: maxEntrySize is set to maxSize if it's set
-		if (this.maxEntrySize !== 0) {
-			if (this.#maxSize !== 0) {
-				if (!isPosInt(this.#maxSize)) {
-					throw new TypeError("maxSize must be a positive integer if specified");
-				}
-			}
-			if (!isPosInt(this.maxEntrySize)) {
-				throw new TypeError("maxEntrySize must be a positive integer if specified");
-			}
-			this.#initializeSizeTracking();
-		}
-		this.allowStale = !!allowStale;
-		this.noDeleteOnStaleGet = !!noDeleteOnStaleGet;
-		this.updateAgeOnGet = !!updateAgeOnGet;
-		this.updateAgeOnHas = !!updateAgeOnHas;
-		this.ttlResolution = isPosInt(ttlResolution) || ttlResolution === 0 ? ttlResolution : 1;
-		this.ttlAutopurge = !!ttlAutopurge;
-		this.ttl = ttl || 0;
-		if (this.ttl) {
-			if (!isPosInt(this.ttl)) {
-				throw new TypeError("ttl must be a positive integer if specified");
-			}
-			this.#initializeTTLTracking();
-		}
-		// do not allow completely unbounded caches
-		if (this.#max === 0 && this.ttl === 0 && this.#maxSize === 0) {
-			throw new TypeError("At least one of max, maxSize, or ttl is required");
-		}
-		if (!this.ttlAutopurge && !this.#max && !this.#maxSize) {
-			const code = "LRU_CACHE_UNBOUNDED";
-			if (shouldWarn(code)) {
-				warned.add(code);
-				const msg = "TTL caching without ttlAutopurge, max, or maxSize can " + "result in unbounded memory consumption.";
-				emitWarning(msg, "UnboundedCacheWarning", code, LRUCache);
-			}
+		if (this.$o === 0 && this.ttl === 0 && this.$c === 0) throw new TypeError("At least one of max, maxSize, or ttl is required");
+		if (!this.ttlAutopurge && !this.$o && !this.$c) {
+			let E = "LRU_CACHE_UNBOUNDED";
+			G(E) && (I.add(E), x("TTL caching without ttlAutopurge, max, or maxSize can result in unbounded memory consumption.", "UnboundedCacheWarning", E, a));
 		}
 	}
-	/**
-	* Return the number of ms left in the item's TTL. If item is not in cache,
-	* returns `0`. Returns `Infinity` if item is in cache without a defined TTL.
-	*/
-	getRemainingTTL(key) {
-		return this.#keyMap.has(key) ? Infinity : 0;
+	getRemainingTTL(t) {
+		return this.$s.has(t) ? 1 / 0 : 0;
 	}
-	#initializeTTLTracking() {
-		const ttls = new ZeroArray(this.#max);
-		const starts = new ZeroArray(this.#max);
-		this.#ttls = ttls;
-		this.#starts = starts;
-		const purgeTimers = this.ttlAutopurge ? new Array(this.#max) : undefined;
-		this.#autopurgeTimers = purgeTimers;
-		this.#setItemTTL = (index, ttl, start = this.#perf.now()) => {
-			starts[index] = ttl !== 0 ? start : 0;
-			ttls[index] = ttl;
-			// clear out the purge timer if we're setting TTL to 0, and
-			// previously had a ttl purge timer running, so it doesn't
-			// fire unnecessarily.
-			if (purgeTimers?.[index]) {
-				clearTimeout(purgeTimers[index]);
-				purgeTimers[index] = undefined;
+	$j() {
+		let t = new z(this.$o), e = new z(this.$o);
+		this.$d = t, this.$A = e;
+		let i = this.ttlAutopurge ? new Array(this.$o) : void 0;
+		this.$g = i, this.$N = (n, o, r = this.$m.now()) => {
+			if (e[n] = o !== 0 ? r : 0, t[n] = o, i?.[n] && (clearTimeout(i[n]), i[n] = void 0), o !== 0 && i) {
+				let f = setTimeout(() => {
+					this.$p(n) && this.$E(this.$i[n], "expire");
+				}, o + 1);
+				f.unref && f.unref(), i[n] = f;
 			}
-			if (ttl !== 0 && purgeTimers) {
-				const t = setTimeout(() => {
-					if (this.#isStale(index)) {
-						this.#delete(this.#keyList[index], "expire");
-					}
-				}, ttl + 1);
-				// unref() not supported on all platforms
-				/* c8 ignore start */
-				if (t.unref) {
-					t.unref();
-				}
-				/* c8 ignore stop */
-				purgeTimers[index] = t;
+		}, this.$R = (n) => {
+			e[n] = t[n] !== 0 ? this.$m.now() : 0;
+		}, this.$z = (n, o) => {
+			if (t[o]) {
+				let r = t[o], f = e[o];
+				if (!r || !f) return;
+				n.ttl = r, n.start = f, n.now = s || h();
+				let m = n.now - f;
+				n.remainingTTL = r - m;
 			}
 		};
-		this.#updateItemAge = (index) => {
-			starts[index] = ttls[index] !== 0 ? this.#perf.now() : 0;
-		};
-		this.#statusTTL = (status, index) => {
-			if (ttls[index]) {
-				const ttl = ttls[index];
-				const start = starts[index];
-				/* c8 ignore next */
-				if (!ttl || !start) return;
-				status.ttl = ttl;
-				status.start = start;
-				status.now = cachedNow || getNow();
-				const age = status.now - start;
-				status.remainingTTL = ttl - age;
-			}
-		};
-		// debounce calls to perf.now() to 1s so we're not hitting
-		// that costly call repeatedly.
-		let cachedNow = 0;
-		const getNow = () => {
-			const n = this.#perf.now();
+		let s = 0, h = () => {
+			let n = this.$m.now();
 			if (this.ttlResolution > 0) {
-				cachedNow = n;
-				const t = setTimeout(() => cachedNow = 0, this.ttlResolution);
-				// not available on all platforms
-				/* c8 ignore start */
-				if (t.unref) {
-					t.unref();
-				}
+				s = n;
+				let o = setTimeout(() => s = 0, this.ttlResolution);
+				o.unref && o.unref();
 			}
 			return n;
 		};
-		this.getRemainingTTL = (key) => {
-			const index = this.#keyMap.get(key);
-			if (index === undefined) {
-				return 0;
-			}
-			const ttl = ttls[index];
-			const start = starts[index];
-			if (!ttl || !start) {
-				return Infinity;
-			}
-			const age = (cachedNow || getNow()) - start;
-			return ttl - age;
-		};
-		this.#isStale = (index) => {
-			const s = starts[index];
-			const t = ttls[index];
-			return !!t && !!s && (cachedNow || getNow()) - s > t;
+		this.getRemainingTTL = (n) => {
+			let o = this.$s.get(n);
+			if (o === void 0) return 0;
+			let r = t[o], f = e[o];
+			if (!r || !f) return 1 / 0;
+			let m = (s || h()) - f;
+			return r - m;
+		}, this.$p = (n) => {
+			let o = e[n], r = t[n];
+			return !!r && !!o && (s || h()) - o > r;
 		};
 	}
-	// conditionally set private methods related to TTL
-	#updateItemAge = () => {};
-	#statusTTL = () => {};
-	#setItemTTL = () => {};
-	/* c8 ignore stop */
-	#isStale = () => false;
-	#initializeSizeTracking() {
-		const sizes = new ZeroArray(this.#max);
-		this.#calculatedSize = 0;
-		this.#sizes = sizes;
-		this.#removeItemSize = (index) => {
-			this.#calculatedSize -= sizes[index];
-			sizes[index] = 0;
-		};
-		this.#requireSize = (k, v, size, sizeCalculation) => {
-			// provisionally accept background fetches.
-			// actual value size will be checked when they return.
-			if (this.#isBackgroundFetch(v)) {
-				return 0;
+	$R = () => {};
+	$z = () => {};
+	$N = () => {};
+	$p = () => false;
+	$B() {
+		let t = new z(this.$o);
+		this.$_ = 0, this.$y = t, this.$W = (e) => {
+			this.$_ -= t[e], t[e] = 0;
+		}, this.$P = (e, i, s, h) => {
+			if (this.$e(i)) return 0;
+			if (!y(s)) if (h) {
+				if (typeof h != "function") throw new TypeError("sizeCalculation must be a function");
+				if (s = h(i, e), !y(s)) throw new TypeError("sizeCalculation return invalid (expect positive integer)");
+			} else throw new TypeError("invalid size value (must be positive integer). When maxSize or maxEntrySize is used, sizeCalculation or size must be set.");
+			return s;
+		}, this.$U = (e, i, s) => {
+			if (t[e] = i, this.$c) {
+				let h = this.$c - t[e];
+				for (; this.$_ > h;) this.$M(true);
 			}
-			if (!isPosInt(size)) {
-				if (sizeCalculation) {
-					if (typeof sizeCalculation !== "function") {
-						throw new TypeError("sizeCalculation must be a function");
-					}
-					size = sizeCalculation(v, k);
-					if (!isPosInt(size)) {
-						throw new TypeError("sizeCalculation return invalid (expect positive integer)");
-					}
-				} else {
-					throw new TypeError("invalid size value (must be positive integer). " + "When maxSize or maxEntrySize is used, sizeCalculation " + "or size must be set.");
-				}
-			}
-			return size;
-		};
-		this.#addItemSize = (index, size, status) => {
-			sizes[index] = size;
-			if (this.#maxSize) {
-				const maxSize = this.#maxSize - sizes[index];
-				while (this.#calculatedSize > maxSize) {
-					this.#evict(true);
-				}
-			}
-			this.#calculatedSize += sizes[index];
-			if (status) {
-				status.entrySize = size;
-				status.totalCalculatedSize = this.#calculatedSize;
-			}
+			this.$_ += t[e], s && (s.entrySize = i, s.totalCalculatedSize = this.$_);
 		};
 	}
-	#removeItemSize = (_i) => {};
-	#addItemSize = (_i, _s, _st) => {};
-	#requireSize = (_k, _v, size, sizeCalculation) => {
-		if (size || sizeCalculation) {
-			throw new TypeError("cannot set size without setting maxSize or maxEntrySize on cache");
-		}
+	$W = (t) => {};
+	$U = (t, e, i) => {};
+	$P = (t, e, i, s) => {
+		if (i || s) throw new TypeError("cannot set size without setting maxSize or maxEntrySize on cache");
 		return 0;
 	};
-	*#indexes({ allowStale = this.allowStale } = {}) {
-		if (this.#size) {
-			for (let i = this.#tail; true;) {
-				if (!this.#isValidIndex(i)) {
-					break;
-				}
-				if (allowStale || !this.#isStale(i)) {
-					yield i;
-				}
-				if (i === this.#head) {
-					break;
-				} else {
-					i = this.#prev[i];
-				}
-			}
-		}
+	*$F({ allowStale: t = this.allowStale } = {}) {
+		if (this.$n) for (let e = this.$h; !(!this.$H(e) || ((t || !this.$p(e)) && (yield e), e === this.$l));) e = this.$u[e];
 	}
-	*#rindexes({ allowStale = this.allowStale } = {}) {
-		if (this.#size) {
-			for (let i = this.#head; true;) {
-				if (!this.#isValidIndex(i)) {
-					break;
-				}
-				if (allowStale || !this.#isStale(i)) {
-					yield i;
-				}
-				if (i === this.#tail) {
-					break;
-				} else {
-					i = this.#next[i];
-				}
-			}
-		}
+	*$O({ allowStale: t = this.allowStale } = {}) {
+		if (this.$n) for (let e = this.$l; !(!this.$H(e) || ((t || !this.$p(e)) && (yield e), e === this.$h));) e = this.$a[e];
 	}
-	#isValidIndex(index) {
-		return index !== undefined && this.#keyMap.get(this.#keyList[index]) === index;
+	$H(t) {
+		return t !== void 0 && this.$s.get(this.$i[t]) === t;
 	}
-	/**
-	* Return a generator yielding `[key, value]` pairs,
-	* in order from most recently used to least recently used.
-	*/
 	*entries() {
-		for (const i of this.#indexes()) {
-			if (this.#valList[i] !== undefined && this.#keyList[i] !== undefined && !this.#isBackgroundFetch(this.#valList[i])) {
-				yield [this.#keyList[i], this.#valList[i]];
-			}
-		}
+		for (let t of this.$F()) this.$t[t] !== void 0 && this.$i[t] !== void 0 && !this.$e(this.$t[t]) && (yield [this.$i[t], this.$t[t]]);
 	}
-	/**
-	* Inverse order version of {@link LRUCache.entries}
-	*
-	* Return a generator yielding `[key, value]` pairs,
-	* in order from least recently used to most recently used.
-	*/
 	*rentries() {
-		for (const i of this.#rindexes()) {
-			if (this.#valList[i] !== undefined && this.#keyList[i] !== undefined && !this.#isBackgroundFetch(this.#valList[i])) {
-				yield [this.#keyList[i], this.#valList[i]];
-			}
-		}
+		for (let t of this.$O()) this.$t[t] !== void 0 && this.$i[t] !== void 0 && !this.$e(this.$t[t]) && (yield [this.$i[t], this.$t[t]]);
 	}
-	/**
-	* Return a generator yielding the keys in the cache,
-	* in order from most recently used to least recently used.
-	*/
 	*keys() {
-		for (const i of this.#indexes()) {
-			const k = this.#keyList[i];
-			if (k !== undefined && !this.#isBackgroundFetch(this.#valList[i])) {
-				yield k;
-			}
+		for (let t of this.$F()) {
+			let e = this.$i[t];
+			e !== void 0 && !this.$e(this.$t[t]) && (yield e);
 		}
 	}
-	/**
-	* Inverse order version of {@link LRUCache.keys}
-	*
-	* Return a generator yielding the keys in the cache,
-	* in order from least recently used to most recently used.
-	*/
 	*rkeys() {
-		for (const i of this.#rindexes()) {
-			const k = this.#keyList[i];
-			if (k !== undefined && !this.#isBackgroundFetch(this.#valList[i])) {
-				yield k;
-			}
+		for (let t of this.$O()) {
+			let e = this.$i[t];
+			e !== void 0 && !this.$e(this.$t[t]) && (yield e);
 		}
 	}
-	/**
-	* Return a generator yielding the values in the cache,
-	* in order from most recently used to least recently used.
-	*/
 	*values() {
-		for (const i of this.#indexes()) {
-			const v = this.#valList[i];
-			if (v !== undefined && !this.#isBackgroundFetch(this.#valList[i])) {
-				yield this.#valList[i];
-			}
-		}
+		for (let t of this.$F()) this.$t[t] !== void 0 && !this.$e(this.$t[t]) && (yield this.$t[t]);
 	}
-	/**
-	* Inverse order version of {@link LRUCache.values}
-	*
-	* Return a generator yielding the values in the cache,
-	* in order from least recently used to most recently used.
-	*/
 	*rvalues() {
-		for (const i of this.#rindexes()) {
-			const v = this.#valList[i];
-			if (v !== undefined && !this.#isBackgroundFetch(this.#valList[i])) {
-				yield this.#valList[i];
-			}
-		}
+		for (let t of this.$O()) this.$t[t] !== void 0 && !this.$e(this.$t[t]) && (yield this.$t[t]);
 	}
-	/**
-	* Iterating over the cache itself yields the same results as
-	* {@link LRUCache.entries}
-	*/
 	[Symbol.iterator]() {
 		return this.entries();
 	}
-	/**
-	* A String value that is used in the creation of the default string
-	* description of an object. Called by the built-in method
-	* `Object.prototype.toString`.
-	*/
 	[Symbol.toStringTag] = "LRUCache";
-	/**
-	* Find a value for which the supplied fn method returns a truthy value,
-	* similar to `Array.find()`. fn is called as `fn(value, key, cache)`.
-	*/
-	find(fn, getOptions = {}) {
-		for (const i of this.#indexes()) {
-			const v = this.#valList[i];
-			const value = this.#isBackgroundFetch(v) ? v.__staleWhileFetching : v;
-			if (value === undefined) continue;
-			if (fn(value, this.#keyList[i], this)) {
-				return this.get(this.#keyList[i], getOptions);
-			}
+	find(t, e = {}) {
+		for (let i of this.$F()) {
+			let s = this.$t[i], h = this.$e(s) ? s.__staleWhileFetching : s;
+			if (h !== void 0 && t(h, this.$i[i], this)) return this.get(this.$i[i], e);
 		}
 	}
-	/**
-	* Call the supplied function on each item in the cache, in order from most
-	* recently used to least recently used.
-	*
-	* `fn` is called as `fn(value, key, cache)`.
-	*
-	* If `thisp` is provided, function will be called in the `this`-context of
-	* the provided object, or the cache if no `thisp` object is provided.
-	*
-	* Does not update age or recenty of use, or iterate over stale values.
-	*/
-	forEach(fn, thisp = this) {
-		for (const i of this.#indexes()) {
-			const v = this.#valList[i];
-			const value = this.#isBackgroundFetch(v) ? v.__staleWhileFetching : v;
-			if (value === undefined) continue;
-			fn.call(thisp, value, this.#keyList[i], this);
+	forEach(t, e = this) {
+		for (let i of this.$F()) {
+			let s = this.$t[i], h = this.$e(s) ? s.__staleWhileFetching : s;
+			h !== void 0 && t.call(e, h, this.$i[i], this);
 		}
 	}
-	/**
-	* The same as {@link LRUCache.forEach} but items are iterated over in
-	* reverse order.  (ie, less recently used items are iterated over first.)
-	*/
-	rforEach(fn, thisp = this) {
-		for (const i of this.#rindexes()) {
-			const v = this.#valList[i];
-			const value = this.#isBackgroundFetch(v) ? v.__staleWhileFetching : v;
-			if (value === undefined) continue;
-			fn.call(thisp, value, this.#keyList[i], this);
+	rforEach(t, e = this) {
+		for (let i of this.$O()) {
+			let s = this.$t[i], h = this.$e(s) ? s.__staleWhileFetching : s;
+			h !== void 0 && t.call(e, h, this.$i[i], this);
 		}
 	}
-	/**
-	* Delete any stale entries. Returns true if anything was removed,
-	* false otherwise.
-	*/
 	purgeStale() {
-		let deleted = false;
-		for (const i of this.#rindexes({ allowStale: true })) {
-			if (this.#isStale(i)) {
-				this.#delete(this.#keyList[i], "expire");
-				deleted = true;
+		let t = false;
+		for (let e of this.$O({ allowStale: true })) this.$p(e) && (this.$E(this.$i[e], "expire"), t = true);
+		return t;
+	}
+	info(t) {
+		let e = this.$s.get(t);
+		if (e === void 0) return;
+		let i = this.$t[e], s = this.$e(i) ? i.__staleWhileFetching : i;
+		if (s === void 0) return;
+		let h = { value: s };
+		if (this.$d && this.$A) {
+			let n = this.$d[e], o = this.$A[e];
+			if (n && o) {
+				let r = n - (this.$m.now() - o);
+				h.ttl = r, h.start = Date.now();
 			}
 		}
-		return deleted;
+		return this.$y && (h.size = this.$y[e]), h;
 	}
-	/**
-	* Get the extended info about a given entry, to get its value, size, and
-	* TTL info simultaneously. Returns `undefined` if the key is not present.
-	*
-	* Unlike {@link LRUCache#dump}, which is designed to be portable and survive
-	* serialization, the `start` value is always the current timestamp, and the
-	* `ttl` is a calculated remaining time to live (negative if expired).
-	*
-	* Always returns stale values, if their info is found in the cache, so be
-	* sure to check for expirations (ie, a negative {@link LRUCache.Entry#ttl})
-	* if relevant.
-	*/
-	info(key) {
-		const i = this.#keyMap.get(key);
-		if (i === undefined) return undefined;
-		const v = this.#valList[i];
-		/* c8 ignore start - this isn't tested for the info function,
-		* but it's the same logic as found in other places. */
-		const value = this.#isBackgroundFetch(v) ? v.__staleWhileFetching : v;
-		if (value === undefined) return undefined;
-		/* c8 ignore end */
-		const entry = { value };
-		if (this.#ttls && this.#starts) {
-			const ttl = this.#ttls[i];
-			const start = this.#starts[i];
-			if (ttl && start) {
-				const remain = ttl - (this.#perf.now() - start);
-				entry.ttl = remain;
-				entry.start = Date.now();
-			}
-		}
-		if (this.#sizes) {
-			entry.size = this.#sizes[i];
-		}
-		return entry;
-	}
-	/**
-	* Return an array of [key, {@link LRUCache.Entry}] tuples which can be
-	* passed to {@link LRUCache#load}.
-	*
-	* The `start` fields are calculated relative to a portable `Date.now()`
-	* timestamp, even if `performance.now()` is available.
-	*
-	* Stale entries are always included in the `dump`, even if
-	* {@link LRUCache.OptionsBase.allowStale} is false.
-	*
-	* Note: this returns an actual array, not a generator, so it can be more
-	* easily passed around.
-	*/
 	dump() {
-		const arr = [];
-		for (const i of this.#indexes({ allowStale: true })) {
-			const key = this.#keyList[i];
-			const v = this.#valList[i];
-			const value = this.#isBackgroundFetch(v) ? v.__staleWhileFetching : v;
-			if (value === undefined || key === undefined) continue;
-			const entry = { value };
-			if (this.#ttls && this.#starts) {
-				entry.ttl = this.#ttls[i];
-				// always dump the start relative to a portable timestamp
-				// it's ok for this to be a bit slow, it's a rare operation.
-				const age = this.#perf.now() - this.#starts[i];
-				entry.start = Math.floor(Date.now() - age);
+		let t = [];
+		for (let e of this.$F({ allowStale: true })) {
+			let i = this.$i[e], s = this.$t[e], h = this.$e(s) ? s.__staleWhileFetching : s;
+			if (h === void 0 || i === void 0) continue;
+			let n = { value: h };
+			if (this.$d && this.$A) {
+				n.ttl = this.$d[e];
+				let o = this.$m.now() - this.$A[e];
+				n.start = Math.floor(Date.now() - o);
 			}
-			if (this.#sizes) {
-				entry.size = this.#sizes[i];
-			}
-			arr.unshift([key, entry]);
+			this.$y && (n.size = this.$y[e]), t.unshift([i, n]);
 		}
-		return arr;
+		return t;
 	}
-	/**
-	* Reset the cache and load in the items in entries in the order listed.
-	*
-	* The shape of the resulting cache may be different if the same options are
-	* not used in both caches.
-	*
-	* The `start` fields are assumed to be calculated relative to a portable
-	* `Date.now()` timestamp, even if `performance.now()` is available.
-	*/
-	load(arr) {
+	load(t) {
 		this.clear();
-		for (const [key, entry] of arr) {
-			if (entry.start) {
-				// entry.start is a portable timestamp, but we may be using
-				// node's performance.now(), so calculate the offset, so that
-				// we get the intended remaining TTL, no matter how long it's
-				// been on ice.
-				//
-				// it's ok for this to be a bit slow, it's a rare operation.
-				const age = Date.now() - entry.start;
-				entry.start = this.#perf.now() - age;
+		for (let [e, i] of t) {
+			if (i.start) {
+				let s = Date.now() - i.start;
+				i.start = this.$m.now() - s;
 			}
-			this.set(key, entry.value, entry);
+			this.set(e, i.value, i);
 		}
 	}
-	/**
-	* Add a value to the cache.
-	*
-	* Note: if `undefined` is specified as a value, this is an alias for
-	* {@link LRUCache#delete}
-	*
-	* Fields on the {@link LRUCache.SetOptions} options param will override
-	* their corresponding values in the constructor options for the scope
-	* of this single `set()` operation.
-	*
-	* If `start` is provided, then that will set the effective start
-	* time for the TTL calculation. Note that this must be a previous
-	* value of `performance.now()` if supported, or a previous value of
-	* `Date.now()` if not.
-	*
-	* Options object may also include `size`, which will prevent
-	* calling the `sizeCalculation` function and just use the specified
-	* number if it is a positive integer, and `noDisposeOnSet` which
-	* will prevent calling a `dispose` function in the case of
-	* overwrites.
-	*
-	* If the `size` (or return value of `sizeCalculation`) for a given
-	* entry is greater than `maxEntrySize`, then the item will not be
-	* added to the cache.
-	*
-	* Will update the recency of the entry.
-	*
-	* If the value is `undefined`, then this is an alias for
-	* `cache.delete(key)`. `undefined` is never stored in the cache.
-	*/
-	set(k, v, setOptions = {}) {
-		if (v === undefined) {
-			this.delete(k);
-			return this;
-		}
-		const { ttl = this.ttl, start, noDisposeOnSet = this.noDisposeOnSet, sizeCalculation = this.sizeCalculation, status } = setOptions;
-		let { noUpdateTTL = this.noUpdateTTL } = setOptions;
-		const size = this.#requireSize(k, v, setOptions.size || 0, sizeCalculation);
-		// if the item doesn't fit, don't do anything
-		// NB: maxEntrySize set to maxSize by default
-		if (this.maxEntrySize && size > this.maxEntrySize) {
-			if (status) {
-				status.set = "miss";
-				status.maxEntrySizeExceeded = true;
-			}
-			// have to delete, in case something is there already.
-			this.#delete(k, "set");
-			return this;
-		}
-		let index = this.#size === 0 ? undefined : this.#keyMap.get(k);
-		if (index === undefined) {
-			// addition
-			index = this.#size === 0 ? this.#tail : this.#free.length !== 0 ? this.#free.pop() : this.#size === this.#max ? this.#evict(false) : this.#size;
-			this.#keyList[index] = k;
-			this.#valList[index] = v;
-			this.#keyMap.set(k, index);
-			this.#next[this.#tail] = index;
-			this.#prev[index] = this.#tail;
-			this.#tail = index;
-			this.#size++;
-			this.#addItemSize(index, size, status);
-			if (status) status.set = "add";
-			noUpdateTTL = false;
-			if (this.#hasOnInsert) {
-				this.#onInsert?.(v, k, "add");
-			}
-		} else {
-			// update
-			this.#moveToTail(index);
-			const oldVal = this.#valList[index];
-			if (v !== oldVal) {
-				if (this.#hasFetchMethod && this.#isBackgroundFetch(oldVal)) {
-					oldVal.__abortController.abort(new Error("replaced"));
-					const { __staleWhileFetching: s } = oldVal;
-					if (s !== undefined && !noDisposeOnSet) {
-						if (this.#hasDispose) {
-							this.#dispose?.(s, k, "set");
-						}
-						if (this.#hasDisposeAfter) {
-							this.#disposed?.push([
-								s,
-								k,
-								"set"
-							]);
-						}
-					}
-				} else if (!noDisposeOnSet) {
-					if (this.#hasDispose) {
-						this.#dispose?.(oldVal, k, "set");
-					}
-					if (this.#hasDisposeAfter) {
-						this.#disposed?.push([
-							oldVal,
-							k,
-							"set"
-						]);
-					}
+	set(t, e, i = {}) {
+		if (e === void 0) return this.delete(t), this;
+		let { ttl: s = this.ttl, start: h, noDisposeOnSet: n = this.noDisposeOnSet, sizeCalculation: o = this.sizeCalculation, status: r } = i, { noUpdateTTL: f = this.noUpdateTTL } = i, m = this.$P(t, e, i.size || 0, o);
+		if (this.maxEntrySize && m > this.maxEntrySize) return r && (r.set = "miss", r.maxEntrySizeExceeded = true), this.$E(t, "set"), this;
+		let c = this.$n === 0 ? void 0 : this.$s.get(t);
+		if (c === void 0) c = this.$n === 0 ? this.$h : this.$b.length !== 0 ? this.$b.pop() : this.$n === this.$o ? this.$M(false) : this.$n, this.$i[c] = t, this.$t[c] = e, this.$s.set(t, c), this.$a[this.$h] = c, this.$u[c] = this.$h, this.$h = c, this.$n++, this.$U(c, m, r), r && (r.set = "add"), f = false, this.$x && this.$C?.(e, t, "add");
+		else {
+			this.$D(c);
+			let d = this.$t[c];
+			if (e !== d) {
+				if (this.$v && this.$e(d)) {
+					d.__abortController.abort(new Error("replaced"));
+					let { __staleWhileFetching: g } = d;
+					g !== void 0 && !n && (this.$T && this.$w?.(g, t, "set"), this.$f && this.$r?.push([
+						g,
+						t,
+						"set"
+					]));
+				} else n || (this.$T && this.$w?.(d, t, "set"), this.$f && this.$r?.push([
+					d,
+					t,
+					"set"
+				]));
+				if (this.$W(c), this.$U(c, m, r), this.$t[c] = e, r) {
+					r.set = "replace";
+					let g = d && this.$e(d) ? d.__staleWhileFetching : d;
+					g !== void 0 && (r.oldValue = g);
 				}
-				this.#removeItemSize(index);
-				this.#addItemSize(index, size, status);
-				this.#valList[index] = v;
-				if (status) {
-					status.set = "replace";
-					const oldValue = oldVal && this.#isBackgroundFetch(oldVal) ? oldVal.__staleWhileFetching : oldVal;
-					if (oldValue !== undefined) status.oldValue = oldValue;
-				}
-			} else if (status) {
-				status.set = "update";
-			}
-			if (this.#hasOnInsert) {
-				this.onInsert?.(v, k, v === oldVal ? "update" : "replace");
-			}
+			} else r && (r.set = "update");
+			this.$x && this.onInsert?.(e, t, e === d ? "update" : "replace");
 		}
-		if (ttl !== 0 && !this.#ttls) {
-			this.#initializeTTLTracking();
-		}
-		if (this.#ttls) {
-			if (!noUpdateTTL) {
-				this.#setItemTTL(index, ttl, start);
-			}
-			if (status) this.#statusTTL(status, index);
-		}
-		if (!noDisposeOnSet && this.#hasDisposeAfter && this.#disposed) {
-			const dt = this.#disposed;
-			let task;
-			while (task = dt?.shift()) {
-				this.#disposeAfter?.(...task);
-			}
+		if (s !== 0 && !this.$d && this.$j(), this.$d && (f || this.$N(c, s, h), r && this.$z(r, c)), !n && this.$f && this.$r) {
+			let d = this.$r, g;
+			for (; g = d?.shift();) this.$S?.(...g);
 		}
 		return this;
 	}
-	/**
-	* Evict the least recently used item, returning its value or
-	* `undefined` if cache is empty.
-	*/
 	pop() {
 		try {
-			while (this.#size) {
-				const val = this.#valList[this.#head];
-				this.#evict(true);
-				if (this.#isBackgroundFetch(val)) {
-					if (val.__staleWhileFetching) {
-						return val.__staleWhileFetching;
-					}
-				} else if (val !== undefined) {
-					return val;
-				}
+			for (; this.$n;) {
+				let t = this.$t[this.$l];
+				if (this.$M(true), this.$e(t)) {
+					if (t.__staleWhileFetching) return t.__staleWhileFetching;
+				} else if (t !== void 0) return t;
 			}
 		} finally {
-			if (this.#hasDisposeAfter && this.#disposed) {
-				const dt = this.#disposed;
-				let task;
-				while (task = dt?.shift()) {
-					this.#disposeAfter?.(...task);
-				}
+			if (this.$f && this.$r) {
+				let t = this.$r, e;
+				for (; e = t?.shift();) this.$S?.(...e);
 			}
 		}
 	}
-	#evict(free) {
-		const head = this.#head;
-		const k = this.#keyList[head];
-		const v = this.#valList[head];
-		if (this.#hasFetchMethod && this.#isBackgroundFetch(v)) {
-			v.__abortController.abort(new Error("evicted"));
-		} else if (this.#hasDispose || this.#hasDisposeAfter) {
-			if (this.#hasDispose) {
-				this.#dispose?.(v, k, "evict");
+	$M(t) {
+		let e = this.$l, i = this.$i[e], s = this.$t[e];
+		return this.$v && this.$e(s) ? s.__abortController.abort(new Error("evicted")) : (this.$T || this.$f) && (this.$T && this.$w?.(s, i, "evict"), this.$f && this.$r?.push([
+			s,
+			i,
+			"evict"
+		])), this.$W(e), this.$g?.[e] && (clearTimeout(this.$g[e]), this.$g[e] = void 0), t && (this.$i[e] = void 0, this.$t[e] = void 0, this.$b.push(e)), this.$n === 1 ? (this.$l = this.$h = 0, this.$b.length = 0) : this.$l = this.$a[e], this.$s.delete(i), this.$n--, e;
+	}
+	has(t, e = {}) {
+		let { updateAgeOnHas: i = this.updateAgeOnHas, status: s } = e, h = this.$s.get(t);
+		if (h !== void 0) {
+			let n = this.$t[h];
+			if (this.$e(n) && n.__staleWhileFetching === void 0) return false;
+			if (this.$p(h)) s && (s.has = "stale", this.$z(s, h));
+			else return i && this.$R(h), s && (s.has = "hit", this.$z(s, h)), true;
+		} else s && (s.has = "miss");
+		return false;
+	}
+	peek(t, e = {}) {
+		let { allowStale: i = this.allowStale } = e, s = this.$s.get(t);
+		if (s === void 0 || !i && this.$p(s)) return;
+		let h = this.$t[s];
+		return this.$e(h) ? h.__staleWhileFetching : h;
+	}
+	$G(t, e, i, s) {
+		let h = e === void 0 ? void 0 : this.$t[e];
+		if (this.$e(h)) return h;
+		let n = new C(), { signal: o } = i;
+		o?.addEventListener("abort", () => n.abort(o.reason), { signal: n.signal });
+		let r = {
+			signal: n.signal,
+			options: i,
+			context: s
+		}, f = (p, _ = false) => {
+			let { aborted: l } = n.signal, w = i.ignoreFetchAbort && p !== void 0, b = i.ignoreFetchAbort || !!(i.allowStaleOnFetchAbort && p !== void 0);
+			if (i.status && (l && !_ ? (i.status.fetchAborted = true, i.status.fetchError = n.signal.reason, w && (i.status.fetchAbortIgnored = true)) : i.status.fetchResolved = true), l && !w && !_) return c(n.signal.reason, b);
+			let S = g, u = this.$t[e];
+			return (u === g || w && _ && u === void 0) && (p === void 0 ? S.__staleWhileFetching !== void 0 ? this.$t[e] = S.__staleWhileFetching : this.$E(t, "fetch") : (i.status && (i.status.fetchUpdated = true), this.set(t, p, r.options))), p;
+		}, m = (p) => (i.status && (i.status.fetchRejected = true, i.status.fetchError = p), c(p, false)), c = (p, _) => {
+			let { aborted: l } = n.signal, w = l && i.allowStaleOnFetchAbort, b = w || i.allowStaleOnFetchRejection, S = b || i.noDeleteOnFetchRejection, u = g;
+			if (this.$t[e] === g && (!S || !_ && u.__staleWhileFetching === void 0 ? this.$E(t, "fetch") : w || (this.$t[e] = u.__staleWhileFetching)), b) return i.status && u.__staleWhileFetching !== void 0 && (i.status.returnedStale = true), u.__staleWhileFetching;
+			if (u.__returned === u) throw p;
+		}, d = (p, _) => {
+			let l = this.$L?.(t, h, r);
+			l && l instanceof Promise && l.then((w) => p(w === void 0 ? void 0 : w), _), n.signal.addEventListener("abort", () => {
+				(!i.ignoreFetchAbort || i.allowStaleOnFetchAbort) && (p(void 0), i.allowStaleOnFetchAbort && (p = (w) => f(w, true)));
+			});
+		};
+		i.status && (i.status.fetchDispatched = true);
+		let g = new Promise(d).then(f, m), A = Object.assign(g, {
+			__abortController: n,
+			__staleWhileFetching: h,
+			__returned: void 0
+		});
+		return e === void 0 ? (this.set(t, A, {
+			...r.options,
+			status: void 0
+		}), e = this.$s.get(t)) : this.$t[e] = A, A;
+	}
+	$e(t) {
+		if (!this.$v) return false;
+		let e = t;
+		return !!e && e instanceof Promise && e.hasOwnProperty("__staleWhileFetching") && e.__abortController instanceof C;
+	}
+	async fetch(t, e = {}) {
+		let { allowStale: i = this.allowStale, updateAgeOnGet: s = this.updateAgeOnGet, noDeleteOnStaleGet: h = this.noDeleteOnStaleGet, ttl: n = this.ttl, noDisposeOnSet: o = this.noDisposeOnSet, size: r = 0, sizeCalculation: f = this.sizeCalculation, noUpdateTTL: m = this.noUpdateTTL, noDeleteOnFetchRejection: c = this.noDeleteOnFetchRejection, allowStaleOnFetchRejection: d = this.allowStaleOnFetchRejection, ignoreFetchAbort: g = this.ignoreFetchAbort, allowStaleOnFetchAbort: A = this.allowStaleOnFetchAbort, context: p, forceRefresh: _ = false, status: l, signal: w } = e;
+		if (!this.$v) return l && (l.fetch = "get"), this.get(t, {
+			allowStale: i,
+			updateAgeOnGet: s,
+			noDeleteOnStaleGet: h,
+			status: l
+		});
+		let b = {
+			allowStale: i,
+			updateAgeOnGet: s,
+			noDeleteOnStaleGet: h,
+			ttl: n,
+			noDisposeOnSet: o,
+			size: r,
+			sizeCalculation: f,
+			noUpdateTTL: m,
+			noDeleteOnFetchRejection: c,
+			allowStaleOnFetchRejection: d,
+			allowStaleOnFetchAbort: A,
+			ignoreFetchAbort: g,
+			status: l,
+			signal: w
+		}, S = this.$s.get(t);
+		if (S === void 0) {
+			l && (l.fetch = "miss");
+			let u = this.$G(t, S, b, p);
+			return u.__returned = u;
+		} else {
+			let u = this.$t[S];
+			if (this.$e(u)) {
+				let E = i && u.__staleWhileFetching !== void 0;
+				return l && (l.fetch = "inflight", E && (l.returnedStale = true)), E ? u.__staleWhileFetching : u.__returned = u;
 			}
-			if (this.#hasDisposeAfter) {
-				this.#disposed?.push([
-					v,
-					k,
-					"evict"
+			let T = this.$p(S);
+			if (!_ && !T) return l && (l.fetch = "hit"), this.$D(S), s && this.$R(S), l && this.$z(l, S), u;
+			let F = this.$G(t, S, b, p), O = F.__staleWhileFetching !== void 0 && i;
+			return l && (l.fetch = T ? "stale" : "refresh", O && T && (l.returnedStale = true)), O ? F.__staleWhileFetching : F.__returned = F;
+		}
+	}
+	async forceFetch(t, e = {}) {
+		let i = await this.fetch(t, e);
+		if (i === void 0) throw new Error("fetch() returned undefined");
+		return i;
+	}
+	memo(t, e = {}) {
+		let i = this.$I;
+		if (!i) throw new Error("no memoMethod provided to constructor");
+		let { context: s, forceRefresh: h, ...n } = e, o = this.get(t, n);
+		if (!h && o !== void 0) return o;
+		let r = i(t, o, {
+			options: n,
+			context: s
+		});
+		return this.set(t, r, n), r;
+	}
+	get(t, e = {}) {
+		let { allowStale: i = this.allowStale, updateAgeOnGet: s = this.updateAgeOnGet, noDeleteOnStaleGet: h = this.noDeleteOnStaleGet, status: n } = e, o = this.$s.get(t);
+		if (o !== void 0) {
+			let r = this.$t[o], f = this.$e(r);
+			return n && this.$z(n, o), this.$p(o) ? (n && (n.get = "stale"), f ? (n && i && r.__staleWhileFetching !== void 0 && (n.returnedStale = true), i ? r.__staleWhileFetching : void 0) : (h || this.$E(t, "expire"), n && i && (n.returnedStale = true), i ? r : void 0)) : (n && (n.get = "hit"), f ? r.__staleWhileFetching : (this.$D(o), s && this.$R(o), r));
+		} else n && (n.get = "miss");
+	}
+	$k(t, e) {
+		this.$u[e] = t, this.$a[t] = e;
+	}
+	$D(t) {
+		t !== this.$h && (t === this.$l ? this.$l = this.$a[t] : this.$k(this.$u[t], this.$a[t]), this.$k(this.$h, t), this.$h = t);
+	}
+	delete(t) {
+		return this.$E(t, "delete");
+	}
+	$E(t, e) {
+		let i = false;
+		if (this.$n !== 0) {
+			let s = this.$s.get(t);
+			if (s !== void 0) if (this.$g?.[s] && (clearTimeout(this.$g?.[s]), this.$g[s] = void 0), i = true, this.$n === 1) this.$V(e);
+			else {
+				this.$W(s);
+				let h = this.$t[s];
+				if (this.$e(h) ? h.__abortController.abort(new Error("deleted")) : (this.$T || this.$f) && (this.$T && this.$w?.(h, t, e), this.$f && this.$r?.push([
+					h,
+					t,
+					e
+				])), this.$s.delete(t), this.$i[s] = void 0, this.$t[s] = void 0, s === this.$h) this.$h = this.$u[s];
+				else if (s === this.$l) this.$l = this.$a[s];
+				else {
+					let n = this.$u[s];
+					this.$a[n] = this.$a[s];
+					let o = this.$a[s];
+					this.$u[o] = this.$u[s];
+				}
+				this.$n--, this.$b.push(s);
+			}
+		}
+		if (this.$f && this.$r?.length) {
+			let s = this.$r, h;
+			for (; h = s?.shift();) this.$S?.(...h);
+		}
+		return i;
+	}
+	clear() {
+		return this.$V("delete");
+	}
+	$V(t) {
+		for (let e of this.$O({ allowStale: true })) {
+			let i = this.$t[e];
+			if (this.$e(i)) i.__abortController.abort(new Error("deleted"));
+			else {
+				let s = this.$i[e];
+				this.$T && this.$w?.(i, s, t), this.$f && this.$r?.push([
+					i,
+					s,
+					t
 				]);
 			}
 		}
-		this.#removeItemSize(head);
-		if (this.#autopurgeTimers?.[head]) {
-			clearTimeout(this.#autopurgeTimers[head]);
-			this.#autopurgeTimers[head] = undefined;
+		if (this.$s.clear(), this.$t.fill(void 0), this.$i.fill(void 0), this.$d && this.$A) {
+			this.$d.fill(0), this.$A.fill(0);
+			for (let e of this.$g ?? []) e !== void 0 && clearTimeout(e);
+			this.$g?.fill(void 0);
 		}
-		// if we aren't about to use the index, then null these out
-		if (free) {
-			this.#keyList[head] = undefined;
-			this.#valList[head] = undefined;
-			this.#free.push(head);
-		}
-		if (this.#size === 1) {
-			this.#head = this.#tail = 0;
-			this.#free.length = 0;
-		} else {
-			this.#head = this.#next[head];
-		}
-		this.#keyMap.delete(k);
-		this.#size--;
-		return head;
-	}
-	/**
-	* Check if a key is in the cache, without updating the recency of use.
-	* Will return false if the item is stale, even though it is technically
-	* in the cache.
-	*
-	* Check if a key is in the cache, without updating the recency of
-	* use. Age is updated if {@link LRUCache.OptionsBase.updateAgeOnHas} is set
-	* to `true` in either the options or the constructor.
-	*
-	* Will return `false` if the item is stale, even though it is technically in
-	* the cache. The difference can be determined (if it matters) by using a
-	* `status` argument, and inspecting the `has` field.
-	*
-	* Will not update item age unless
-	* {@link LRUCache.OptionsBase.updateAgeOnHas} is set.
-	*/
-	has(k, hasOptions = {}) {
-		const { updateAgeOnHas = this.updateAgeOnHas, status } = hasOptions;
-		const index = this.#keyMap.get(k);
-		if (index !== undefined) {
-			const v = this.#valList[index];
-			if (this.#isBackgroundFetch(v) && v.__staleWhileFetching === undefined) {
-				return false;
-			}
-			if (!this.#isStale(index)) {
-				if (updateAgeOnHas) {
-					this.#updateItemAge(index);
-				}
-				if (status) {
-					status.has = "hit";
-					this.#statusTTL(status, index);
-				}
-				return true;
-			} else if (status) {
-				status.has = "stale";
-				this.#statusTTL(status, index);
-			}
-		} else if (status) {
-			status.has = "miss";
-		}
-		return false;
-	}
-	/**
-	* Like {@link LRUCache#get} but doesn't update recency or delete stale
-	* items.
-	*
-	* Returns `undefined` if the item is stale, unless
-	* {@link LRUCache.OptionsBase.allowStale} is set.
-	*/
-	peek(k, peekOptions = {}) {
-		const { allowStale = this.allowStale } = peekOptions;
-		const index = this.#keyMap.get(k);
-		if (index === undefined || !allowStale && this.#isStale(index)) {
-			return;
-		}
-		const v = this.#valList[index];
-		// either stale and allowed, or forcing a refresh of non-stale value
-		return this.#isBackgroundFetch(v) ? v.__staleWhileFetching : v;
-	}
-	#backgroundFetch(k, index, options, context) {
-		const v = index === undefined ? undefined : this.#valList[index];
-		if (this.#isBackgroundFetch(v)) {
-			return v;
-		}
-		const ac = new AC();
-		const { signal } = options;
-		// when/if our AC signals, then stop listening to theirs.
-		signal?.addEventListener("abort", () => ac.abort(signal.reason), { signal: ac.signal });
-		const fetchOpts = {
-			signal: ac.signal,
-			options,
-			context
-		};
-		const cb = (v, updateCache = false) => {
-			const { aborted } = ac.signal;
-			const ignoreAbort = options.ignoreFetchAbort && v !== undefined;
-			const proceed = options.ignoreFetchAbort || !!(options.allowStaleOnFetchAbort && v !== undefined);
-			if (options.status) {
-				if (aborted && !updateCache) {
-					options.status.fetchAborted = true;
-					options.status.fetchError = ac.signal.reason;
-					if (ignoreAbort) options.status.fetchAbortIgnored = true;
-				} else {
-					options.status.fetchResolved = true;
-				}
-			}
-			if (aborted && !ignoreAbort && !updateCache) {
-				return fetchFail(ac.signal.reason, proceed);
-			}
-			// either we didn't abort, and are still here, or we did, and ignored
-			const bf = p;
-			// if nothing else has been written there but we're set to update the
-			// cache and ignore the abort, or if it's still pending on this specific
-			// background request, then write it to the cache.
-			const vl = this.#valList[index];
-			if (vl === p || ignoreAbort && updateCache && vl === undefined) {
-				if (v === undefined) {
-					if (bf.__staleWhileFetching !== undefined) {
-						this.#valList[index] = bf.__staleWhileFetching;
-					} else {
-						this.#delete(k, "fetch");
-					}
-				} else {
-					if (options.status) options.status.fetchUpdated = true;
-					this.set(k, v, fetchOpts.options);
-				}
-			}
-			return v;
-		};
-		const eb = (er) => {
-			if (options.status) {
-				options.status.fetchRejected = true;
-				options.status.fetchError = er;
-			}
-			// do not pass go, do not collect $200
-			return fetchFail(er, false);
-		};
-		const fetchFail = (er, proceed) => {
-			const { aborted } = ac.signal;
-			const allowStaleAborted = aborted && options.allowStaleOnFetchAbort;
-			const allowStale = allowStaleAborted || options.allowStaleOnFetchRejection;
-			const noDelete = allowStale || options.noDeleteOnFetchRejection;
-			const bf = p;
-			if (this.#valList[index] === p) {
-				// if we allow stale on fetch rejections, then we need to ensure that
-				// the stale value is not removed from the cache when the fetch fails.
-				const del = !noDelete || !proceed && bf.__staleWhileFetching === undefined;
-				if (del) {
-					this.#delete(k, "fetch");
-				} else if (!allowStaleAborted) {
-					// still replace the *promise* with the stale value,
-					// since we are done with the promise at this point.
-					// leave it untouched if we're still waiting for an
-					// aborted background fetch that hasn't yet returned.
-					this.#valList[index] = bf.__staleWhileFetching;
-				}
-			}
-			if (allowStale) {
-				if (options.status && bf.__staleWhileFetching !== undefined) {
-					options.status.returnedStale = true;
-				}
-				return bf.__staleWhileFetching;
-			} else if (bf.__returned === bf) {
-				throw er;
-			}
-		};
-		const pcall = (res, rej) => {
-			const fmp = this.#fetchMethod?.(k, v, fetchOpts);
-			if (fmp && fmp instanceof Promise) {
-				fmp.then((v) => res(v === undefined ? undefined : v), rej);
-			}
-			// ignored, we go until we finish, regardless.
-			// defer check until we are actually aborting,
-			// so fetchMethod can override.
-			ac.signal.addEventListener("abort", () => {
-				if (!options.ignoreFetchAbort || options.allowStaleOnFetchAbort) {
-					res(undefined);
-					// when it eventually resolves, update the cache.
-					if (options.allowStaleOnFetchAbort) {
-						res = (v) => cb(v, true);
-					}
-				}
-			});
-		};
-		if (options.status) options.status.fetchDispatched = true;
-		const p = new Promise(pcall).then(cb, eb);
-		const bf = Object.assign(p, {
-			__abortController: ac,
-			__staleWhileFetching: v,
-			__returned: undefined
-		});
-		if (index === undefined) {
-			// internal, don't expose status.
-			this.set(k, bf, {
-				...fetchOpts.options,
-				status: undefined
-			});
-			index = this.#keyMap.get(k);
-		} else {
-			this.#valList[index] = bf;
-		}
-		return bf;
-	}
-	#isBackgroundFetch(p) {
-		if (!this.#hasFetchMethod) return false;
-		const b = p;
-		return !!b && b instanceof Promise && b.hasOwnProperty("__staleWhileFetching") && b.__abortController instanceof AC;
-	}
-	async fetch(k, fetchOptions = {}) {
-		const { allowStale = this.allowStale, updateAgeOnGet = this.updateAgeOnGet, noDeleteOnStaleGet = this.noDeleteOnStaleGet, ttl = this.ttl, noDisposeOnSet = this.noDisposeOnSet, size = 0, sizeCalculation = this.sizeCalculation, noUpdateTTL = this.noUpdateTTL, noDeleteOnFetchRejection = this.noDeleteOnFetchRejection, allowStaleOnFetchRejection = this.allowStaleOnFetchRejection, ignoreFetchAbort = this.ignoreFetchAbort, allowStaleOnFetchAbort = this.allowStaleOnFetchAbort, context, forceRefresh = false, status, signal } = fetchOptions;
-		if (!this.#hasFetchMethod) {
-			if (status) status.fetch = "get";
-			return this.get(k, {
-				allowStale,
-				updateAgeOnGet,
-				noDeleteOnStaleGet,
-				status
-			});
-		}
-		const options = {
-			allowStale,
-			updateAgeOnGet,
-			noDeleteOnStaleGet,
-			ttl,
-			noDisposeOnSet,
-			size,
-			sizeCalculation,
-			noUpdateTTL,
-			noDeleteOnFetchRejection,
-			allowStaleOnFetchRejection,
-			allowStaleOnFetchAbort,
-			ignoreFetchAbort,
-			status,
-			signal
-		};
-		let index = this.#keyMap.get(k);
-		if (index === undefined) {
-			if (status) status.fetch = "miss";
-			const p = this.#backgroundFetch(k, index, options, context);
-			return p.__returned = p;
-		} else {
-			// in cache, maybe already fetching
-			const v = this.#valList[index];
-			if (this.#isBackgroundFetch(v)) {
-				const stale = allowStale && v.__staleWhileFetching !== undefined;
-				if (status) {
-					status.fetch = "inflight";
-					if (stale) status.returnedStale = true;
-				}
-				return stale ? v.__staleWhileFetching : v.__returned = v;
-			}
-			// if we force a refresh, that means do NOT serve the cached value,
-			// unless we are already in the process of refreshing the cache.
-			const isStale = this.#isStale(index);
-			if (!forceRefresh && !isStale) {
-				if (status) status.fetch = "hit";
-				this.#moveToTail(index);
-				if (updateAgeOnGet) {
-					this.#updateItemAge(index);
-				}
-				if (status) this.#statusTTL(status, index);
-				return v;
-			}
-			// ok, it is stale or a forced refresh, and not already fetching.
-			// refresh the cache.
-			const p = this.#backgroundFetch(k, index, options, context);
-			const hasStale = p.__staleWhileFetching !== undefined;
-			const staleVal = hasStale && allowStale;
-			if (status) {
-				status.fetch = isStale ? "stale" : "refresh";
-				if (staleVal && isStale) status.returnedStale = true;
-			}
-			return staleVal ? p.__staleWhileFetching : p.__returned = p;
+		if (this.$y && this.$y.fill(0), this.$l = 0, this.$h = 0, this.$b.length = 0, this.$_ = 0, this.$n = 0, this.$f && this.$r) {
+			let e = this.$r, i;
+			for (; i = e?.shift();) this.$S?.(...i);
 		}
 	}
-	async forceFetch(k, fetchOptions = {}) {
-		const v = await this.fetch(k, fetchOptions);
-		if (v === undefined) throw new Error("fetch() returned undefined");
-		return v;
-	}
-	memo(k, memoOptions = {}) {
-		const memoMethod = this.#memoMethod;
-		if (!memoMethod) {
-			throw new Error("no memoMethod provided to constructor");
-		}
-		const { context, forceRefresh, ...options } = memoOptions;
-		const v = this.get(k, options);
-		if (!forceRefresh && v !== undefined) return v;
-		const vv = memoMethod(k, v, {
-			options,
-			context
-		});
-		this.set(k, vv, options);
-		return vv;
-	}
-	/**
-	* Return a value from the cache. Will update the recency of the cache
-	* entry found.
-	*
-	* If the key is not found, get() will return `undefined`.
-	*/
-	get(k, getOptions = {}) {
-		const { allowStale = this.allowStale, updateAgeOnGet = this.updateAgeOnGet, noDeleteOnStaleGet = this.noDeleteOnStaleGet, status } = getOptions;
-		const index = this.#keyMap.get(k);
-		if (index !== undefined) {
-			const value = this.#valList[index];
-			const fetching = this.#isBackgroundFetch(value);
-			if (status) this.#statusTTL(status, index);
-			if (this.#isStale(index)) {
-				if (status) status.get = "stale";
-				// delete only if not an in-flight background fetch
-				if (!fetching) {
-					if (!noDeleteOnStaleGet) {
-						this.#delete(k, "expire");
-					}
-					if (status && allowStale) status.returnedStale = true;
-					return allowStale ? value : undefined;
-				} else {
-					if (status && allowStale && value.__staleWhileFetching !== undefined) {
-						status.returnedStale = true;
-					}
-					return allowStale ? value.__staleWhileFetching : undefined;
-				}
-			} else {
-				if (status) status.get = "hit";
-				// if we're currently fetching it, we don't actually have it yet
-				// it's not stale, which means this isn't a staleWhileRefetching.
-				// If it's not stale, and fetching, AND has a __staleWhileFetching
-				// value, then that means the user fetched with {forceRefresh:true},
-				// so it's safe to return that value.
-				if (fetching) {
-					return value.__staleWhileFetching;
-				}
-				this.#moveToTail(index);
-				if (updateAgeOnGet) {
-					this.#updateItemAge(index);
-				}
-				return value;
-			}
-		} else if (status) {
-			status.get = "miss";
-		}
-	}
-	#connect(p, n) {
-		this.#prev[n] = p;
-		this.#next[p] = n;
-	}
-	#moveToTail(index) {
-		// if tail already, nothing to do
-		// if head, move head to next[index]
-		// else
-		//   move next[prev[index]] to next[index] (head has no prev)
-		//   move prev[next[index]] to prev[index]
-		// prev[index] = tail
-		// next[tail] = index
-		// tail = index
-		if (index !== this.#tail) {
-			if (index === this.#head) {
-				this.#head = this.#next[index];
-			} else {
-				this.#connect(this.#prev[index], this.#next[index]);
-			}
-			this.#connect(this.#tail, index);
-			this.#tail = index;
-		}
-	}
-	/**
-	* Deletes a key out of the cache.
-	*
-	* Returns true if the key was deleted, false otherwise.
-	*/
-	delete(k) {
-		return this.#delete(k, "delete");
-	}
-	#delete(k, reason) {
-		let deleted = false;
-		if (this.#size !== 0) {
-			const index = this.#keyMap.get(k);
-			if (index !== undefined) {
-				if (this.#autopurgeTimers?.[index]) {
-					clearTimeout(this.#autopurgeTimers?.[index]);
-					this.#autopurgeTimers[index] = undefined;
-				}
-				deleted = true;
-				if (this.#size === 1) {
-					this.#clear(reason);
-				} else {
-					this.#removeItemSize(index);
-					const v = this.#valList[index];
-					if (this.#isBackgroundFetch(v)) {
-						v.__abortController.abort(new Error("deleted"));
-					} else if (this.#hasDispose || this.#hasDisposeAfter) {
-						if (this.#hasDispose) {
-							this.#dispose?.(v, k, reason);
-						}
-						if (this.#hasDisposeAfter) {
-							this.#disposed?.push([
-								v,
-								k,
-								reason
-							]);
-						}
-					}
-					this.#keyMap.delete(k);
-					this.#keyList[index] = undefined;
-					this.#valList[index] = undefined;
-					if (index === this.#tail) {
-						this.#tail = this.#prev[index];
-					} else if (index === this.#head) {
-						this.#head = this.#next[index];
-					} else {
-						const pi = this.#prev[index];
-						this.#next[pi] = this.#next[index];
-						const ni = this.#next[index];
-						this.#prev[ni] = this.#prev[index];
-					}
-					this.#size--;
-					this.#free.push(index);
-				}
-			}
-		}
-		if (this.#hasDisposeAfter && this.#disposed?.length) {
-			const dt = this.#disposed;
-			let task;
-			while (task = dt?.shift()) {
-				this.#disposeAfter?.(...task);
-			}
-		}
-		return deleted;
-	}
-	/**
-	* Clear the cache entirely, throwing away all values.
-	*/
-	clear() {
-		return this.#clear("delete");
-	}
-	#clear(reason) {
-		for (const index of this.#rindexes({ allowStale: true })) {
-			const v = this.#valList[index];
-			if (this.#isBackgroundFetch(v)) {
-				v.__abortController.abort(new Error("deleted"));
-			} else {
-				const k = this.#keyList[index];
-				if (this.#hasDispose) {
-					this.#dispose?.(v, k, reason);
-				}
-				if (this.#hasDisposeAfter) {
-					this.#disposed?.push([
-						v,
-						k,
-						reason
-					]);
-				}
-			}
-		}
-		this.#keyMap.clear();
-		this.#valList.fill(undefined);
-		this.#keyList.fill(undefined);
-		if (this.#ttls && this.#starts) {
-			this.#ttls.fill(0);
-			this.#starts.fill(0);
-			for (const t of this.#autopurgeTimers ?? []) {
-				if (t !== undefined) clearTimeout(t);
-			}
-			this.#autopurgeTimers?.fill(undefined);
-		}
-		if (this.#sizes) {
-			this.#sizes.fill(0);
-		}
-		this.#head = 0;
-		this.#tail = 0;
-		this.#free.length = 0;
-		this.#calculatedSize = 0;
-		this.#size = 0;
-		if (this.#hasDisposeAfter && this.#disposed) {
-			const dt = this.#disposed;
-			let task;
-			while (task = dt?.shift()) {
-				this.#disposeAfter?.(...task);
-			}
-		}
-	}
-}
+};
 const proc = typeof process === "object" && process ? process : {
 	stdout: null,
 	stderr: null
@@ -3473,7 +2883,7 @@ class PipeProxyErrors extends Pipe {
 	}
 	constructor(src, dest, opts) {
 		super(src, dest, opts);
-		this.proxyErrors = (er) => dest.emit("error", er);
+		this.proxyErrors = (er) => this.dest.emit("error", er);
 		src.on("error", this.proxyErrors);
 	}
 }
@@ -4191,7 +3601,8 @@ class Minipass extends EventEmitter {
 			return: stop,
 			[Symbol.asyncIterator]() {
 				return this;
-			}
+			},
+			[Symbol.asyncDispose]: async () => {}
 		};
 	}
 	/**
@@ -4233,7 +3644,8 @@ class Minipass extends EventEmitter {
 			return: stop,
 			[Symbol.iterator]() {
 				return this;
-			}
+			},
+			[Symbol.dispose]: () => {}
 		};
 	}
 	/**
@@ -4333,7 +3745,7 @@ const ENOCHILD = ENOTDIR | ENOENT | ENOREALPATH;
 const TYPEMASK = 1023;
 const entToType = (s) => s.isFile() ? IFREG : s.isDirectory() ? IFDIR : s.isSymbolicLink() ? IFLNK : s.isCharacterDevice() ? IFCHR : s.isBlockDevice() ? IFBLK : s.isSocket() ? IFSOCK : s.isFIFO() ? IFIFO : UNKNOWN;
 // normalize unicode path names
-const normalizeCache = new LRUCache({ max: 2 ** 12 });
+const normalizeCache = new L({ max: 2 ** 12 });
 const normalize = (s) => {
 	const c = normalizeCache.get(s);
 	if (c) return c;
@@ -4341,7 +3753,7 @@ const normalize = (s) => {
 	normalizeCache.set(s, n);
 	return n;
 };
-const normalizeNocaseCache = new LRUCache({ max: 2 ** 12 });
+const normalizeNocaseCache = new L({ max: 2 ** 12 });
 const normalizeNocase = (s) => {
 	const c = normalizeNocaseCache.get(s);
 	if (c) return c;
@@ -4353,7 +3765,7 @@ const normalizeNocase = (s) => {
 * An LRUCache for storing resolved path strings or Path objects.
 * @internal
 */
-class ResolveCache extends LRUCache {
+class ResolveCache extends L {
 	constructor() {
 		super({ max: 256 });
 	}
@@ -4373,7 +3785,7 @@ class ResolveCache extends LRUCache {
 * an LRUCache for storing child entries.
 * @internal
 */
-class ChildrenCache extends LRUCache {
+class ChildrenCache extends L {
 	constructor(maxSize = 16 * 1024) {
 		super({
 			maxSize,
@@ -4435,90 +3847,90 @@ class PathBase {
 	*/
 	isCWD = false;
 	// potential default fs override
-	#fs;
+	$fs;
 	// Stats fields
-	#dev;
+	$dev;
 	get dev() {
-		return this.#dev;
+		return this.$dev;
 	}
-	#mode;
+	$mode;
 	get mode() {
-		return this.#mode;
+		return this.$mode;
 	}
-	#nlink;
+	$nlink;
 	get nlink() {
-		return this.#nlink;
+		return this.$nlink;
 	}
-	#uid;
+	$uid;
 	get uid() {
-		return this.#uid;
+		return this.$uid;
 	}
-	#gid;
+	$gid;
 	get gid() {
-		return this.#gid;
+		return this.$gid;
 	}
-	#rdev;
+	$rdev;
 	get rdev() {
-		return this.#rdev;
+		return this.$rdev;
 	}
-	#blksize;
+	$blksize;
 	get blksize() {
-		return this.#blksize;
+		return this.$blksize;
 	}
-	#ino;
+	$ino;
 	get ino() {
-		return this.#ino;
+		return this.$ino;
 	}
-	#size;
+	$size;
 	get size() {
-		return this.#size;
+		return this.$size;
 	}
-	#blocks;
+	$blocks;
 	get blocks() {
-		return this.#blocks;
+		return this.$blocks;
 	}
-	#atimeMs;
+	$atimeMs;
 	get atimeMs() {
-		return this.#atimeMs;
+		return this.$atimeMs;
 	}
-	#mtimeMs;
+	$mtimeMs;
 	get mtimeMs() {
-		return this.#mtimeMs;
+		return this.$mtimeMs;
 	}
-	#ctimeMs;
+	$ctimeMs;
 	get ctimeMs() {
-		return this.#ctimeMs;
+		return this.$ctimeMs;
 	}
-	#birthtimeMs;
+	$birthtimeMs;
 	get birthtimeMs() {
-		return this.#birthtimeMs;
+		return this.$birthtimeMs;
 	}
-	#atime;
+	$atime;
 	get atime() {
-		return this.#atime;
+		return this.$atime;
 	}
-	#mtime;
+	$mtime;
 	get mtime() {
-		return this.#mtime;
+		return this.$mtime;
 	}
-	#ctime;
+	$ctime;
 	get ctime() {
-		return this.#ctime;
+		return this.$ctime;
 	}
-	#birthtime;
+	$birthtime;
 	get birthtime() {
-		return this.#birthtime;
+		return this.$birthtime;
 	}
-	#matchName;
-	#depth;
-	#fullpath;
-	#fullpathPosix;
-	#relative;
-	#relativePosix;
-	#type;
-	#children;
-	#linkTarget;
-	#realpath;
+	$matchName;
+	$depth;
+	$fullpath;
+	$fullpathPosix;
+	$relative;
+	$relativePosix;
+	$type;
+	$children;
+	$linkTarget;
+	$realpath;
 	/**
 	* This property is for compatibility with the Dirent class as of
 	* Node v20, where Dirent['parentPath'] refers to the path of the
@@ -4547,20 +3959,20 @@ class PathBase {
 	*/
 	constructor(name, type = UNKNOWN, root, roots, nocase, children, opts) {
 		this.name = name;
-		this.#matchName = nocase ? normalizeNocase(name) : normalize(name);
-		this.#type = type & TYPEMASK;
+		this.$matchName = nocase ? normalizeNocase(name) : normalize(name);
+		this.$type = type & TYPEMASK;
 		this.nocase = nocase;
 		this.roots = roots;
 		this.root = root || this;
-		this.#children = children;
-		this.#fullpath = opts.fullpath;
-		this.#relative = opts.relative;
-		this.#relativePosix = opts.relativePosix;
+		this.$children = children;
+		this.$fullpath = opts.fullpath;
+		this.$relative = opts.relative;
+		this.$relativePosix = opts.relativePosix;
 		this.parent = opts.parent;
 		if (this.parent) {
-			this.#fs = this.parent.#fs;
+			this.$fs = this.parent.$fs;
 		} else {
-			this.#fs = fsFromOption(opts.fs);
+			this.$fs = fsFromOption(opts.fs);
 		}
 	}
 	/**
@@ -4569,15 +3981,15 @@ class PathBase {
 	* For example, a path at `/foo/bar` would have a depth of 2.
 	*/
 	depth() {
-		if (this.#depth !== undefined) return this.#depth;
-		if (!this.parent) return this.#depth = 0;
-		return this.#depth = this.parent.depth() + 1;
+		if (this.$depth !== undefined) return this.$depth;
+		if (!this.parent) return this.$depth = 0;
+		return this.$depth = this.parent.depth() + 1;
 	}
 	/**
 	* @internal
 	*/
 	childrenCache() {
-		return this.#children;
+		return this.$children;
 	}
 	/**
 	* Get the Path object referenced by the string path, resolved from this Path
@@ -4589,10 +4001,10 @@ class PathBase {
 		const rootPath = this.getRootString(path);
 		const dir = path.substring(rootPath.length);
 		const dirParts = dir.split(this.splitSep);
-		const result = rootPath ? this.getRoot(rootPath).#resolveParts(dirParts) : this.#resolveParts(dirParts);
+		const result = rootPath ? this.getRoot(rootPath).$resolveParts(dirParts) : this.$resolveParts(dirParts);
 		return result;
 	}
-	#resolveParts(dirParts) {
+	$resolveParts(dirParts) {
 		let p = this;
 		for (const part of dirParts) {
 			p = p.child(part);
@@ -4608,13 +4020,13 @@ class PathBase {
 	* @internal
 	*/
 	children() {
-		const cached = this.#children.get(this);
+		const cached = this.$children.get(this);
 		if (cached) {
 			return cached;
 		}
 		const children = Object.assign([], { provisional: 0 });
-		this.#children.set(this, children);
-		this.#type &= ~READDIR_CALLED;
+		this.$children.set(this, children);
+		this.$type &= ~READDIR_CALLED;
 		return children;
 	}
 	/**
@@ -4641,7 +4053,7 @@ class PathBase {
 		const children = this.children();
 		const name = this.nocase ? normalizeNocase(pathPart) : normalize(pathPart);
 		for (const p of children) {
-			if (p.#matchName === name) {
+			if (p.$matchName === name) {
 				return p;
 			}
 		}
@@ -4649,14 +4061,14 @@ class PathBase {
 		// actually exist.  If we know the parent isn't a dir, then
 		// in fact it CAN'T exist.
 		const s = this.parent ? this.sep : "";
-		const fullpath = this.#fullpath ? this.#fullpath + s + pathPart : undefined;
+		const fullpath = this.$fullpath ? this.$fullpath + s + pathPart : undefined;
 		const pchild = this.newChild(pathPart, UNKNOWN, {
 			...opts,
 			parent: this,
 			fullpath
 		});
 		if (!this.canReaddir()) {
-			pchild.#type |= ENOENT;
+			pchild.$type |= ENOENT;
 		}
 		// don't have to update provisional, because if we have real children,
 		// then provisional is set to children.length, otherwise a lower number
@@ -4669,13 +4081,13 @@ class PathBase {
 	*/
 	relative() {
 		if (this.isCWD) return "";
-		if (this.#relative !== undefined) {
-			return this.#relative;
+		if (this.$relative !== undefined) {
+			return this.$relative;
 		}
 		const name = this.name;
 		const p = this.parent;
 		if (!p) {
-			return this.#relative = this.name;
+			return this.$relative = this.name;
 		}
 		const pv = p.relative();
 		return pv + (!pv || !p.parent ? "" : this.sep) + name;
@@ -4689,11 +4101,11 @@ class PathBase {
 	relativePosix() {
 		if (this.sep === "/") return this.relative();
 		if (this.isCWD) return "";
-		if (this.#relativePosix !== undefined) return this.#relativePosix;
+		if (this.$relativePosix !== undefined) return this.$relativePosix;
 		const name = this.name;
 		const p = this.parent;
 		if (!p) {
-			return this.#relativePosix = this.fullpathPosix();
+			return this.$relativePosix = this.fullpathPosix();
 		}
 		const pv = p.relativePosix();
 		return pv + (!pv || !p.parent ? "" : "/") + name;
@@ -4702,17 +4114,17 @@ class PathBase {
 	* The fully resolved path string for this Path entry
 	*/
 	fullpath() {
-		if (this.#fullpath !== undefined) {
-			return this.#fullpath;
+		if (this.$fullpath !== undefined) {
+			return this.$fullpath;
 		}
 		const name = this.name;
 		const p = this.parent;
 		if (!p) {
-			return this.#fullpath = this.name;
+			return this.$fullpath = this.name;
 		}
 		const pv = p.fullpath();
 		const fp = pv + (!p.parent ? "" : this.sep) + name;
-		return this.#fullpath = fp;
+		return this.$fullpath = fp;
 	}
 	/**
 	* On platforms other than windows, this is identical to fullpath.
@@ -4721,20 +4133,20 @@ class PathBase {
 	* full UNC path.
 	*/
 	fullpathPosix() {
-		if (this.#fullpathPosix !== undefined) return this.#fullpathPosix;
-		if (this.sep === "/") return this.#fullpathPosix = this.fullpath();
+		if (this.$fullpathPosix !== undefined) return this.$fullpathPosix;
+		if (this.sep === "/") return this.$fullpathPosix = this.fullpath();
 		if (!this.parent) {
 			const p = this.fullpath().replace(/\\/g, "/");
 			if (/^[a-z]:\//i.test(p)) {
-				return this.#fullpathPosix = `//?/${p}`;
+				return this.$fullpathPosix = `//?/${p}`;
 			} else {
-				return this.#fullpathPosix = p;
+				return this.$fullpathPosix = p;
 			}
 		}
 		const p = this.parent;
 		const pfpp = p.fullpathPosix();
 		const fpp = pfpp + (!pfpp || !p.parent ? "" : "/") + this.name;
-		return this.#fullpathPosix = fpp;
+		return this.$fullpathPosix = fpp;
 	}
 	/**
 	* Is the Path of an unknown type?
@@ -4744,7 +4156,7 @@ class PathBase {
 	* link, or whether it has child entries.
 	*/
 	isUnknown() {
-		return (this.#type & IFMT) === UNKNOWN;
+		return (this.$type & IFMT) === UNKNOWN;
 	}
 	isType(type) {
 		return this[`is${type}`]();
@@ -4757,43 +4169,43 @@ class PathBase {
 	* Is the Path a regular file?
 	*/
 	isFile() {
-		return (this.#type & IFMT) === IFREG;
+		return (this.$type & IFMT) === IFREG;
 	}
 	/**
 	* Is the Path a directory?
 	*/
 	isDirectory() {
-		return (this.#type & IFMT) === IFDIR;
+		return (this.$type & IFMT) === IFDIR;
 	}
 	/**
 	* Is the path a character device?
 	*/
 	isCharacterDevice() {
-		return (this.#type & IFMT) === IFCHR;
+		return (this.$type & IFMT) === IFCHR;
 	}
 	/**
 	* Is the path a block device?
 	*/
 	isBlockDevice() {
-		return (this.#type & IFMT) === IFBLK;
+		return (this.$type & IFMT) === IFBLK;
 	}
 	/**
 	* Is the path a FIFO pipe?
 	*/
 	isFIFO() {
-		return (this.#type & IFMT) === IFIFO;
+		return (this.$type & IFMT) === IFIFO;
 	}
 	/**
 	* Is the path a socket?
 	*/
 	isSocket() {
-		return (this.#type & IFMT) === IFSOCK;
+		return (this.$type & IFMT) === IFSOCK;
 	}
 	/**
 	* Is the path a symbolic link?
 	*/
 	isSymbolicLink() {
-		return (this.#type & IFLNK) === IFLNK;
+		return (this.$type & IFLNK) === IFLNK;
 	}
 	/**
 	* Return the entry if it has been subject of a successful lstat, or
@@ -4803,7 +4215,7 @@ class PathBase {
 	* mean that we haven't called lstat on it.
 	*/
 	lstatCached() {
-		return this.#type & LSTAT_CALLED ? this : undefined;
+		return this.$type & LSTAT_CALLED ? this : undefined;
 	}
 	/**
 	* Return the cached link target if the entry has been the subject of a
@@ -4814,7 +4226,7 @@ class PathBase {
 	* readlink() has been called at some point.
 	*/
 	readlinkCached() {
-		return this.#linkTarget;
+		return this.$linkTarget;
 	}
 	/**
 	* Returns the cached realpath target if the entry has been the subject
@@ -4825,7 +4237,7 @@ class PathBase {
 	* realpath() has been called at some point.
 	*/
 	realpathCached() {
-		return this.#realpath;
+		return this.$realpath;
 	}
 	/**
 	* Returns the cached child Path entries array if the entry has been the
@@ -4847,18 +4259,18 @@ class PathBase {
 	* readlink failed, or if the entry does not exist.
 	*/
 	canReadlink() {
-		if (this.#linkTarget) return true;
+		if (this.$linkTarget) return true;
 		if (!this.parent) return false;
 		// cases where it cannot possibly succeed
-		const ifmt = this.#type & IFMT;
-		return !(ifmt !== UNKNOWN && ifmt !== IFLNK || this.#type & ENOREADLINK || this.#type & ENOENT);
+		const ifmt = this.$type & IFMT;
+		return !(ifmt !== UNKNOWN && ifmt !== IFLNK || this.$type & ENOREADLINK || this.$type & ENOENT);
 	}
 	/**
 	* Return true if readdir has previously been successfully called on this
 	* path, indicating that cachedReaddir() is likely valid.
 	*/
 	calledReaddir() {
-		return !!(this.#type & READDIR_CALLED);
+		return !!(this.$type & READDIR_CALLED);
 	}
 	/**
 	* Returns true if the path is known to not exist. That is, a previous lstat
@@ -4866,7 +4278,7 @@ class PathBase {
 	* expected, or a parent entry was marked either enoent or enotdir.
 	*/
 	isENOENT() {
-		return !!(this.#type & ENOENT);
+		return !!(this.$type & ENOENT);
 	}
 	/**
 	* Return true if the path is a match for the given path name.  This handles
@@ -4880,7 +4292,7 @@ class PathBase {
 	* directly.
 	*/
 	isNamed(n) {
-		return !this.nocase ? this.#matchName === normalize(n) : this.#matchName === normalizeNocase(n);
+		return !this.nocase ? this.$matchName === normalize(n) : this.$matchName === normalizeNocase(n);
 	}
 	/**
 	* Return the Path object corresponding to the target of a symbolic link.
@@ -4891,7 +4303,7 @@ class PathBase {
 	* Result is cached, and thus may be outdated if the filesystem is mutated.
 	*/
 	async readlink() {
-		const target = this.#linkTarget;
+		const target = this.$linkTarget;
 		if (target) {
 			return target;
 		}
@@ -4905,13 +4317,13 @@ class PathBase {
 		}
 		/* c8 ignore stop */
 		try {
-			const read = await this.#fs.promises.readlink(this.fullpath());
+			const read = await this.$fs.promises.readlink(this.fullpath());
 			const linkTarget = (await this.parent.realpath())?.resolve(read);
 			if (linkTarget) {
-				return this.#linkTarget = linkTarget;
+				return this.$linkTarget = linkTarget;
 			}
 		} catch (er) {
-			this.#readlinkFail(er.code);
+			this.$readlinkFail(er.code);
 			return undefined;
 		}
 	}
@@ -4919,7 +4331,7 @@ class PathBase {
 	* Synchronous {@link PathBase.readlink}
 	*/
 	readlinkSync() {
-		const target = this.#linkTarget;
+		const target = this.$linkTarget;
 		if (target) {
 			return target;
 		}
@@ -4933,83 +4345,83 @@ class PathBase {
 		}
 		/* c8 ignore stop */
 		try {
-			const read = this.#fs.readlinkSync(this.fullpath());
+			const read = this.$fs.readlinkSync(this.fullpath());
 			const linkTarget = this.parent.realpathSync()?.resolve(read);
 			if (linkTarget) {
-				return this.#linkTarget = linkTarget;
+				return this.$linkTarget = linkTarget;
 			}
 		} catch (er) {
-			this.#readlinkFail(er.code);
+			this.$readlinkFail(er.code);
 			return undefined;
 		}
 	}
-	#readdirSuccess(children) {
+	$readdirSuccess(children) {
 		// succeeded, mark readdir called bit
-		this.#type |= READDIR_CALLED;
+		this.$type |= READDIR_CALLED;
 		// mark all remaining provisional children as ENOENT
 		for (let p = children.provisional; p < children.length; p++) {
 			const c = children[p];
-			if (c) c.#markENOENT();
+			if (c) c.$markENOENT();
 		}
 	}
-	#markENOENT() {
+	$markENOENT() {
 		// mark as UNKNOWN and ENOENT
-		if (this.#type & ENOENT) return;
-		this.#type = (this.#type | ENOENT) & IFMT_UNKNOWN;
-		this.#markChildrenENOENT();
+		if (this.$type & ENOENT) return;
+		this.$type = (this.$type | ENOENT) & IFMT_UNKNOWN;
+		this.$markChildrenENOENT();
 	}
-	#markChildrenENOENT() {
+	$markChildrenENOENT() {
 		// all children are provisional and do not exist
 		const children = this.children();
 		children.provisional = 0;
 		for (const p of children) {
-			p.#markENOENT();
+			p.$markENOENT();
 		}
 	}
-	#markENOREALPATH() {
-		this.#type |= ENOREALPATH;
-		this.#markENOTDIR();
+	$markENOREALPATH() {
+		this.$type |= ENOREALPATH;
+		this.$markENOTDIR();
 	}
 	// save the information when we know the entry is not a dir
-	#markENOTDIR() {
+	$markENOTDIR() {
 		// entry is not a directory, so any children can't exist.
 		// this *should* be impossible, since any children created
 		// after it's been marked ENOTDIR should be marked ENOENT,
 		// so it won't even get to this point.
 		/* c8 ignore start */
-		if (this.#type & ENOTDIR) return;
+		if (this.$type & ENOTDIR) return;
 		/* c8 ignore stop */
-		let t = this.#type;
+		let t = this.$type;
 		// this could happen if we stat a dir, then delete it,
 		// then try to read it or one of its children.
 		if ((t & IFMT) === IFDIR) t &= IFMT_UNKNOWN;
-		this.#type = t | ENOTDIR;
-		this.#markChildrenENOENT();
+		this.$type = t | ENOTDIR;
+		this.$markChildrenENOENT();
 	}
-	#readdirFail(code = "") {
+	$readdirFail(code = "") {
 		// markENOTDIR and markENOENT also set provisional=0
 		if (code === "ENOTDIR" || code === "EPERM") {
-			this.#markENOTDIR();
+			this.$markENOTDIR();
 		} else if (code === "ENOENT") {
-			this.#markENOENT();
+			this.$markENOENT();
 		} else {
 			this.children().provisional = 0;
 		}
 	}
-	#lstatFail(code = "") {
+	$lstatFail(code = "") {
 		// Windows just raises ENOENT in this case, disable for win CI
 		/* c8 ignore start */
 		if (code === "ENOTDIR") {
 			// already know it has a parent by this point
 			const p = this.parent;
-			p.#markENOTDIR();
+			p.$markENOTDIR();
 		} else if (code === "ENOENT") {
 			/* c8 ignore stop */
-			this.#markENOENT();
+			this.$markENOENT();
 		}
 	}
-	#readlinkFail(code = "") {
-		let ter = this.#type;
+	$readlinkFail(code = "") {
+		let ter = this.$type;
 		ter |= ENOREADLINK;
 		if (code === "ENOENT") ter |= ENOENT;
 		// windows gets a weird error when you try to readlink a file
@@ -5018,44 +4430,44 @@ class PathBase {
 			// all IFMT bits.
 			ter &= IFMT_UNKNOWN;
 		}
-		this.#type = ter;
+		this.$type = ter;
 		// windows just gets ENOENT in this case.  We do cover the case,
 		// just disabled because it's impossible on Windows CI
 		/* c8 ignore start */
 		if (code === "ENOTDIR" && this.parent) {
-			this.parent.#markENOTDIR();
+			this.parent.$markENOTDIR();
 		}
 		/* c8 ignore stop */
 	}
-	#readdirAddChild(e, c) {
-		return this.#readdirMaybePromoteChild(e, c) || this.#readdirAddNewChild(e, c);
+	$readdirAddChild(e, c) {
+		return this.$readdirMaybePromoteChild(e, c) || this.$readdirAddNewChild(e, c);
 	}
-	#readdirAddNewChild(e, c) {
+	$readdirAddNewChild(e, c) {
 		// alloc new entry at head, so it's never provisional
 		const type = entToType(e);
 		const child = this.newChild(e.name, type, { parent: this });
-		const ifmt = child.#type & IFMT;
+		const ifmt = child.$type & IFMT;
 		if (ifmt !== IFDIR && ifmt !== IFLNK && ifmt !== UNKNOWN) {
-			child.#type |= ENOTDIR;
+			child.$type |= ENOTDIR;
 		}
 		c.unshift(child);
 		c.provisional++;
 		return child;
 	}
-	#readdirMaybePromoteChild(e, c) {
+	$readdirMaybePromoteChild(e, c) {
 		for (let p = c.provisional; p < c.length; p++) {
 			const pchild = c[p];
 			const name = this.nocase ? normalizeNocase(e.name) : normalize(e.name);
-			if (name !== pchild.#matchName) {
+			if (name !== pchild.$matchName) {
 				continue;
 			}
-			return this.#readdirPromoteChild(e, pchild, p, c);
+			return this.$readdirPromoteChild(e, pchild, p, c);
 		}
 	}
-	#readdirPromoteChild(e, p, index, c) {
+	$readdirPromoteChild(e, p, index, c) {
 		const v = p.name;
 		// retain any other flags, but set ifmt from dirent
-		p.#type = p.#type & IFMT_UNKNOWN | entToType(e);
+		p.$type = p.$type & IFMT_UNKNOWN | entToType(e);
 		// case sensitivity fixing when we learn the true name.
 		if (v !== e.name) p.name = e.name;
 		// just advance provisional index (potentially off the list),
@@ -5084,12 +4496,12 @@ class PathBase {
 	* mutated.
 	*/
 	async lstat() {
-		if ((this.#type & ENOENT) === 0) {
+		if ((this.$type & ENOENT) === 0) {
 			try {
-				this.#applyStat(await this.#fs.promises.lstat(this.fullpath()));
+				this.$applyStat(await this.$fs.promises.lstat(this.fullpath()));
 				return this;
 			} catch (er) {
-				this.#lstatFail(er.code);
+				this.$lstatFail(er.code);
 			}
 		}
 	}
@@ -5097,48 +4509,48 @@ class PathBase {
 	* synchronous {@link PathBase.lstat}
 	*/
 	lstatSync() {
-		if ((this.#type & ENOENT) === 0) {
+		if ((this.$type & ENOENT) === 0) {
 			try {
-				this.#applyStat(this.#fs.lstatSync(this.fullpath()));
+				this.$applyStat(this.$fs.lstatSync(this.fullpath()));
 				return this;
 			} catch (er) {
-				this.#lstatFail(er.code);
+				this.$lstatFail(er.code);
 			}
 		}
 	}
-	#applyStat(st) {
+	$applyStat(st) {
 		const { atime, atimeMs, birthtime, birthtimeMs, blksize, blocks, ctime, ctimeMs, dev, gid, ino, mode, mtime, mtimeMs, nlink, rdev, size, uid } = st;
-		this.#atime = atime;
-		this.#atimeMs = atimeMs;
-		this.#birthtime = birthtime;
-		this.#birthtimeMs = birthtimeMs;
-		this.#blksize = blksize;
-		this.#blocks = blocks;
-		this.#ctime = ctime;
-		this.#ctimeMs = ctimeMs;
-		this.#dev = dev;
-		this.#gid = gid;
-		this.#ino = ino;
-		this.#mode = mode;
-		this.#mtime = mtime;
-		this.#mtimeMs = mtimeMs;
-		this.#nlink = nlink;
-		this.#rdev = rdev;
-		this.#size = size;
-		this.#uid = uid;
+		this.$atime = atime;
+		this.$atimeMs = atimeMs;
+		this.$birthtime = birthtime;
+		this.$birthtimeMs = birthtimeMs;
+		this.$blksize = blksize;
+		this.$blocks = blocks;
+		this.$ctime = ctime;
+		this.$ctimeMs = ctimeMs;
+		this.$dev = dev;
+		this.$gid = gid;
+		this.$ino = ino;
+		this.$mode = mode;
+		this.$mtime = mtime;
+		this.$mtimeMs = mtimeMs;
+		this.$nlink = nlink;
+		this.$rdev = rdev;
+		this.$size = size;
+		this.$uid = uid;
 		const ifmt = entToType(st);
 		// retain any other flags, but set the ifmt
-		this.#type = this.#type & IFMT_UNKNOWN | ifmt | LSTAT_CALLED;
+		this.$type = this.$type & IFMT_UNKNOWN | ifmt | LSTAT_CALLED;
 		if (ifmt !== UNKNOWN && ifmt !== IFDIR && ifmt !== IFLNK) {
-			this.#type |= ENOTDIR;
+			this.$type |= ENOTDIR;
 		}
 	}
-	#onReaddirCB = [];
-	#readdirCBInFlight = false;
-	#callOnReaddirCB(children) {
-		this.#readdirCBInFlight = false;
-		const cbs = this.#onReaddirCB.slice();
-		this.#onReaddirCB.length = 0;
+	$onReaddirCB = [];
+	$readdirCBInFlight = false;
+	$callOnReaddirCB(children) {
+		this.$readdirCBInFlight = false;
+		const cbs = this.$onReaddirCB.slice();
+		this.$onReaddirCB.length = 0;
 		cbs.forEach((cb) => cb(null, children));
 	}
 	/**
@@ -5171,31 +4583,31 @@ class PathBase {
 			return;
 		}
 		// don't have to worry about zalgo at this point.
-		this.#onReaddirCB.push(cb);
-		if (this.#readdirCBInFlight) {
+		this.$onReaddirCB.push(cb);
+		if (this.$readdirCBInFlight) {
 			return;
 		}
-		this.#readdirCBInFlight = true;
+		this.$readdirCBInFlight = true;
 		// else read the directory, fill up children
 		// de-provisionalize any provisional children.
 		const fullpath = this.fullpath();
-		this.#fs.readdir(fullpath, { withFileTypes: true }, (er, entries) => {
+		this.$fs.readdir(fullpath, { withFileTypes: true }, (er, entries) => {
 			if (er) {
-				this.#readdirFail(er.code);
+				this.$readdirFail(er.code);
 				children.provisional = 0;
 			} else {
 				// if we didn't get an error, we always get entries.
 				//@ts-ignore
 				for (const e of entries) {
-					this.#readdirAddChild(e, children);
+					this.$readdirAddChild(e, children);
 				}
-				this.#readdirSuccess(children);
+				this.$readdirSuccess(children);
 			}
-			this.#callOnReaddirCB(children.slice(0, children.provisional));
+			this.$callOnReaddirCB(children.slice(0, children.provisional));
 			return;
 		});
 	}
-	#asyncReaddirInFlight;
+	$asyncReaddirInFlight;
 	/**
 	* Return an array of known child entries.
 	*
@@ -5216,23 +4628,23 @@ class PathBase {
 		// else read the directory, fill up children
 		// de-provisionalize any provisional children.
 		const fullpath = this.fullpath();
-		if (this.#asyncReaddirInFlight) {
-			await this.#asyncReaddirInFlight;
+		if (this.$asyncReaddirInFlight) {
+			await this.$asyncReaddirInFlight;
 		} else {
 			/* c8 ignore start */
 			let resolve = () => {};
 			/* c8 ignore stop */
-			this.#asyncReaddirInFlight = new Promise((res) => resolve = res);
+			this.$asyncReaddirInFlight = new Promise((res) => resolve = res);
 			try {
-				for (const e of await this.#fs.promises.readdir(fullpath, { withFileTypes: true })) {
-					this.#readdirAddChild(e, children);
+				for (const e of await this.$fs.promises.readdir(fullpath, { withFileTypes: true })) {
+					this.$readdirAddChild(e, children);
 				}
-				this.#readdirSuccess(children);
+				this.$readdirSuccess(children);
 			} catch (er) {
-				this.#readdirFail(er.code);
+				this.$readdirFail(er.code);
 				children.provisional = 0;
 			}
-			this.#asyncReaddirInFlight = undefined;
+			this.$asyncReaddirInFlight = undefined;
 			resolve();
 		}
 		return children.slice(0, children.provisional);
@@ -5252,19 +4664,19 @@ class PathBase {
 		// de-provisionalize any provisional children.
 		const fullpath = this.fullpath();
 		try {
-			for (const e of this.#fs.readdirSync(fullpath, { withFileTypes: true })) {
-				this.#readdirAddChild(e, children);
+			for (const e of this.$fs.readdirSync(fullpath, { withFileTypes: true })) {
+				this.$readdirAddChild(e, children);
 			}
-			this.#readdirSuccess(children);
+			this.$readdirSuccess(children);
 		} catch (er) {
-			this.#readdirFail(er.code);
+			this.$readdirFail(er.code);
 			children.provisional = 0;
 		}
 		return children.slice(0, children.provisional);
 	}
 	canReaddir() {
-		if (this.#type & ENOCHILD) return false;
-		const ifmt = IFMT & this.#type;
+		if (this.$type & ENOCHILD) return false;
+		const ifmt = IFMT & this.$type;
 		// we always set ENOTDIR when setting IFMT, so should be impossible
 		/* c8 ignore start */
 		if (!(ifmt === UNKNOWN || ifmt === IFDIR || ifmt === IFLNK)) {
@@ -5274,7 +4686,7 @@ class PathBase {
 		return true;
 	}
 	shouldWalk(dirs, walkFilter) {
-		return (this.#type & IFDIR) === IFDIR && !(this.#type & ENOCHILD) && !dirs.has(this) && (!walkFilter || walkFilter(this));
+		return (this.$type & IFDIR) === IFDIR && !(this.$type & ENOCHILD) && !dirs.has(this) && (!walkFilter || walkFilter(this));
 	}
 	/**
 	* Return the Path object corresponding to path as resolved
@@ -5286,26 +4698,26 @@ class PathBase {
 	* On success, returns a Path object.
 	*/
 	async realpath() {
-		if (this.#realpath) return this.#realpath;
-		if ((ENOREALPATH | ENOREADLINK | ENOENT) & this.#type) return undefined;
+		if (this.$realpath) return this.$realpath;
+		if ((ENOREALPATH | ENOREADLINK | ENOENT) & this.$type) return undefined;
 		try {
-			const rp = await this.#fs.promises.realpath(this.fullpath());
-			return this.#realpath = this.resolve(rp);
+			const rp = await this.$fs.promises.realpath(this.fullpath());
+			return this.$realpath = this.resolve(rp);
 		} catch (_) {
-			this.#markENOREALPATH();
+			this.$markENOREALPATH();
 		}
 	}
 	/**
 	* Synchronous {@link realpath}
 	*/
 	realpathSync() {
-		if (this.#realpath) return this.#realpath;
-		if ((ENOREALPATH | ENOREADLINK | ENOENT) & this.#type) return undefined;
+		if (this.$realpath) return this.$realpath;
+		if ((ENOREALPATH | ENOREADLINK | ENOENT) & this.$type) return undefined;
 		try {
-			const rp = this.#fs.realpathSync(this.fullpath());
-			return this.#realpath = this.resolve(rp);
+			const rp = this.$fs.realpathSync(this.fullpath());
+			return this.$realpath = this.resolve(rp);
 		} catch (_) {
-			this.#markENOREALPATH();
+			this.$markENOREALPATH();
 		}
 	}
 	/**
@@ -5323,16 +4735,16 @@ class PathBase {
 		let p = this;
 		while (p && p.parent) {
 			changed.add(p);
-			p.#relative = rp.join(this.sep);
-			p.#relativePosix = rp.join("/");
+			p.$relative = rp.join(this.sep);
+			p.$relativePosix = rp.join("/");
 			p = p.parent;
 			rp.push("..");
 		}
 		// now un-memoize parents of old cwd
 		p = oldCwd;
 		while (p && p.parent && !changed.has(p)) {
-			p.#relative = undefined;
-			p.#relativePosix = undefined;
+			p.$relative = undefined;
+			p.$relativePosix = undefined;
 			p = p.parent;
 		}
 	}
@@ -5468,16 +4880,16 @@ class PathScurryBase {
 	* The Path entry corresponding to this PathScurry's current working directory.
 	*/
 	cwd;
-	#resolveCache;
-	#resolvePosixCache;
-	#children;
+	$resolveCache;
+	$resolvePosixCache;
+	$children;
 	/**
 	* Perform path comparisons case-insensitively.
 	*
 	* Defaults true on Darwin and Windows systems, false elsewhere.
 	*/
 	nocase;
-	#fs;
+	$fs;
 	/**
 	* This class should not be instantiated directly.
 	*
@@ -5486,7 +4898,7 @@ class PathScurryBase {
 	* @internal
 	*/
 	constructor(cwd = process.cwd(), pathImpl, sep, { nocase, childrenCacheSize = 16 * 1024, fs = defaultFS } = {}) {
-		this.#fs = fsFromOption(fs);
+		this.$fs = fsFromOption(fs);
 		if (cwd instanceof URL || cwd.startsWith("file://")) {
 			cwd = fileURLToPath(cwd);
 		}
@@ -5495,9 +4907,9 @@ class PathScurryBase {
 		const cwdPath = pathImpl.resolve(cwd);
 		this.roots = Object.create(null);
 		this.rootPath = this.parseRootPath(cwdPath);
-		this.#resolveCache = new ResolveCache();
-		this.#resolvePosixCache = new ResolveCache();
-		this.#children = new ChildrenCache(childrenCacheSize);
+		this.$resolveCache = new ResolveCache();
+		this.$resolvePosixCache = new ResolveCache();
+		this.$children = new ChildrenCache(childrenCacheSize);
 		const split = cwdPath.substring(this.rootPath.length).split(sep);
 		// resolve('/') leaves '', splits to [''], we don't want that.
 		if (split.length === 1 && !split[0]) {
@@ -5509,7 +4921,7 @@ class PathScurryBase {
 		}
 		/* c8 ignore stop */
 		this.nocase = nocase;
-		this.root = this.newRoot(this.#fs);
+		this.root = this.newRoot(this.$fs);
 		this.roots[this.rootPath] = this.root;
 		let prev = this.root;
 		let len = split.length - 1;
@@ -5543,7 +4955,7 @@ class PathScurryBase {
 	* @internal
 	*/
 	childrenCache() {
-		return this.#children;
+		return this.$children;
 	}
 	/**
 	* Resolve one or more path strings to a resolved string
@@ -5566,12 +4978,12 @@ class PathScurryBase {
 				break;
 			}
 		}
-		const cached = this.#resolveCache.get(r);
+		const cached = this.$resolveCache.get(r);
 		if (cached !== undefined) {
 			return cached;
 		}
 		const result = this.cwd.resolve(r).fullpath();
-		this.#resolveCache.set(r, result);
+		this.$resolveCache.set(r, result);
 		return result;
 	}
 	/**
@@ -5597,12 +5009,12 @@ class PathScurryBase {
 				break;
 			}
 		}
-		const cached = this.#resolvePosixCache.get(r);
+		const cached = this.$resolvePosixCache.get(r);
 		if (cached !== undefined) {
 			return cached;
 		}
 		const result = this.cwd.resolve(r).fullpathPosix();
-		this.#resolvePosixCache.set(r, result);
+		this.$resolvePosixCache.set(r, result);
 		return result;
 	}
 	/**
@@ -6136,17 +5548,17 @@ const isGlobList = (gl) => gl.length >= 1;
 * results
 */
 class Pattern {
-	#patternList;
-	#globList;
-	#index;
+	$patternList;
+	$globList;
+	$index;
 	length;
-	#platform;
-	#rest;
-	#globString;
-	#isDrive;
-	#isUNC;
-	#isAbsolute;
-	#followGlobstar = true;
+	$platform;
+	$rest;
+	$globString;
+	$isDrive;
+	$isUNC;
+	$isAbsolute;
+	$followGlobstar = true;
 	constructor(patternList, globList, index, platform) {
 		if (!isPatternList(patternList)) {
 			throw new TypeError("empty pattern list");
@@ -6161,12 +5573,12 @@ class Pattern {
 		if (index < 0 || index >= this.length) {
 			throw new TypeError("index out of range");
 		}
-		this.#patternList = patternList;
-		this.#globList = globList;
-		this.#index = index;
-		this.#platform = platform;
+		this.$patternList = patternList;
+		this.$globList = globList;
+		this.$index = index;
+		this.$platform = platform;
 		// normalize root entries of absolute patterns on initial creation.
-		if (this.#index === 0) {
+		if (this.$index === 0) {
 			// c: => ['c:/']
 			// C:/ => ['C:/']
 			// C:/x => ['C:/', 'x']
@@ -6177,8 +5589,8 @@ class Pattern {
 			// / => ['/']
 			if (this.isUNC()) {
 				// '' / '' / 'host' / 'share'
-				const [p0, p1, p2, p3, ...prest] = this.#patternList;
-				const [g0, g1, g2, g3, ...grest] = this.#globList;
+				const [p0, p1, p2, p3, ...prest] = this.$patternList;
+				const [g0, g1, g2, g3, ...grest] = this.$globList;
 				if (prest[0] === "") {
 					// ends in /
 					prest.shift();
@@ -6198,12 +5610,12 @@ class Pattern {
 					g3,
 					""
 				].join("/");
-				this.#patternList = [p, ...prest];
-				this.#globList = [g, ...grest];
-				this.length = this.#patternList.length;
+				this.$patternList = [p, ...prest];
+				this.$globList = [g, ...grest];
+				this.length = this.$patternList.length;
 			} else if (this.isDrive() || this.isAbsolute()) {
-				const [p1, ...prest] = this.#patternList;
-				const [g1, ...grest] = this.#globList;
+				const [p1, ...prest] = this.$patternList;
+				const [g1, ...grest] = this.$globList;
 				if (prest[0] === "") {
 					// ends in /
 					prest.shift();
@@ -6211,9 +5623,9 @@ class Pattern {
 				}
 				const p = p1 + "/";
 				const g = g1 + "/";
-				this.#patternList = [p, ...prest];
-				this.#globList = [g, ...grest];
-				this.length = this.#patternList.length;
+				this.$patternList = [p, ...prest];
+				this.$globList = [g, ...grest];
+				this.length = this.$patternList.length;
 			}
 		}
 	}
@@ -6221,56 +5633,56 @@ class Pattern {
 	* The first entry in the parsed list of patterns
 	*/
 	pattern() {
-		return this.#patternList[this.#index];
+		return this.$patternList[this.$index];
 	}
 	/**
 	* true of if pattern() returns a string
 	*/
 	isString() {
-		return typeof this.#patternList[this.#index] === "string";
+		return typeof this.$patternList[this.$index] === "string";
 	}
 	/**
 	* true of if pattern() returns GLOBSTAR
 	*/
 	isGlobstar() {
-		return this.#patternList[this.#index] === GLOBSTAR;
+		return this.$patternList[this.$index] === GLOBSTAR;
 	}
 	/**
 	* true if pattern() returns a regexp
 	*/
 	isRegExp() {
-		return this.#patternList[this.#index] instanceof RegExp;
+		return this.$patternList[this.$index] instanceof RegExp;
 	}
 	/**
 	* The /-joined set of glob parts that make up this pattern
 	*/
 	globString() {
-		return this.#globString = this.#globString || (this.#index === 0 ? this.isAbsolute() ? this.#globList[0] + this.#globList.slice(1).join("/") : this.#globList.join("/") : this.#globList.slice(this.#index).join("/"));
+		return this.$globString = this.$globString || (this.$index === 0 ? this.isAbsolute() ? this.$globList[0] + this.$globList.slice(1).join("/") : this.$globList.join("/") : this.$globList.slice(this.$index).join("/"));
 	}
 	/**
 	* true if there are more pattern parts after this one
 	*/
 	hasMore() {
-		return this.length > this.#index + 1;
+		return this.length > this.$index + 1;
 	}
 	/**
 	* The rest of the pattern after this part, or null if this is the end
 	*/
 	rest() {
-		if (this.#rest !== undefined) return this.#rest;
-		if (!this.hasMore()) return this.#rest = null;
-		this.#rest = new Pattern(this.#patternList, this.#globList, this.#index + 1, this.#platform);
-		this.#rest.#isAbsolute = this.#isAbsolute;
-		this.#rest.#isUNC = this.#isUNC;
-		this.#rest.#isDrive = this.#isDrive;
-		return this.#rest;
+		if (this.$rest !== undefined) return this.$rest;
+		if (!this.hasMore()) return this.$rest = null;
+		this.$rest = new Pattern(this.$patternList, this.$globList, this.$index + 1, this.$platform);
+		this.$rest.$isAbsolute = this.$isAbsolute;
+		this.$rest.$isUNC = this.$isUNC;
+		this.$rest.$isDrive = this.$isDrive;
+		return this.$rest;
 	}
 	/**
 	* true if the pattern represents a //unc/path/ on windows
 	*/
 	isUNC() {
-		const pl = this.#patternList;
-		return this.#isUNC !== undefined ? this.#isUNC : this.#isUNC = this.#platform === "win32" && this.#index === 0 && pl[0] === "" && pl[1] === "" && typeof pl[2] === "string" && !!pl[2] && typeof pl[3] === "string" && !!pl[3];
+		const pl = this.$patternList;
+		return this.$isUNC !== undefined ? this.$isUNC : this.$isUNC = this.$platform === "win32" && this.$index === 0 && pl[0] === "" && pl[1] === "" && typeof pl[2] === "string" && !!pl[2] && typeof pl[3] === "string" && !!pl[3];
 	}
 	// pattern like C:/...
 	// split = ['C:', ...]
@@ -6281,8 +5693,8 @@ class Pattern {
 	* True if the pattern starts with a drive letter on Windows
 	*/
 	isDrive() {
-		const pl = this.#patternList;
-		return this.#isDrive !== undefined ? this.#isDrive : this.#isDrive = this.#platform === "win32" && this.#index === 0 && this.length > 1 && typeof pl[0] === "string" && /^[a-z]:$/i.test(pl[0]);
+		const pl = this.$patternList;
+		return this.$isDrive !== undefined ? this.$isDrive : this.$isDrive = this.$platform === "win32" && this.$index === 0 && this.length > 1 && typeof pl[0] === "string" && /^[a-z]:$/i.test(pl[0]);
 	}
 	// pattern = '/' or '/...' or '/x/...'
 	// split = ['', ''] or ['', ...] or ['', 'x', ...]
@@ -6291,29 +5703,29 @@ class Pattern {
 	* True if the pattern is rooted on an absolute path
 	*/
 	isAbsolute() {
-		const pl = this.#patternList;
-		return this.#isAbsolute !== undefined ? this.#isAbsolute : this.#isAbsolute = pl[0] === "" && pl.length > 1 || this.isDrive() || this.isUNC();
+		const pl = this.$patternList;
+		return this.$isAbsolute !== undefined ? this.$isAbsolute : this.$isAbsolute = pl[0] === "" && pl.length > 1 || this.isDrive() || this.isUNC();
 	}
 	/**
 	* consume the root of the pattern, and return it
 	*/
 	root() {
-		const p = this.#patternList[0];
-		return typeof p === "string" && this.isAbsolute() && this.#index === 0 ? p : "";
+		const p = this.$patternList[0];
+		return typeof p === "string" && this.isAbsolute() && this.$index === 0 ? p : "";
 	}
 	/**
 	* Check to see if the current globstar pattern is allowed to follow
 	* a symbolic link.
 	*/
 	checkFollowGlobstar() {
-		return !(this.#index === 0 || !this.isGlobstar() || !this.#followGlobstar);
+		return !(this.$index === 0 || !this.isGlobstar() || !this.$followGlobstar);
 	}
 	/**
 	* Mark that the current globstar pattern is following a symbolic link
 	*/
 	markFollowGlobstar() {
-		if (this.#index === 0 || !this.isGlobstar() || !this.#followGlobstar) return false;
-		this.#followGlobstar = false;
+		if (this.$index === 0 || !this.isGlobstar() || !this.$followGlobstar) return false;
+		this.$followGlobstar = false;
 		return true;
 	}
 }
@@ -6694,9 +6106,9 @@ class GlobUtil {
 	seen = new Set();
 	paused = false;
 	aborted = false;
-	#onResume = [];
-	#ignore;
-	#sep;
+	$onResume = [];
+	$ignore;
+	$sep;
 	signal;
 	maxDepth;
 	includeChildMatches;
@@ -6704,11 +6116,11 @@ class GlobUtil {
 		this.patterns = patterns;
 		this.path = path;
 		this.opts = opts;
-		this.#sep = !opts.posix && opts.platform === "win32" ? "\\" : "/";
+		this.$sep = !opts.posix && opts.platform === "win32" ? "\\" : "/";
 		this.includeChildMatches = opts.includeChildMatches !== false;
 		if (opts.ignore || !this.includeChildMatches) {
-			this.#ignore = makeIgnore(opts.ignore ?? [], opts);
-			if (!this.includeChildMatches && typeof this.#ignore.add !== "function") {
+			this.$ignore = makeIgnore(opts.ignore ?? [], opts);
+			if (!this.includeChildMatches && typeof this.$ignore.add !== "function") {
 				const m = "cannot ignore child matches, ignore lacks add() method.";
 				throw new Error(m);
 			}
@@ -6721,15 +6133,15 @@ class GlobUtil {
 		if (opts.signal) {
 			this.signal = opts.signal;
 			this.signal.addEventListener("abort", () => {
-				this.#onResume.length = 0;
+				this.$onResume.length = 0;
 			});
 		}
 	}
-	#ignored(path) {
-		return this.seen.has(path) || !!this.#ignore?.ignored?.(path);
+	$ignored(path) {
+		return this.seen.has(path) || !!this.$ignore?.ignored?.(path);
 	}
-	#childrenIgnored(path) {
-		return !!this.#ignore?.childrenIgnored?.(path);
+	$childrenIgnored(path) {
+		return !!this.$ignore?.childrenIgnored?.(path);
 	}
 	// backpressure mechanism
 	pause() {
@@ -6741,7 +6153,7 @@ class GlobUtil {
 		/* c8 ignore stop */
 		this.paused = false;
 		let fn = undefined;
-		while (!this.paused && (fn = this.#onResume.shift())) {
+		while (!this.paused && (fn = this.$onResume.shift())) {
 			fn();
 		}
 	}
@@ -6752,7 +6164,7 @@ class GlobUtil {
 			fn();
 		} else {
 			/* c8 ignore stop */
-			this.#onResume.push(fn);
+			this.$onResume.push(fn);
 		}
 	}
 	// do the requisite realpath/stat checking, and return the path
@@ -6777,7 +6189,7 @@ class GlobUtil {
 		return this.matchCheckTest(s, ifDir);
 	}
 	matchCheckTest(e, ifDir) {
-		return e && (this.maxDepth === Infinity || e.depth() <= this.maxDepth) && (!ifDir || e.canReaddir()) && (!this.opts.nodir || !e.isDirectory()) && (!this.opts.nodir || !this.opts.follow || !e.isSymbolicLink() || !e.realpathCached()?.isDirectory()) && !this.#ignored(e) ? e : undefined;
+		return e && (this.maxDepth === Infinity || e.depth() <= this.maxDepth) && (!ifDir || e.canReaddir()) && (!this.opts.nodir || !e.isDirectory()) && (!this.opts.nodir || !this.opts.follow || !e.isSymbolicLink() || !e.realpathCached()?.isDirectory()) && !this.$ignored(e) ? e : undefined;
 	}
 	matchCheckSync(e, ifDir) {
 		if (ifDir && this.opts.nodir) return undefined;
@@ -6798,15 +6210,15 @@ class GlobUtil {
 		return this.matchCheckTest(s, ifDir);
 	}
 	matchFinish(e, absolute) {
-		if (this.#ignored(e)) return;
+		if (this.$ignored(e)) return;
 		// we know we have an ignore if this is false, but TS doesn't
-		if (!this.includeChildMatches && this.#ignore?.add) {
+		if (!this.includeChildMatches && this.$ignore?.add) {
 			const ign = `${e.relativePosix()}/**`;
-			this.#ignore.add(ign);
+			this.$ignore.add(ign);
 		}
 		const abs = this.opts.absolute === undefined ? absolute : this.opts.absolute;
 		this.seen.add(e);
-		const mark = this.opts.mark && e.isDirectory() ? this.#sep : "";
+		const mark = this.opts.mark && e.isDirectory() ? this.$sep : "";
 		// ok, we have what we need!
 		if (this.opts.withFileTypes) {
 			this.matchEmit(e);
@@ -6815,7 +6227,7 @@ class GlobUtil {
 			this.matchEmit(abs + mark);
 		} else {
 			const rel = this.opts.posix ? e.relativePosix() : e.relative();
-			const pre = this.opts.dotRelative && !rel.startsWith(".." + this.#sep) ? "." + this.#sep : "";
+			const pre = this.opts.dotRelative && !rel.startsWith(".." + this.$sep) ? "." + this.$sep : "";
 			this.matchEmit(!rel ? "." + mark : pre + rel + mark);
 		}
 	}
@@ -6834,7 +6246,7 @@ class GlobUtil {
 		this.walkCB2(target, patterns, new Processor(this.opts), cb);
 	}
 	walkCB2(target, patterns, processor, cb) {
-		if (this.#childrenIgnored(target)) return cb();
+		if (this.$childrenIgnored(target)) return cb();
 		if (this.signal?.aborted) cb();
 		if (this.paused) {
 			this.onResume(() => this.walkCB2(target, patterns, processor, cb));
@@ -6849,7 +6261,7 @@ class GlobUtil {
 			if (--tasks === 0) cb();
 		};
 		for (const [m, absolute, ifDir] of processor.matches.entries()) {
-			if (this.#ignored(m)) continue;
+			if (this.$ignored(m)) continue;
 			tasks++;
 			this.match(m, absolute, ifDir).then(() => next());
 		}
@@ -6873,7 +6285,7 @@ class GlobUtil {
 			if (--tasks === 0) cb();
 		};
 		for (const [m, absolute, ifDir] of processor.matches.entries()) {
-			if (this.#ignored(m)) continue;
+			if (this.$ignored(m)) continue;
 			tasks++;
 			this.match(m, absolute, ifDir).then(() => next());
 		}
@@ -6890,7 +6302,7 @@ class GlobUtil {
 		this.walkCB2Sync(target, patterns, new Processor(this.opts), cb);
 	}
 	walkCB2Sync(target, patterns, processor, cb) {
-		if (this.#childrenIgnored(target)) return cb();
+		if (this.$childrenIgnored(target)) return cb();
 		if (this.signal?.aborted) cb();
 		if (this.paused) {
 			this.onResume(() => this.walkCB2Sync(target, patterns, processor, cb));
@@ -6905,7 +6317,7 @@ class GlobUtil {
 			if (--tasks === 0) cb();
 		};
 		for (const [m, absolute, ifDir] of processor.matches.entries()) {
-			if (this.#ignored(m)) continue;
+			if (this.$ignored(m)) continue;
 			this.matchSync(m, absolute, ifDir);
 		}
 		for (const t of processor.subwalkTargets()) {
@@ -6925,7 +6337,7 @@ class GlobUtil {
 			if (--tasks === 0) cb();
 		};
 		for (const [m, absolute, ifDir] of processor.matches.entries()) {
-			if (this.#ignored(m)) continue;
+			if (this.$ignored(m)) continue;
 			this.matchSync(m, absolute, ifDir);
 		}
 		for (const [target, patterns] of processor.subwalks.entries()) {
