@@ -7,6 +7,7 @@ import { gccWithTiming } from './cc.ts';
 import { getTestCaseConfig } from './config.ts';
 import { jsshaker } from './jsshaker.ts';
 import { gzipSize } from './gzip.ts';
+import { exec } from 'node:child_process';
 
 const WARMUP_RUNS = 3;
 const BENCHMARK_RUNS = 3;
@@ -240,19 +241,41 @@ async function benchmarkRollup() {
   for (const file of srcFiles) {
     const name = file.replace('.js', '');
     const entry = join(srcFolder, file);
+
     const config = getTestCaseConfig(name);
+
+    let runner = async () => { await bundlers.rollup({ name, entry, env: config.env, cjs: false, excludeReact: false }) };
+    if (name === 'slidev-demo') {
+      runner = async () => {
+        // Execute `pnpm build`
+        await new Promise((resolve, reject) => {
+          const proc = exec('pnpm build', { cwd: join(import.meta.dirname, '../vendor/slidev-demo') }, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`Error executing pnpm build: ${error}`);
+              reject(error);
+              return;
+            }
+            resolve(stdout);
+          });
+
+          proc.stdout?.pipe(process.stdout);
+          proc.stderr?.pipe(process.stderr);
+        });
+      }
+    }
+
 
     console.log(`[${name}] Warming up...`);
 
     for (let i = 0; i < WARMUP_RUNS; i++) {
-      await bundlers.rollup({ name, entry, env: config.env, cjs: false, excludeReact: false });
+      await runner();
     }
 
     const times: number[] = [];
 
     for (let i = 0; i < BENCHMARK_RUNS; i++) {
       const start = performance.now();
-      await bundlers.rollup({ name, entry, env: config.env, cjs: false, excludeReact: false });
+      await runner();
       times.push(performance.now() - start);
     }
 

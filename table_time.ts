@@ -41,20 +41,15 @@ function generateLatexTable(data: TimeData): string {
   const otherStageKeys = Object.keys(OTHER_STAGES);
 
   // Build table header with multi-level headers
-  // Columns: Program + Baseline (2 cols) + Optimizer (N cols)
+  // Columns: Project + Baseline (2 cols) + Optimizer (N cols)
   const columnSpec = 'l@{\\hspace{-3pt}}rr' + 'r'.repeat(otherStageKeys.length);
 
-  let latex = '\\begin{table}[H]\n';
-  latex += '  \\scriptsize\n';
-  latex += '  \\centering\n';
-  latex += "  \\caption{Comparison of build time overhead. Values represent the execution time ratio relative to the standard baseline (Rollup + Terser, RT). Rolldown (RD) is included as a Rust-based reference. Failed cases marked as ``---''.}\n";
-  latex += '  \\label{tab:time}\n';
-  latex += '  \\setlength{\\tabcolsep}{3pt}\n';
+  let latex = '';
   latex += `  \\begin{tabular}{${columnSpec}}\n`;
   latex += '    \\toprule\n';
 
   // Top-level header row with multirow
-  latex += `    \\multirow{2}{*}[-0.5ex]{Program} & \\multicolumn{2}{c}{With Baseline} & \\multicolumn{${otherStageKeys.length}}{c}{Optimizer ($\\times$)} \\\\\n`;
+  latex += `    \\multirow{2}{*}[-0.5ex]{Project} & \\multicolumn{2}{c}{With Baseline} & \\multicolumn{${otherStageKeys.length}}{c}{Optimizer ($\\times$)} \\\\\n`;
   latex += '    \\cmidrule(lr){2-3} \\cmidrule(lr){4-' + (3 + otherStageKeys.length) + '}\n';
   
   // Sub-header row
@@ -94,7 +89,9 @@ function generateLatexTable(data: TimeData): string {
 
     // Output Rolldown ratio
     const rolldownTime = data['rolldown'][testcase];
-    if (rolldownTime === undefined || baselineTotal === 0) {
+    if (testcase === 'slidev-demo') {
+      latex += ' & ---\\textsuperscript{$\\ast$}';
+    } else if (rolldownTime === undefined || baselineTotal === 0) {
       latex += ' & ---';
     } else {
       const rolldownRatio = rolldownTime / baselineTotal;
@@ -225,7 +222,6 @@ function generateLatexTable(data: TimeData): string {
   latex += ' \\\\\n';
   latex += '    \\bottomrule\n';
   latex += '  \\end{tabular}\n';
-  latex += '\\end{table}\n';
 
   return latex;
 }

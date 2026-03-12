@@ -170,7 +170,7 @@ function generateLatexTable(results: BenchmarkResult[], geometricMean: number): 
   let latex = '';
   latex += '\\begin{tabular}{lrrrrrrrrrrrrr}\n';
   latex += '\\toprule\n';
-  latex += '\\multirow{2}{*}[-0.5ex]{Project} & \\multirow{2}{*}[-0.5ex]{\\#Def} & \\multirow{2}{*}[-0.5ex]{\\#Inst} & \\multirow{2}{*}[-0.5ex]{\\#Calls} & \\multicolumn{3}{c}{Retrival (\\%)} & \\multicolumn{3}{c}{Update (\\%)} & \\multicolumn{2}{c}{Time (ms)} & \\multirow{2}{*}[-1ex]{\\makecell[r]{Speedup\\\\($\\times$)}} \\\\\n';
+  latex += '\\multirow{2}{*}[-0.5ex]{Project} & \\multirow{2}{*}[-0.5ex]{\\#Def} & \\multirow{2}{*}[-0.5ex]{\\#Inst} & \\multirow{2}{*}[-0.5ex]{\\#Calls} & \\multicolumn{3}{c}{Retrival (\\%)} & \\multicolumn{3}{c}{Generation (\\%)} & \\multicolumn{2}{c}{Time (ms)} & \\multirow{2}{*}[-1ex]{\\makecell[r]{Speedup\\\\($\\times$)}} \\\\\n';
   latex += '\\cmidrule(lr){5-7} \\cmidrule(lr){8-10} \\cmidrule(lr){11-12}\n';
   latex += ' & & & & ArgMiss & EnvMiss & Hit & PropRW & ObjRet & Updated & w/o Sum. & w/ Sum. & \\\\\n';
   latex += '\\midrule\n';
