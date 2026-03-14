@@ -108,3 +108,12 @@ sessionStorage.clear = function() {};
 var innerWidth;
 /** @type {number} */
 var innerHeight;
+
+// Node.js process global (used by path-browserify in browser bundles)
+/** @type {!Object} */
+var process;
+process.cwd = function() { return ''; };
+
+// open() is window.open() called without window prefix
+/** @type {function(string=, string=, string=): Window} */
+var open;

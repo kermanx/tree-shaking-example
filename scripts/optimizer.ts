@@ -146,6 +146,9 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
         languageIn: 'ECMASCRIPT_NEXT',
         languageOut: 'ECMASCRIPT_NEXT',
         chunk_output_type: 'ES_MODULES',
+        // 内嵌 webpack bundle 存在跨模块变量引用（循环依赖导致无法注入 import），
+        // 关闭 undeclaredVars 检查使 GCC 将其视为全局 extern，行为与编译前等价
+        ...(code.includes('function __webpack_require__') ? { jscomp_off: 'checkVars' } : {}),
         // warningLevel: 'QUIET',
       });
     } catch (e) {

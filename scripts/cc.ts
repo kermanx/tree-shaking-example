@@ -48,6 +48,18 @@ export function gccWithTiming(
     jsSource = `(async function(){${jsSource}})()`;
   }
 
+  // 修复内嵌 webpack bundle（cose-bl/layout-base）中的已知 bug：
+  // 1. 缺少 this. 前缀的属性访问（getPred1/getPred2/getNext/isProcessed/shiftToLastRow/update）
+  if (jsSource.includes('function __webpack_require__')) {
+    jsSource = jsSource
+      .replaceAll('return pred1;', 'return this.pred1;')
+      .replaceAll('return pred2;', 'return this.pred2;')
+      .replaceAll('return next;', 'return this.next;')
+      .replaceAll('return processed;', 'return this.processed;')
+      .replaceAll('instance.getLongestRowIndex(', 'this.getLongestRowIndex(')
+      .replaceAll('update(nodes4[i2]);', 'this.update(nodes4[i2]);');
+  }
+
 
   // options.env ||= env === 'browser' ? 'BROWSER' : 'CUSTOM';
   options.module_resolution ||= env === 'browser' ? 'BROWSER' : 'BROWSER_WITH_TRANSFORMED_PREFIXES';
