@@ -69,13 +69,6 @@ sudo apt-get update && sudo apt-get install -y cloc
 
 ```sh
 pnpm i
-pnpm -C src/packages/napi i
-```
-
-## Build JsShaker (NAPI)
-
-```sh
-pnpm -C src/packages/napi build
 ```
 
 ## Evaluation
@@ -115,3 +108,6 @@ curl -sSL https://github.com/tc39/test262/archive/b81b71eac270824739107588f26eb6
 
 pnpm -C src/tasks/test262 run test
 ```
+
+## Mapping to Paper
+

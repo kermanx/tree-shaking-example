@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  tree-shaking:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tree-shaking-example:latest
+    container_name: tree-shaking-example
+    volumes:
+      - ../submission.tar.gz:/submission.tar.gz:ro
+    working_dir: /home/user/workspace
+    stdin_open: true
+    tty: true
+    environment:
+      - PATH=/home/user/.cargo/bin:/home/user/.local/bin:/home/user/.local/share/fnm/aliases/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - FNM_DIR=/home/user/.local/share/fnm
