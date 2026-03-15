@@ -17,5 +17,4 @@ src/tasks/test262/test262
 *.swp
 *~
 
-# Submission directory
-submission_ready/
+submission.tar.gz

@@ -1,3 +1,37 @@
+## Repository Structure
+
+- `analysis/` - Python and TypeScript scripts for generating tables and figures from experimental data
+  - `table_*.ts` - Generate tables for paper (size, mangling, time, summary)
+  - `figure_*.py` - Generate figures for paper (ablation, recursion depth analysis)
+- `benchmarks/` - Test applications used for evaluation (antd, d3, lodash-es, react-icons, etc.)
+- `data/` - Experimental results in JSON format (sizes, performance metrics, ablation data)
+- `graphs/` - Generated figures (ablation_analysis.png, depth_analysis.png)
+- `scripts/` - Build and evaluation scripts
+  - `bundle.ts` - Bundle test applications
+  - `jsshaker.ts` - JsShaker optimization runner
+  - `cc.ts` - Google Closure Compiler runner
+  - `lacuna.ts` - Lacuna optimizer runner
+  - `performance.ts` - Build-time measurement
+  - `memory.ts` - Memory usage measurement
+  - `ablation.ts` - Ablation study runner
+  - `stats.ts` - Function and property statistics
+- `snapshots/` - Reference outputs for verification (`.orig.js` are baseline, `.js` are optimized)
+- `src/` - Source code for JsShaker implementation
+  - `crates/jsshaker/` - Rust implementation of JsShaker
+  - `packages/napi/` - Node.js native addon for JsShaker
+  - `packages/playground/` - Interactive playground
+  - `packages/rollup-plugin/` - Rollup plugin integration
+  - `tasks/` - Testing and benchmarking tasks
+    - `benchmark/` - Performance benchmarking suite
+    - `e2e/` - End-to-end integration tests
+    - `test262/` - ECMAScript Test262 conformance tests
+- `test/` - Test files for running optimized outputs
+- `vendor/` - Third-party tools and comparison baselines
+  - `JavaScriptHeuristicOptimizer/` - DFAHC - https://github.com/ffarzat/JavaScriptHeuristicOptmizer a5fcf60180b54c425c9c7bdedb55c1a1ac7030a4
+  - `Lacuna/` - Lacuna - https://github.com/S2-group/Lacuna 9caffa5c6d347e2bb6a1a2103982a551def4bf84
+  - `noVNC/` - noVNC - https://github.com/novnc/noVNC 6d0a9746657b085c11309dc5356083fcbb018526
+  - `slidev-demo/` - Slidev demo application for benchmarking
+
 ## Prequisites
 
 - Node.js 24.11+ with pnpm 10.30.3+
