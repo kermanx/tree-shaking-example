@@ -1,0 +1,19 @@
+{
+  "name": "@jsshaker/binding-win32-x64-msvc",
+  "version": "0.2.8",
+  "cpu": [
+    "x64"
+  ],
+  "main": "jsshaker.win32-x64-msvc.node",
+  "files": [
+    "jsshaker.win32-x64-msvc.node"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kermanx/jsshaker.git"
+  },
+  "os": [
+    "win32"
+  ]
+}

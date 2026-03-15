@@ -1,0 +1,8 @@
+target
+node_modules
+.VSCodeCounter
+node_modules
+dist
+flamescope.json
+test-project
+/temp

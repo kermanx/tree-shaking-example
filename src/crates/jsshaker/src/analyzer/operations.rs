@@ -1,0 +1,404 @@
+use oxc::ast::ast::{BinaryOperator, UpdateOperator};
+use oxc_ecmascript::ToInt32;
+
+use crate::{
+  analyzer::Analyzer,
+  entity::Entity,
+  mangling::MangleConstraint,
+  value::{LiteralValue, TypeofResult, ValueTrait, literal::PossibleLiterals},
+};
+
+impl<'a> Analyzer<'a> {
+  pub fn op_loose_eq(
+    &self,
+    lhs: Entity<'a>,
+    rhs: Entity<'a>,
+  ) -> (Option<bool>, Option<MangleConstraint<'a>>) {
+    if let (Some(v), m) = self.op_strict_eq(lhs, rhs, false)
+      && (v || lhs.test_typeof().must_equal(rhs.test_typeof()))
+    {
+      return (Some(v), m);
+    }
+
+    if lhs.test_nullish() == Some(true) && rhs.test_nullish() == Some(true) {
+      return (Some(true), None);
+    }
+
+    (None, None)
+  }
+
+  pub fn op_loose_neq(
+    &self,
+    lhs: Entity<'a>,
+    rhs: Entity<'a>,
+  ) -> (Option<bool>, Option<MangleConstraint<'a>>) {
+    if let (Some(eq), m) = self.op_loose_eq(lhs, rhs) {
+      return (Some(!eq), m);
+    }
+
+    let lhs_lit = lhs.get_literal(self);
+    let rhs_lit = rhs.get_literal(self);
+    if let (Some(lhs_lit), Some(rhs_lit)) = (lhs_lit, rhs_lit)
+      && lhs_lit.test_typeof() == rhs_lit.test_typeof()
+    {
+      let (eq, m) = lhs_lit.strict_eq(rhs_lit, false);
+      return (Some(!eq), m);
+    }
+
+    (None, None)
+  }
+
+  pub fn op_strict_eq(
+    &self,
+    lhs: Entity<'a>,
+    rhs: Entity<'a>,
+    object_is: bool,
+  ) -> (Option<bool>, Option<MangleConstraint<'a>>) {
+    if Entity::value_eq(lhs, rhs) {
+      if !object_is && Entity::value_eq(lhs, self.factory.nan) {
+        return (Some(false), Some(MangleConstraint::None));
+      }
+      return (Some(true), Some(MangleConstraint::None));
+    }
+
+    let lhs_t = lhs.test_typeof();
+    let rhs_t = rhs.test_typeof();
+    if lhs_t & rhs_t == TypeofResult::_None {
+      return (Some(false), None);
+    }
+
+    let lhs_lit = lhs.get_literals(self);
+    let rhs_lit = rhs.get_literals(self);
+    if let (Some(lhs_lit), Some(rhs_lit)) = (lhs_lit, rhs_lit) {
+      if let (PossibleLiterals::Single(lhs_lit), PossibleLiterals::Single(rhs_lit)) =
+        (&lhs_lit, &rhs_lit)
+      {
+        let (eq, m) = lhs_lit.strict_eq(*rhs_lit, object_is);
+        return (Some(eq), m);
+      }
+
+      let mut constraints = Some(self.factory.vec());
+      let mut all_neq = true;
+      for l in &lhs_lit {
+        for r in &rhs_lit {
+          let (eq, mc) = l.strict_eq(*r, object_is);
+          all_neq &= !eq;
+          if let Some(mc) = mc {
+            if let Some(constraints) = &mut constraints {
+              constraints.push(mc);
+            }
+          } else {
+            constraints = None;
+          }
+        }
+      }
+
+      return (
+        if all_neq { Some(false) } else { None },
+        constraints.map(|m| MangleConstraint::Multiple(m.into_bump_slice())),
+      );
+    }
+
+    (None, None)
+  }
+
+  pub fn op_strict_neq(
+    &self,
+    lhs: Entity<'a>,
+    rhs: Entity<'a>,
+  ) -> (Option<bool>, Option<MangleConstraint<'a>>) {
+    let (eq, m) = self.op_strict_eq(lhs, rhs, false);
+    (eq.map(|v| !v), m)
+  }
+
+  pub fn op_lt(&self, lhs: Entity<'a>, rhs: Entity<'a>, eq: bool) -> Option<bool> {
+    fn literal_lt(lhs: LiteralValue, rhs: LiteralValue, eq: bool) -> Option<bool> {
+      match (lhs, rhs) {
+        (LiteralValue::Number(l), LiteralValue::Number(r)) => {
+          Some(if eq { l.0 <= r.0 } else { l.0 < r.0 })
+        }
+        (LiteralValue::String(l, _), LiteralValue::String(r, _)) => {
+          let c = l.encode_utf16().cmp(r.encode_utf16());
+          Some(if eq { c <= std::cmp::Ordering::Equal } else { c < std::cmp::Ordering::Equal })
+        }
+        (LiteralValue::BigInt(_), LiteralValue::BigInt(_))
+        | (LiteralValue::BigInt(_), LiteralValue::String(_, _))
+        | (LiteralValue::String(_, _), LiteralValue::BigInt(_)) => None,
+        (lhs, rhs) => {
+          let lhs = lhs.to_number();
+          let rhs = rhs.to_number();
+          match (lhs, rhs) {
+            (None, _) | (_, None) => None,
+            (Some(l), Some(r)) => Some(if eq { l.0 <= r.0 } else { l.0 < r.0 }),
+          }
+        }
+      }
+    }
+
+    if let (Some(lhs), Some(rhs)) = (lhs.get_literals(self), rhs.get_literals(self)) {
+      let mut result = None;
+      for &lhs in &lhs {
+        for &rhs in &rhs {
+          if let Some(v) = literal_lt(lhs, rhs, eq) {
+            if let Some(result) = result {
+              if result != v {
+                return None;
+              }
+            } else {
+              result = Some(v);
+            }
+          } else {
+            return None;
+          }
+        }
+      }
+      result
+    } else {
+      None
+    }
+  }
+
+  pub fn op_gt(&self, lhs: Entity<'a>, rhs: Entity<'a>, eq: bool) -> Option<bool> {
+    self.op_lt(rhs, lhs, eq)
+  }
+
+  pub fn op_instanceof(&self, lhs: Entity<'a>, _rhs: Entity<'a>) -> Option<bool> {
+    if (TypeofResult::String
+      | TypeofResult::Number
+      | TypeofResult::BigInt
+      | TypeofResult::Boolean
+      | TypeofResult::Symbol
+      | TypeofResult::Undefined)
+      .contains(lhs.test_typeof())
+      || lhs.test_nullish() == Some(true)
+    {
+      Some(false)
+    } else {
+      None
+    }
+  }
+
+  pub fn op_add(&self, lhs: Entity<'a>, rhs: Entity<'a>) -> Entity<'a> {
+    let lhs_t = lhs.test_typeof();
+    let rhs_t = rhs.test_typeof();
+    let lhs_lit = lhs.get_literal(self);
+    let rhs_lit = rhs.get_literal(self);
+
+    let mut values = self.factory.vec();
+
+    let may_convert_to_num = TypeofResult::Number
+      | TypeofResult::Boolean
+      | TypeofResult::Undefined
+      | TypeofResult::Object
+      | TypeofResult::Function;
+    let must_not_convert_to_str =
+      TypeofResult::Number | TypeofResult::Boolean | TypeofResult::Undefined | TypeofResult::BigInt;
+    let maybe_number = lhs_t.intersects(may_convert_to_num) && rhs_t.intersects(may_convert_to_num);
+    let maybe_bigint = lhs_t.contains(TypeofResult::BigInt) && rhs_t.contains(TypeofResult::BigInt);
+    let maybe_string = !lhs_t.difference(must_not_convert_to_str).is_empty()
+      || !rhs_t.difference(must_not_convert_to_str).is_empty();
+
+    if lhs_lit.is_none() || rhs_lit.is_none() {
+      let type_count = maybe_number as u8 + maybe_bigint as u8 + maybe_string as u8;
+      return if type_count > 1 {
+        self.factory.computed(self.factory.unknown_primitive, (lhs, rhs))
+      } else if maybe_number {
+        self.factory.computed(self.factory.unknown_number, (lhs, rhs))
+      } else if maybe_bigint {
+        self.factory.computed(self.factory.unknown_bigint, (lhs, rhs))
+      } else {
+        self.factory.computed(self.factory.unknown_string, (lhs, rhs))
+      };
+    }
+
+    if maybe_number {
+      // Possibly number
+      match (lhs_lit.and_then(|v| v.to_number()), rhs_lit.and_then(|v| v.to_number())) {
+        (Some(l), Some(r)) => {
+          let val = l.0 + r.0;
+          values.push(self.factory.number(val));
+        }
+        _ => {
+          values.push(self.factory.unknown_number);
+        }
+      }
+    }
+    if maybe_bigint {
+      // Possibly bigint
+      values.push(self.factory.unknown_bigint);
+    }
+    if maybe_string {
+      let lhs_str = lhs.coerce_string(self);
+      let rhs_str = rhs.coerce_string(self);
+
+      let lhs_str_lit = lhs_str.get_literal(self);
+      let rhs_str_lit = rhs_str.get_literal(self);
+
+      match (lhs_str_lit, rhs_str_lit) {
+        (Some(LiteralValue::String(l, _)), Some(LiteralValue::String(r, _))) => {
+          let val = self.allocator.alloc_str(&(l.to_string() + r));
+          values.push(self.factory.mangable_string(val, self.mangler.new_atom(val)));
+        }
+        _ => {
+          values.push(self.factory.unknown_string);
+        }
+      }
+    }
+
+    if values.is_empty() {
+      // TODO: throw warning
+      self.factory.computed_unknown((lhs, rhs))
+    } else {
+      self.factory.computed_union(values, (lhs, rhs))
+    }
+  }
+
+  fn op_numeric(
+    &self,
+    lhs: Entity<'a>,
+    rhs: Entity<'a>,
+    calc: impl FnOnce(f64, f64) -> Entity<'a>,
+  ) -> Entity<'a> {
+    self.factory.computed(
+      if let (Some(l), Some(r)) = (lhs.get_literal(self), rhs.get_literal(self)) {
+        match (l, r) {
+          (LiteralValue::Number(l), LiteralValue::Number(r)) => calc(l.0, r.0),
+          _ => self.factory.unknown_primitive,
+        }
+      } else {
+        self.factory.unknown_primitive
+      },
+      (lhs, rhs),
+    )
+  }
+
+  pub fn op_update(&self, input: Entity<'a>, operator: UpdateOperator) -> Entity<'a> {
+    if let Some(num) = input.get_literal(self).and_then(|lit| lit.to_number()) {
+      let updated = self.factory.number(match operator {
+        UpdateOperator::Increment => num.0 + 1.0,
+        UpdateOperator::Decrement => num.0 - 1.0,
+      });
+      return self.factory.computed(updated, input);
+    }
+
+    let input_t = input.test_typeof();
+
+    let mut values = self.factory.vec();
+    if input_t.contains(TypeofResult::BigInt) {
+      values.push(self.factory.unknown_bigint);
+    }
+    if input_t.contains(TypeofResult::Number) {
+      values.push(self.factory.unknown_number);
+    }
+
+    if values.is_empty() {
+      self.factory.computed_unknown(input)
+    } else {
+      self.factory.computed_union(values, input)
+    }
+  }
+
+  pub fn op_binary(
+    &self,
+    operator: BinaryOperator,
+    lhs: Entity<'a>,
+    rhs: Entity<'a>,
+  ) -> Entity<'a> {
+    let factory = self.factory;
+
+    let bool_result =
+      |result: Option<bool>| factory.computed(factory.boolean_maybe_unknown(result), (lhs, rhs));
+
+    let equality_result =
+      |(equality, mangle_constraint): (Option<bool>, Option<MangleConstraint<'a>>)| {
+        if let Some(mangle_constraint) = mangle_constraint {
+          factory.mangable(factory.boolean_maybe_unknown(equality), (lhs, rhs), mangle_constraint)
+        } else {
+          bool_result(equality)
+        }
+      };
+
+    match operator {
+      BinaryOperator::Equality => equality_result(self.op_loose_eq(lhs, rhs)),
+      BinaryOperator::Inequality => equality_result(self.op_loose_neq(lhs, rhs)),
+      BinaryOperator::StrictEquality => equality_result(self.op_strict_eq(lhs, rhs, false)),
+      BinaryOperator::StrictInequality => equality_result(self.op_strict_neq(lhs, rhs)),
+      BinaryOperator::LessThan => bool_result(self.op_lt(lhs, rhs, false)),
+      BinaryOperator::LessEqualThan => bool_result(self.op_lt(lhs, rhs, true)),
+      BinaryOperator::GreaterThan => bool_result(self.op_gt(lhs, rhs, false)),
+      BinaryOperator::GreaterEqualThan => bool_result(self.op_gt(lhs, rhs, true)),
+      BinaryOperator::Addition => self.op_add(lhs, rhs),
+
+      BinaryOperator::Subtraction
+      | BinaryOperator::Multiplication
+      | BinaryOperator::Division
+      | BinaryOperator::Remainder
+      | BinaryOperator::Exponential => self.op_numeric(lhs, rhs, |l, r| {
+        let value = match operator {
+          BinaryOperator::Subtraction => l - r,
+          BinaryOperator::Multiplication => l * r,
+          BinaryOperator::Division => l / r,
+          BinaryOperator::Remainder => {
+            if r == 0.0 {
+              f64::NAN
+            } else {
+              l % r
+            }
+          }
+          BinaryOperator::Exponential => l.powf(r),
+          _ => unreachable!(),
+        };
+        if value.is_nan() { factory.nan } else { factory.number(value) }
+      }),
+
+      BinaryOperator::ShiftLeft
+      | BinaryOperator::ShiftRight
+      | BinaryOperator::ShiftRightZeroFill => {
+        self.op_numeric(lhs, rhs, |l, r| {
+          // https://github.com/oxc-project/oxc/blob/main/crates/oxc_ecmascript/src/constant_evaluation/mod.rs
+          if l.fract() != 0.0 || r.fract() != 0.0 || !(0.0..32.0).contains(&r) {
+            return factory.unknown_number;
+          }
+          let bits = l.to_int_32();
+          let right_val_int = r as u32;
+          let value = match operator {
+            BinaryOperator::ShiftLeft => f64::from(bits.wrapping_shl(right_val_int)),
+            BinaryOperator::ShiftRight => f64::from(bits.wrapping_shr(right_val_int)),
+            BinaryOperator::ShiftRightZeroFill => {
+              // JavaScript always treats the result of >>> as unsigned.
+              // We must force Rust to do the same here.
+              let bits = bits as u32;
+              let res = bits.wrapping_shr(right_val_int);
+              f64::from(res)
+            }
+            _ => unreachable!(),
+          };
+          factory.number(value)
+        })
+      }
+
+      BinaryOperator::BitwiseOR | BinaryOperator::BitwiseXOR | BinaryOperator::BitwiseAnd => self
+        .op_numeric(lhs, rhs, |l, r| {
+          let l = l.to_int_32();
+          let r = r.to_int_32();
+          let value = match operator {
+            BinaryOperator::BitwiseOR => l | r,
+            BinaryOperator::BitwiseXOR => l ^ r,
+            BinaryOperator::BitwiseAnd => l & r,
+            _ => unreachable!(),
+          };
+          factory.number(f64::from(value))
+        }),
+
+      BinaryOperator::In => {
+        let lhs = lhs.coerce_property_key(self);
+        let result = lhs.get_literal(self).and_then(|lkey| {
+          let (pkey, _) = lkey.into();
+          rhs.test_has_own(pkey, true)
+        });
+        self.factory.computed(self.factory.boolean_maybe_unknown(result), (lhs, rhs))
+      }
+      BinaryOperator::Instanceof => bool_result(self.op_instanceof(lhs, rhs)),
+    }
+  }
+}

@@ -1,0 +1,19 @@
+---
+source: crates/jsshaker/tests/mod.rs
+expression: do_tree_shake(input)
+input_file: crates/jsshaker/tests/fixtures/labeled_statement.js
+---
+export function main() {
+	a: b: {
+		effect1();
+		c: {
+			effect2();
+			break c;
+		}
+		effect4();
+		{
+			effect5();
+			break a;
+		}
+	}
+}

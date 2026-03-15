@@ -1,0 +1,27 @@
+{
+  "name": "@jsshaker/binding-wasm32-wasi",
+  "version": "0.2.8",
+  "cpu": [
+    "wasm32"
+  ],
+  "main": "jsshaker.wasi.cjs",
+  "files": [
+    "jsshaker.wasm32-wasi.wasm",
+    "jsshaker.wasi.cjs",
+    "jsshaker.wasi-browser.js",
+    "wasi-worker.mjs",
+    "wasi-worker-browser.mjs"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kermanx/jsshaker.git"
+  },
+  "browser": "jsshaker.wasi-browser.js",
+  "dependencies": {
+    "@napi-rs/wasm-runtime": "^1.0.3"
+  }
+}

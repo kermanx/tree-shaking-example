@@ -1,0 +1,95 @@
+use std::mem;
+
+use oxc::allocator;
+
+use super::variable_scope::VariableScopeId;
+use crate::{
+  analyzer::Analyzer,
+  dep::DepTrait,
+  entity::Entity,
+  module::ModuleId,
+  utils::{CalleeInfo, ast::AstKind2},
+};
+
+pub struct CallScope<'a> {
+  pub callsite: AstKind2<'a>,
+  pub callee: CalleeInfo<'a>,
+  pub old_module: ModuleId,
+  pub old_variable_scope: Option<VariableScopeId>,
+  pub cf_scope_depth: usize,
+  pub body_variable_scope: VariableScopeId,
+  pub returned_values: Vec<Entity<'a>>,
+  pub is_async: bool,
+  pub is_generator: bool,
+  pub need_include_arguments: bool,
+
+  #[cfg(feature = "flame")]
+  pub scope_guard: flame::SpanGuard,
+}
+
+impl<'a> CallScope<'a> {
+  pub fn new_in(
+    callsite: AstKind2<'a>,
+    callee: CalleeInfo<'a>,
+    old_module: ModuleId,
+    old_variable_scope: Option<VariableScopeId>,
+    cf_scope_depth: usize,
+    body_variable_scope: VariableScopeId,
+    is_async: bool,
+    is_generator: bool,
+  ) -> Self {
+    CallScope {
+      callsite,
+      callee,
+      old_module,
+      old_variable_scope,
+      cf_scope_depth,
+      body_variable_scope,
+      returned_values: Vec::new(),
+      is_async,
+      is_generator,
+      need_include_arguments: false,
+
+      #[cfg(feature = "flame")]
+      scope_guard: flame::start_guard(callee.debug_name.to_string()),
+    }
+  }
+
+  pub fn ret_val(&self, analyzer: &mut Analyzer<'a>) -> Entity<'a> {
+    match &self.returned_values[..] {
+      [] => analyzer.factory.never,
+      [v] => *v,
+      [v1, v2] => analyzer.factory.union((*v1, *v2)),
+      values => analyzer
+        .factory
+        .union(allocator::Vec::from_iter_in(values.iter().copied(), analyzer.allocator)),
+    }
+  }
+}
+
+impl<'a> Analyzer<'a> {
+  pub fn return_value(&mut self, value: Entity<'a>, dep: impl DepTrait<'a> + 'a) {
+    let call_scope = self.call_scope();
+    let exec_dep = self.get_exec_dep(call_scope.cf_scope_depth + 1).0;
+    let value = self.factory.computed(value, (exec_dep, dep));
+
+    let call_scope = self.call_scope_mut();
+    call_scope.returned_values.push(value);
+
+    let target_depth = call_scope.cf_scope_depth;
+    self.exit_to(target_depth);
+  }
+
+  pub fn include_arguments(&mut self) -> bool {
+    let scope = self.call_scope().body_variable_scope;
+    self.include_arguments_on_scope(scope)
+  }
+
+  pub fn include_return_values(&mut self) {
+    let call_scope = self.call_scope_mut();
+    let values = mem::take(&mut call_scope.returned_values);
+    for value in values {
+      self.include(value);
+    }
+  }
+}

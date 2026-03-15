@@ -1,0 +1,40 @@
+use oxc::ast::ast::PrivateIdentifier;
+
+use crate::{
+  analyzer::Analyzer,
+  ast::AstKind2,
+  entity::Entity,
+  transformer::Transformer,
+  utils::private_identifier_name::{
+    escape_private_identifier_name, unescape_private_identifier_name,
+  },
+};
+
+impl<'a> Analyzer<'a> {
+  pub fn exec_private_identifier(&mut self, node: &'a PrivateIdentifier<'a>) -> Entity<'a> {
+    self.factory.computed(
+      self.exec_mangable_static_string(
+        AstKind2::PrivateIdentifier(node),
+        escape_private_identifier_name(node.name.as_str()),
+      ),
+      AstKind2::PrivateIdentifier(node),
+    )
+  }
+}
+
+impl<'a> Transformer<'a> {
+  pub fn transform_private_identifier(
+    &self,
+    node: &'a PrivateIdentifier<'a>,
+    need_val: bool,
+  ) -> Option<PrivateIdentifier<'a>> {
+    if need_val || self.is_included(AstKind2::PrivateIdentifier(node)) {
+      let PrivateIdentifier { span, name } = node;
+      self.record_static_property_key();
+      let name = self.transform_mangable_static_string(AstKind2::PrivateIdentifier(node), name);
+      Some(self.ast.private_identifier(*span, unescape_private_identifier_name(name)))
+    } else {
+      None
+    }
+  }
+}

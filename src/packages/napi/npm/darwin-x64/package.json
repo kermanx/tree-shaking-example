@@ -1,0 +1,19 @@
+{
+  "name": "@jsshaker/binding-darwin-x64",
+  "version": "0.2.8",
+  "cpu": [
+    "x64"
+  ],
+  "main": "jsshaker.darwin-x64.node",
+  "files": [
+    "jsshaker.darwin-x64.node"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kermanx/jsshaker.git"
+  },
+  "os": [
+    "darwin"
+  ]
+}

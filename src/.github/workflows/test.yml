@@ -1,0 +1,84 @@
+name: Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+    - name: Run tests
+      run: cargo test --verbose
+
+  test262:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+    - name: Use Node.js 24
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Setup PNPM
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+    - name: Build NAPI
+      run: |
+        pnpm i
+        pnpm build
+      working-directory: ./packages/napi
+    - name: Install test262 dependencies
+      run: pnpm i
+      working-directory: ./tasks/test262
+    - name: Run test262 tests
+      run: pnpm test
+      working-directory: ./tasks/test262
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+    - name: Use Node.js 22
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Setup PNPM
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+    - name: Build NAPI
+      run: |
+        pnpm i
+        pnpm build
+      working-directory: ./packages/napi
+    - name: Build e2e tests
+      run: |
+        pnpm i
+        pnpm e2e-build-shaken
+      working-directory: ./tasks/e2e
+    - name: Run e2e tests
+      run: |
+        pnpm exec playwright install --with-deps chromium
+        pnpm test
+      working-directory: ./tasks/e2e

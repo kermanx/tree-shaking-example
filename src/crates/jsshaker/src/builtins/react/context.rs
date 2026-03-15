@@ -1,0 +1,164 @@
+use std::mem;
+
+use oxc_index::{IndexVec, define_index_type};
+
+use crate::{
+  analyzer::{Analyzer, Factory, rw_tracking::ReadWriteTarget},
+  builtin_string,
+  dep::{CustomDepTrait, Dep},
+  entity::Entity,
+  init_object,
+  value::{ObjectId, ObjectPrototype},
+};
+
+#[derive(Debug)]
+pub struct ReactContextData<'a> {
+  object_id: ObjectId,
+  included: bool,
+  default_value: Entity<'a>,
+  stack: Vec<Entity<'a>>,
+  dep: Dep<'a>,
+}
+
+impl<'a> ReactContextData<'a> {
+  pub fn get_current(&self, factory: &'a Factory<'a>) -> Entity<'a> {
+    factory.computed(
+      if self.included {
+        factory.unknown
+      } else {
+        self.stack.last().copied().unwrap_or(self.default_value)
+      },
+      self.dep,
+    )
+  }
+}
+
+define_index_type! {
+  pub struct ContextId = u32;
+  DISABLE_MAX_INDEX_CHECK = cfg!(not(debug_assertions));
+}
+
+pub type ReactContexts<'a> = IndexVec<ContextId, ReactContextData<'a>>;
+
+pub fn create_react_create_context_impl<'a>(factory: &'a Factory<'a>) -> Entity<'a> {
+  factory.implemented_builtin_fn("React::createContext", |analyzer, dep, _this, args| {
+    let default_value = args.get(analyzer, 0);
+
+    let context = analyzer
+      .new_empty_object(ObjectPrototype::Builtin(&analyzer.builtins.prototypes.object), None);
+
+    let context_id = analyzer.builtins.react_data.contexts.push(ReactContextData {
+      object_id: context.object_id(),
+      included: false,
+      default_value,
+      stack: Vec::new(),
+      dep,
+    });
+
+    init_object!(context, factory, {
+      "__#internal__included_hook" => analyzer.factory.computed_unknown(context_id),
+      "__#internal__context_id" => analyzer.serialize_internal_id(context_id),
+      "Provider" => create_react_context_provider_impl(analyzer, context_id),
+      "Consumer" => create_react_context_consumer_impl(analyzer, context_id),
+    });
+
+    context.into()
+  })
+}
+
+impl<'a> CustomDepTrait<'a> for ContextId {
+  fn include(&self, analyzer: &mut Analyzer<'a>) {
+    let data = &mut analyzer.builtins.react_data.contexts[*self];
+    data.included = true;
+    let default_value = data.default_value;
+    let dep = data.dep;
+    let stack = mem::take(&mut data.stack);
+    analyzer.include(default_value);
+    analyzer.include(dep);
+    for value in stack {
+      analyzer.include(value);
+    }
+  }
+}
+
+fn create_react_context_provider_impl<'a>(
+  analyzer: &mut Analyzer<'a>,
+  context_id: ContextId,
+) -> Entity<'a> {
+  analyzer.dynamic_implemented_builtin(
+    "React::Context::Provider",
+    move |analyzer, dep, _this, args| {
+      let props = args.get(analyzer, 0);
+      let value = props.get_property(analyzer, dep, builtin_string!("value"));
+
+      let data = &mut analyzer.builtins.react_data.contexts[context_id];
+      let mut need_pop = false;
+      if data.included {
+        analyzer.include(value);
+      } else {
+        data.stack.push(analyzer.factory.computed_unknown(value));
+
+        let object_id = data.object_id;
+        let dep = data.dep;
+
+        let should_include =
+          analyzer.request_exhaustive_callbacks(ReadWriteTarget::ObjectAll(object_id));
+
+        if should_include {
+          analyzer.include(context_id);
+        } else {
+          // Currently we can't remove <Context.Provider> from the tree,
+          // so we need to include the dep here.
+          analyzer.include(dep);
+
+          let data = &mut analyzer.builtins.react_data.contexts[context_id];
+          data.stack.pop();
+
+          data.stack.push(value);
+          need_pop = true;
+        }
+      }
+
+      let children = props.get_property(analyzer, dep, builtin_string!("children"));
+      children.include(analyzer);
+
+      if need_pop {
+        analyzer.builtins.react_data.contexts[context_id].stack.pop();
+      }
+
+      analyzer.factory.unknown
+    },
+  )
+}
+
+fn create_react_context_consumer_impl<'a>(
+  analyzer: &mut Analyzer<'a>,
+  context_id: ContextId,
+) -> Entity<'a> {
+  analyzer.dynamic_implemented_builtin(
+    "React::Context::Consumer",
+    move |analyzer, dep, _this, _args| {
+      analyzer.include(dep);
+      analyzer.include(context_id);
+
+      analyzer.factory.unknown
+    },
+  )
+}
+
+pub fn create_react_use_context_impl<'a>(factory: &'a Factory<'a>) -> Entity<'a> {
+  factory.implemented_builtin_fn("React::useContext", move |analyzer, dep, _this, args| {
+    let context_object = args.get(analyzer, 0);
+    let context_id = context_object.get_property(
+      analyzer,
+      analyzer.factory.no_dep,
+      builtin_string!("__#internal__context_id"),
+    );
+    if let Some(id) = analyzer.parse_internal_symbol_id::<ContextId>(context_id) {
+      let data = &analyzer.builtins.react_data.contexts[id];
+      factory.computed(data.get_current(factory), (context_id, dep))
+    } else {
+      factory.computed_unknown((context_object, dep))
+    }
+  })
+}

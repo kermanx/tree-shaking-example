@@ -1,0 +1,51 @@
+use oxc::{allocator, ast::ast::VariableDeclaration};
+
+use crate::{analyzer::Analyzer, dep::DepAtom, entity::Entity, transformer::Transformer};
+
+impl<'a> Analyzer<'a> {
+  pub fn declare_variable_declaration(
+    &mut self,
+    node: &'a VariableDeclaration<'a>,
+    exporting: Option<DepAtom>,
+  ) {
+    for declarator in &node.declarations {
+      self.declare_variable_declarator(declarator, exporting, node.kind.into());
+    }
+  }
+
+  pub fn init_variable_declaration(
+    &mut self,
+    node: &'a VariableDeclaration<'a>,
+    init: Option<Entity<'a>>,
+  ) {
+    if init.is_some() {
+      assert_eq!(node.declarations.len(), 1);
+    }
+
+    for declarator in &node.declarations {
+      self.init_variable_declarator(declarator, node.kind.into(), init);
+    }
+  }
+}
+
+impl<'a> Transformer<'a> {
+  pub fn transform_variable_declaration(
+    &self,
+    node: &'a VariableDeclaration<'a>,
+    no_init: bool,
+  ) -> Option<allocator::Box<'a, VariableDeclaration<'a>>> {
+    let VariableDeclaration { span, kind, declarations, .. } = node;
+    let mut transformed_decls = self.ast.vec();
+    for declarator in declarations {
+      let declarator = self.transform_variable_declarator(declarator, no_init);
+      if let Some(declarator) = declarator {
+        transformed_decls.push(declarator);
+      }
+    }
+    if transformed_decls.is_empty() {
+      None
+    } else {
+      Some(self.ast.alloc_variable_declaration(*span, *kind, transformed_decls, false))
+    }
+  }
+}

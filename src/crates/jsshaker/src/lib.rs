@@ -1,0 +1,151 @@
+mod analyzer;
+mod builtins;
+mod config;
+mod dep;
+mod entity;
+mod folding;
+mod mangling;
+mod module;
+mod nodes;
+mod scope;
+mod transformer;
+mod utils;
+mod value;
+pub mod vfs;
+
+use std::{cell::RefCell, collections::BTreeSet, mem, rc::Rc};
+
+pub use analyzer::Analyzer;
+pub use config::{TreeShakeConfig, TreeShakeJsxPreset};
+use mangling::ManglerTransformer;
+pub use mangling::ManglingStats;
+use module::ModuleInfo;
+pub use oxc;
+use oxc::{
+  allocator::Allocator,
+  codegen::{Codegen, CodegenOptions, CodegenReturn},
+  minifier::{Minifier, MinifierOptions},
+  parser::Parser,
+  span::SourceType,
+};
+use oxc_ast_visit::VisitMut;
+use rustc_hash::FxHashMap;
+use transformer::Transformer;
+use utils::ast;
+pub use value::FnStats;
+use vfs::Vfs;
+
+use crate::vfs::normalize_path;
+
+pub struct JsShakerOptions<F: Vfs> {
+  pub vfs: F,
+  pub config: TreeShakeConfig,
+  pub minify_options: Option<MinifierOptions>,
+  pub codegen_options: CodegenOptions,
+  pub source_map: bool,
+}
+
+pub struct JsShakerReturn {
+  pub codegen_return: FxHashMap<String, CodegenReturn>,
+  pub diagnostics: BTreeSet<String>,
+  pub fn_stats: Option<FnStats>,
+  pub mangling_stats: Option<mangling::ManglingStats>,
+}
+
+pub fn tree_shake<F: Vfs + 'static>(options: JsShakerOptions<F>, entry: String) -> JsShakerReturn {
+  let JsShakerOptions { vfs, config, minify_options, codegen_options, source_map } = options;
+
+  if config.enabled {
+    let allocator = Allocator::default();
+    let config = allocator.alloc(config);
+
+    // Step 1: Analyze
+    let mut analyzer = Analyzer::new_in(Box::new(vfs), config, &allocator);
+    let module_id = analyzer.parse_module(normalize_path::normalize_str(&entry));
+    analyzer.exec_module(module_id);
+    analyzer.post_analysis();
+
+    let Analyzer {
+      modules,
+      diagnostics,
+      folder,
+      mangler,
+      data,
+      included_atoms,
+      conditional_data,
+      ..
+    } = unsafe { &mut *(&mut analyzer as *mut _) };
+    let mangler = Rc::new(RefCell::new(mangler));
+    let mut codegen_return = FxHashMap::default();
+    let mangling_stats = config.enable_mangling_stats.then(Default::default);
+    for module_info in mem::take(&mut modules.modules) {
+      let ModuleInfo { path, program, semantic, .. } = module_info;
+
+      // Step 2: Transform
+      let transformer = Transformer::new(
+        config,
+        &allocator,
+        path,
+        data,
+        included_atoms,
+        conditional_data,
+        folder,
+        mangler.clone(),
+        semantic,
+        mangling_stats.clone(),
+      );
+      let program = unsafe { &mut *program.get() };
+      let program = if config.mangling == Some(true) {
+        // Mangling only
+        ManglerTransformer(transformer).visit_program(program);
+        program
+      } else {
+        allocator.alloc(transformer.transform_program(program))
+      };
+
+      // Step 3: Minify
+      let minifier_return = minify_options.clone().map(|options| {
+        let minifier = Minifier::new(options);
+        minifier.dce(&allocator, program)
+      });
+
+      // Step 4: Generate output
+      let codegen = Codegen::new()
+        .with_options(CodegenOptions {
+          source_map_path: source_map.then(|| std::path::PathBuf::from(path.as_str())),
+          ..codegen_options.clone()
+        })
+        .with_scoping(minifier_return.and_then(|r| r.scoping));
+      codegen_return.insert(path.to_string(), codegen.build(program));
+    }
+    JsShakerReturn {
+      codegen_return,
+      diagnostics: mem::take(diagnostics),
+      fn_stats: analyzer.fn_stats.map(|stats| stats.into_inner()),
+      mangling_stats: mangling_stats.as_ref().map(|s| s.borrow().clone()),
+    }
+  } else {
+    let allocator = Allocator::default();
+    let config = allocator.alloc(config);
+
+    let source_text = vfs.read_file(&entry);
+    let parser =
+      Parser::new(&allocator, &source_text, SourceType::mjs().with_jsx(config.jsx.is_enabled()));
+    let parsed = parser.parse();
+    let mut program = parsed.program;
+    let minifier_return = minify_options.map(|options| {
+      let minifier = Minifier::new(options);
+      minifier.dce(&allocator, &mut program)
+    });
+    let codegen = Codegen::new()
+      .with_options(codegen_options.clone())
+      .with_scoping(minifier_return.and_then(|r| r.scoping));
+    let mut codegen_return = FxHashMap::default();
+    codegen_return.insert(entry, codegen.build(&program));
+    let mut diagnostics = BTreeSet::<String>::default();
+    for error in parsed.errors {
+      diagnostics.insert(error.to_string());
+    }
+    JsShakerReturn { codegen_return, diagnostics, fn_stats: None, mangling_stats: None }
+  }
+}

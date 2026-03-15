@@ -1,0 +1,72 @@
+use std::mem;
+
+use oxc::allocator;
+
+use super::{Dep, DepTrait};
+use crate::analyzer::{Analyzer, Factory};
+
+#[derive(Debug)]
+pub struct DepCollector<'a, T: DepTrait<'a> + 'a = Dep<'a>> {
+  pub current: allocator::Vec<'a, T>,
+  pub node: Option<Dep<'a>>,
+}
+
+impl<'a, T: DepTrait<'a> + 'a> DepCollector<'a, T> {
+  pub fn new(current: allocator::Vec<'a, T>) -> Self {
+    Self { current, node: None }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.current.is_empty() && self.node.is_none()
+  }
+
+  pub fn push(&mut self, value: T) {
+    if self.node.is_none()
+      && let Some(dep) = value.as_dep()
+    {
+      self.node = Some(dep);
+    } else {
+      self.current.push(value);
+    }
+  }
+
+  pub fn collect(&mut self, factory: &Factory<'a>) -> Option<Dep<'a>> {
+    if self.current.is_empty() {
+      self.node
+    } else {
+      let current = mem::replace(&mut self.current, factory.vec());
+      let node = Some(if let Some(node) = self.node {
+        factory.dep((current, node))
+      } else {
+        factory.dep_from_vec(current)
+      });
+      self.node = node;
+      node
+    }
+  }
+
+  pub fn take(&mut self, factory: &Factory<'a>) -> Option<Dep<'a>> {
+    let dep = self.collect(factory);
+    self.force_clear();
+    dep
+  }
+
+  pub fn include_all(&self, analyzer: &mut Analyzer<'a>) {
+    for value in &self.current {
+      value.include(analyzer);
+    }
+
+    if let Some(node) = self.node {
+      node.include(analyzer);
+    }
+  }
+
+  pub fn force_clear(&mut self) {
+    self.current.clear();
+    self.node = None;
+  }
+
+  pub fn may_not_included(&self) -> bool {
+    !self.current.is_empty() || self.node.is_some()
+  }
+}

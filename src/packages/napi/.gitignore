@@ -1,0 +1,6 @@
+/target
+node_modules/
+*.node
+*.wasm
+index.js
+index.d.ts
