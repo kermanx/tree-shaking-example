@@ -85,7 +85,7 @@ async function runInDom(modulePath) {
 
 try {
   // Run the original source file
-  const expectedOutput = await runInDom(path.join(__dirname, '../src/antd.js'));
+  const expectedOutput = await runInDom(path.join(import.meta.dirname, '../benchmarks/antd.js'));
 
   // Run the bundled file
   const actualOutput = await runInDom(path.resolve(bundlePath));

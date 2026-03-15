@@ -17,7 +17,7 @@ async function captureConsoleOutput(modulePath) {
   }
 }
 try {
-  const expected = await captureConsoleOutput(path.join(__dirname, '../src/material-ui.js'));
+  const expected = await captureConsoleOutput(path.join(import.meta.dirname, '../benchmarks/material-ui.js'));
   const actual = await captureConsoleOutput(path.resolve(bundlePath));
   if (JSON.stringify(expected) === JSON.stringify(actual)) {
     console.log('✅ Test passed');

@@ -13,11 +13,9 @@ export async function transformToEs5(code: string) {
         [
           '@babel/preset-env',
           {
-            // 强制转换所有 ES6+ 语法为 ES5
             targets: {
               ie: "11"
             },
-            // 确保模块语法也被转换（如果输入包含 import/export）
             modules: "commonjs"
           }
         ]
@@ -28,7 +26,7 @@ export async function transformToEs5(code: string) {
 
     return result!.code!;
   } catch (err) {
-    console.error("Babel 转换失败:", err);
+    console.error("Babel Error:", err);
     throw err;
   }
 }

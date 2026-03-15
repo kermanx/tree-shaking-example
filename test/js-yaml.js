@@ -17,46 +17,46 @@ async function captureConsoleOutput(modulePath) {
   - off
 numbers:
   integer: 12345
-  octal: 0o755        # 八进制
-  hex: 0xDEADBEEF     # 十六进制
+  octal: 0o755        # Octal
+  hex: 0xDEADBEEF     # Hexadecimal
   float: 3.14159
   exponential: 1.2e+3
   infinity: .inf
   not_a_number: .nan
 
-# 2. 字符串处理 (String Blocks)
+# 2. String Blocks
 strings:
-  plain: 这是一个普通字符串，不需要引号
-  quoted: "双引号可以包含转义字符: \n \t \u2764"
+  plain: This is a plain string without quotes
+  quoted: "Double quotes can contain escape sequences: \n \t \u2764"
   folded: >
-    如果你使用折叠块（大于号），
-    换行符会被转换为空格，
-    除非遇到空行。
+    If you use folded blocks (greater than sign),
+    newlines are converted to spaces,
+    unless there is a blank line.
   literal: |
-    保留块（竖线）会保留
-    所有的换行符
-    以及缩进。
+    Literal blocks (pipe character) preserve
+    all newline characters
+    and indentation.
 
-# 3. 锚点与别名 (Anchors & Aliases) - 重用数据
+# 3. Anchors & Aliases - Data reuse
 reusable_config: &default_settings
   timeout: 30
   adapter: postgres
   encoding: utf-8
 
 inheritance_demo:
-  <<: *default_settings  # 合并键 (Merge Key, YAML 1.1 常用)
-  adapter: mysql         # 覆盖
+  <<: *default_settings  # Merge Key (commonly used in YAML 1.1)
+  adapter: mysql         # Override
   debug: true
 
-# 4. 复杂键 (Complex Keys) - 使用问号表示键是一个对象
+# 4. Complex Keys - Use question mark to indicate key is an object
 ? - key_part_1
   - key_part_2
 : value_for_complex_key
 
-# 5. 序列与映射 (Collections)
+# 5. Sequences and Mappings (Collections)
 nested_collections:
-  - [item1, item2]       # 流式序列 (Flow sequence)
-  - {name: Ben, age: 25} # 流式映射 (Flow mapping)
+  - [item1, item2]       # Flow sequence
+  - {name: Ben, age: 25} # Flow mapping
   -
     - block_item_1
     - block_item_2`;
@@ -67,7 +67,7 @@ nested_collections:
   }
 }
 try {
-  const expected = await captureConsoleOutput(path.join(__dirname, '../src/js-yaml.js'));
+  const expected = await captureConsoleOutput(path.join(import.meta.dirname, '../benchmarks/js-yaml.js'));
   const actual = await captureConsoleOutput(path.resolve(bundlePath));
   if (JSON.stringify(expected) === JSON.stringify(actual)) {
     console.log('✅ Test passed');

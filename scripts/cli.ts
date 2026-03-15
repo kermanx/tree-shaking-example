@@ -74,24 +74,24 @@ async function main() {
     const sorted = Object.fromEntries(Object.entries(summary).sort((a, b) => a[0].localeCompare(b[0])));
     console.log(sorted);
 
-    // 输出汇总统计（合并所有 case，去重）
+    // Output summary statistics (merged and deduplicated for all cases)
     if (process.env.CLOC === '1' && summary['__allFiles']) {
       console.log('\n=== Code Statistics Summary (Merged & Deduplicated) ===');
 
       const allFiles = summary['__allFiles'] as Set<string>;
 
-      // 统计总行数
+      // Count total lines
       const { countTotalLines } = await import('./cloc.ts');
       const linesResult = await countTotalLines(allFiles);
 
-      // 统计总包数（支持 pnpm 的 .pnpm 目录结构）
+      // Count total packages (supports pnpm's .pnpm directory structure)
       const allPackages = new Set<string>();
       for (const file of allFiles) {
-        // 匹配最后一个 node_modules/ 后的包名
+        // Match package name after the last node_modules/
         const matches = file.matchAll(/node_modules\/(@[^/]+\/[^/]+|[^/@]+)/g);
         const matchArray = Array.from(matches);
         if (matchArray.length > 0) {
-          // 取最后一个匹配（真正的包名）
+          // Take the last match (the actual package name)
           const lastMatch = matchArray[matchArray.length - 1];
           allPackages.add(lastMatch[1]);
         }
@@ -99,7 +99,7 @@ async function main() {
 
       updateAllFilesAndPackages(allFiles, allPackages);
 
-      // 统计总体积
+      // Calculate total size
       const { stat } = await import('node:fs/promises');
       let totalSize = 0;
       for (const file of allFiles) {
@@ -107,7 +107,7 @@ async function main() {
           const fileStat = await stat(file);
           totalSize += fileStat.size;
         } catch (e) {
-          // 忽略无法访问的文件
+          // Ignore inaccessible files
         }
       }
 

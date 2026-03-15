@@ -43,7 +43,7 @@ async function captureConsoleOutput(modulePath) {
 }
 
 try {
-  const expected = await captureConsoleOutput(path.join(__dirname, '../src/d3.js'));
+  const expected = await captureConsoleOutput(path.join(import.meta.dirname, '../benchmarks/d3.js'));
   const actual = await captureConsoleOutput(path.resolve(bundlePath));
 
   if (JSON.stringify(expected) === JSON.stringify(actual)) {

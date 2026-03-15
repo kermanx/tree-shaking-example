@@ -4,7 +4,7 @@ import path from 'path';
 import os from 'os';
 import { transformToEs5 } from './dfahc.ts';
 
-const TIME_LIMIT_MS = 2* 60 * 1000; // 30 seconds
+const TIME_LIMIT_MS = 2 * 60 * 1000; // 30 seconds
 export async function dfahc2({ name, code }: OptimizeOptions) {
   code = await transformToEs5(code);
 
@@ -147,7 +147,7 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
     const child = spawn('node', args, {
       cwd: optimizerPath,
       stdio: 'inherit',
-      detached: true  // 创建独立进程组，确保能杀死所有子孙进程
+      detached: true
     });
 
     await new Promise<void>((resolve) => {
@@ -156,10 +156,10 @@ export async function dfahc2({ name, code }: OptimizeOptions) {
 
       const timer = setTimeout(() => {
         console.log(`[${name}] time limit reached, stopping optimizer...`);
-        try { child.kill('SIGTERM'); } catch { }  // 先优雅关闭，让optimizer保存结果
+        try { child.kill('SIGTERM'); } catch { }
         sigkillTimer = setTimeout(() => {
           sigkillTimer = null;
-          try { process.kill(-child.pid!, 'SIGKILL'); } catch { }  // 兜底强杀整个进程组
+          try { process.kill(-child.pid!, 'SIGKILL'); } catch { }
         }, 5000);
       }, TIME_LIMIT_MS);
 

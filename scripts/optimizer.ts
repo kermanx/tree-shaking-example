@@ -5,8 +5,6 @@ import { gcc } from './cc.ts';
 import assert from 'assert';
 import { dfahc, transformToEs5 } from './dfahc.ts';
 import { dfahc2 } from './dfahc2.ts';
-import { gp } from './gp.ts';
-import { shc } from './shc.ts';
 import { jsshaker } from './jsshaker.ts';
 import { lacuna } from './lacuna.ts';
 
@@ -147,9 +145,6 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
         languageIn: 'ECMASCRIPT_NEXT',
         languageOut: 'ECMASCRIPT_NEXT',
         chunk_output_type: 'ES_MODULES',
-        // 内嵌 webpack bundle 存在跨模块变量引用（循环依赖导致无法注入 import），
-        // 关闭 undeclaredVars 检查使 GCC 将其视为全局 extern，行为与编译前等价
-        ...(code.includes('function __webpack_require__') ? { jscomp_off: 'checkVars' } : {}),
         // warningLevel: 'QUIET',
       });
     } catch (e) {
@@ -189,8 +184,6 @@ export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<st
   },
   dfahc,
   dfahc2,
-  gp,
-  shc,
   dfahcBaseline({ code }) {
     return transformToEs5(code);
   }

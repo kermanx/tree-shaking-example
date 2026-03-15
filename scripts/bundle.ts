@@ -226,17 +226,14 @@ function ClocPlugin(name: string) {
       summary['__size'] ??= {};
       summary['__size'][name] = size;
 
-      // 统计包数量
       const packages = extractPackages(files);
       summary['__packages'] ??= {};
       summary['__packages'][name] = packages.size;
       console.error(`Packages in ${name}:`, Array.from(packages).sort());
 
-      // 统计文件数量
       summary['__files'] ??= {};
       summary['__files'][name] = files.size;
 
-      // 收集全局文件列表用于合并统计
       summary['__allFiles'] ??= new Set<string>();
       for (const file of files) {
         summary['__allFiles'].add(file);
@@ -268,24 +265,15 @@ export default function PrivateToDollarPlugin(): Plugin {
   return {
     name: 'private-to-dollar',
 
-    // transform 钩子允许我们修改代码
     transform(code: string, id: string) {
-      // 1. 利用 Rollup 内置的解析器将代码转为 AST
-      // Rollup 的 this.parse 会自动处理当前环境支持的最新语法
       const ast = this.parse(code);
 
-      // 2. 初始化 MagicString 以便进行字符串操作并生成 SourceMap
       const s = new MagicString(code);
       let hasChanged = false;
 
-      // 3. 遍历 AST
       walk(ast, {
         enter(node) {
-          // 在 ESTree 规范中，#field 对应的节点类型是 PrivateIdentifier
           if (node.type === 'PrivateIdentifier') {
-            // node.start 指向 '#' 的位置
-            // node.end 指向标识符结束的位置
-            // 我们只替换开头的第一个字符 '#'
             // @ts-expect-error
             s.overwrite(node.start, node.start + 1, '$');
             hasChanged = true;
@@ -293,10 +281,8 @@ export default function PrivateToDollarPlugin(): Plugin {
         }
       });
 
-      // 4. 如果没有私有成员，直接返回 null，Rollup 会跳过后续处理
       if (!hasChanged) return null;
 
-      // 5. 返回转换后的代码和生成的 SourceMap
       return {
         code: s.toString(),
         map: s.generateMap({

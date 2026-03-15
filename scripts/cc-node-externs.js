@@ -125,7 +125,7 @@ Buffer.prototype.readUInt8 = function(offset) {};
 Buffer.poolSize;
 
 /**
- * 声明全局的 Buffer 变量
+ * Declare the global Buffer variable
  * @type {function(new:Buffer, ...*): ?}
  */
 var global;

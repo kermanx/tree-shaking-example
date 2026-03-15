@@ -129,7 +129,7 @@ ${initialHTML}
 
 try {
   // Run the original source file
-  const originalDOM = await runInDom(path.join(__dirname, '../src/novnc.js'));
+  const originalDOM = await runInDom(path.join(import.meta.dirname, '../benchmarks/novnc.js'));
 
   // Run the bundled file
   const bundledDOM = await runInDom(path.resolve(bundlePath));

@@ -84,13 +84,11 @@ NavigationTransition.prototype.from;
 NavigationTransition.prototype.finished;
 
 /**
- * 声明全局的 navigation 变量
  * @type {!Navigation}
  */
 var navigation;
 
 /**
- * 声明 window.navigation
  * @type {!Navigation}
  */
 Window.prototype.navigation;
