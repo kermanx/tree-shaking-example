@@ -2,10 +2,6 @@
   "name": "rollup-plugin-jsshaker",
   "version": "0.2.8",
   "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kermanx/jsshaker.git"
-  },
   "keywords": [
     "rollup-plugin",
     "vite-plugin",

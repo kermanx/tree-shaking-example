@@ -4,13 +4,10 @@ members = ["crates/*", "packages/napi", "tasks/benchmark"]
 default-members = ["crates/*"]
 
 [workspace.package]
-authors = ["_Kerman <kermanx@qq.com>"]
 categories = ["compilers", "development-tools", "web-programming"]
 edition = "2024"
-homepage = "https://github.com/kermanx/jsshaker"
 keywords = ["JavaScript", "TypeScript", "oxc"]
 license = "MIT"
-repository = "https://github.com/kermanx/jsshaker"
 rust-version = "1.89.0"                                              # Should sync with oxc
 description = "Code size optimizer for JavaScript"
 

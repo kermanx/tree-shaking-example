@@ -2,8 +2,6 @@
 
 🪚 Code size optimizer for JavaScript.
 
-https://github.com/kermanx/jsshaker
-
 ## WASM & N-API
 
 ```ts

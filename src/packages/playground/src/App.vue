@@ -17,8 +17,6 @@ const showDiff = ref(false);
         </div>
         <div text-sm self-end flex items-center gap-1 op-80>
           Code size optimizer for JavaScript
-          <a i-carbon-logo-github flex-grow inline-block w-1.2em h-1.2em hover:op-80
-            href="https://github.com/kermanx/jsshaker" target="_blank" />
         </div>
       </h1>
       <div flex-grow md:w-0 />

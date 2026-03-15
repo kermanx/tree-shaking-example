@@ -7,7 +7,7 @@ test('harness', async () => {
 
   await import('./dist/shaken.js')
 
-  await expect.element(page.getByText('Hello _Kerman')).toBeInTheDocument()
+  await expect.element(page.getByText('Hello John Doe')).toBeInTheDocument()
 
   const counter = page.getByRole('button')
   await counter.click()

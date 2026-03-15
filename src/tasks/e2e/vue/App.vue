@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Comp from './Comp.vue'
 
 const counter = ref(0)
-const name = ref('_Kerman')
+const name = ref('John Doe')
 </script>
 
 <template>

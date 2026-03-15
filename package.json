@@ -66,6 +66,7 @@
 		"stats": "node --experimental-strip-types scripts/stats.ts",
 		"table2": "node --experimental-strip-types table2.ts",
 		"cloc": "node --experimental-strip-types scripts/cloc.ts",
-		"recDepthSizes": "node --experimental-strip-types scripts/recDepthSizes.ts"
+		"recDepthSizes": "node --experimental-strip-types scripts/recDepthSizes.ts",
+		"build:slidev-demo": "pnpm -C vendor/slidev-demo build"
 	}
 }

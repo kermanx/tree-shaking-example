@@ -9,10 +9,6 @@
     "jsshaker.linux-x64-gnu.node"
   ],
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kermanx/jsshaker.git"
-  },
   "os": [
     "linux"
   ],

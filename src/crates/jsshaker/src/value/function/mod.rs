@@ -307,12 +307,6 @@ impl<'a> Analyzer<'a> {
       }
     }
 
-    let spaces = " ".repeat(self.scoping.call.len());
-    println!(
-      "{}function: {} created_in_self: {created_in_self}",
-      spaces, function.callee.debug_name
-    );
-
     if created_in_self {
       function.include_body(self, self.factory.unknown, self.factory.unknown_arguments);
     }

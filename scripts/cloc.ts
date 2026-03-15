@@ -140,6 +140,7 @@ export function extractPackages(files: Set<string>): Set<string> {
 
 const allPkgsPath = resolve(import.meta.dirname, '../data/allPackages.json');
 const allFilesPath = resolve(import.meta.dirname, '../data/allFiles.json');
+const projectRoot = resolve(import.meta.dirname, '..');
 
 export function updateAllFilesAndPackages(newFiles: Set<string>, newPackages: Set<string>): void {
   const oldAllPkgs = existsSync(allPkgsPath) ? JSON.parse(readFileSync(allPkgsPath, 'utf-8')) : [];
@@ -147,7 +148,11 @@ export function updateAllFilesAndPackages(newFiles: Set<string>, newPackages: Se
   writeFileSync(allPkgsPath, JSON.stringify(newAllPkgs, null, 2), 'utf-8');
 
   const oldAllFiles = existsSync(allFilesPath) ? JSON.parse(readFileSync(allFilesPath, 'utf-8')) : [];
-  const newAllFiles = [...new Set([...oldAllFiles, ...newFiles])].sort();
+  const newAllFiles = [...new Set([...oldAllFiles, ...newFiles])].sort().map((file: string) => {
+    // 将绝对路径转换为相对于项目根目录的路径
+    const relativePath = file.startsWith(projectRoot) ? file.slice(projectRoot.length + 1) : file;
+    return relativePath;
+  });
   writeFileSync(allFilesPath, JSON.stringify(newAllFiles, null, 2), 'utf-8');
 }
 

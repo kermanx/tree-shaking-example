@@ -4,10 +4,6 @@
   "type": "commonjs",
   "main": "index.js",
   "browser": "browser.js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kermanx/jsshaker.git"
-  },
   "napi": {
     "binaryName": "jsshaker",
     "packageName": "@jsshaker/binding",

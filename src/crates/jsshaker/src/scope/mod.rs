@@ -96,9 +96,6 @@ impl<'a> Analyzer<'a> {
       false,
     );
 
-    let spaces = " ".repeat(self.scoping.call.len());
-    println!("{spaces}Enter: {}", info.func.callee.debug_name);
-
     self.scoping.call.push(CallScope::new_in(
       self.scoping.current_callsite,
       info.func.callee,
