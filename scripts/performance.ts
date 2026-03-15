@@ -15,7 +15,7 @@ const DEFAULT_DEPTH = 2;
 
 async function benchmarkJsshaker(depths = [1, 2, 3, 4, 5]) {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
@@ -100,7 +100,7 @@ async function benchmarkJsshaker(depths = [1, 2, 3, 4, 5]) {
 
 async function benchmarkJsshakerNoCache() {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
@@ -147,7 +147,7 @@ async function benchmarkJsshakerNoCache() {
 
 async function benchmarkJsshakerConfigs(options: Partial<Options>) {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
@@ -195,7 +195,7 @@ async function benchmarkJsshakerConfigs(options: Partial<Options>) {
 
 async function benchmarkTerser() {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
@@ -238,7 +238,7 @@ async function benchmarkTerser() {
 }
 
 async function benchmarkRollup() {
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
 
   const results: Record<string, number> = {};
@@ -298,7 +298,7 @@ async function benchmarkRollup() {
 
 async function benchmarkGcc() {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
@@ -363,7 +363,7 @@ async function benchmarkGcc() {
 
 async function benchmarkGccAdv() {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
@@ -428,7 +428,7 @@ async function benchmarkGccAdv() {
 
 async function benchmarkLacuna(ol: number) {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
@@ -493,7 +493,7 @@ async function benchmarkLacuna(ol: number) {
 
 async function benchmarkEsbuild() {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const bundled: Record<string, string> = {};
 
@@ -546,7 +546,7 @@ async function benchmarkEsbuild() {
 }
 
 async function benchmarkRolldown() {
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
 
   const results: Record<string, number> = {};

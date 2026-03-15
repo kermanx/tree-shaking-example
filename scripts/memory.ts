@@ -270,7 +270,7 @@ async function spawnMemoryWorker(
 
 async function benchmarkMemory(optimizer: OptimizerType): Promise<void> {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
 
   function getInputPath(name: string): string {
@@ -393,7 +393,7 @@ async function benchmarkMemory(optimizer: OptimizerType): Promise<void> {
 
 async function benchmarkJsshakerNoCache(): Promise<void> {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
 
   const results: Record<string, FileSummary> = {};
@@ -500,7 +500,7 @@ async function benchmarkJsshakerNoCache(): Promise<void> {
 
 async function benchmarkJsshakerDepths(): Promise<void> {
   const distFolder = join(import.meta.dirname, '../dist');
-  const srcFolder = join(import.meta.dirname, '../src');
+  const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const depths = [1, 2, 3, 4, 5];
 

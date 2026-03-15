@@ -32,7 +32,7 @@ async function main() {
       const config = getTestCaseConfig(name);
       return run({
         name,
-        entry: `./src/${name}.js`,
+        entry: `./benchmarks/${name}.js`,
         env: config.env,
         bundler: bundler || 'rollup',
         optimizers,
