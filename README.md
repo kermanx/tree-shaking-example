@@ -81,8 +81,7 @@ pnpm -C src/packages/napi build
 ## Evaluation
 
 ```sh
-CLOC=1 pnpm run test
-CLOC=1 pnpm run prebuild:slidev-demo
+pnpm build
 
 pnpm run cloc # Count lines of code in the project
 pnpm run test -o jsshaker/jsshaker2/gcc/gccAdv/lacuna2/lacuna3?,terser # All size data needed for the report

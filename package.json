@@ -56,7 +56,8 @@
 		"webpack": "^5.104.1"
 	},
 	"scripts": {
-		"build": "CLOC=1 pnpm test && CLOC=1 pnpm -C vendor/slidev-demo build",
+		"build": "CLOC=1 pnpm -C vendor/slidev-demo build && CLOC=1 pnpm test && pnpm build:jelly",
+		"build:jelly": "pnpm -C vendor/Lacuna/analyzers/jelly build > /dev/null 2>&1 || true",
 		"test": "node scripts/cli.ts",
 		"verify": "node scripts/verify.ts",
 		"performance": "node scripts/performance.ts",

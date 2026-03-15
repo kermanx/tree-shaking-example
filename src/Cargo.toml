@@ -4,11 +4,14 @@ members = ["crates/*", "packages/napi", "tasks/benchmark"]
 default-members = ["crates/*"]
 
 [workspace.package]
+authors = ["Anonymous <anonymous@example.com>"]
 categories = ["compilers", "development-tools", "web-programming"]
 edition = "2024"
+homepage = "https://github.com/anonymous/project"
 keywords = ["JavaScript", "TypeScript", "oxc"]
 license = "MIT"
-rust-version = "1.89.0"                                              # Should sync with oxc
+repository = "https://github.com/anonymous/project"
+rust-version = "1.89.0"
 description = "Code size optimizer for JavaScript"
 
 [workspace.dependencies]
