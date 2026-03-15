@@ -37,7 +37,7 @@ FIG_WIDTH = 6
 MIN_LABEL_VALUE = 5.3
 
 # Read ablation data
-with open('ablation.json', 'r') as f:
+with open('../data/ablation.json', 'r') as f:
     data = json.load(f)
 
 # Prepare data for plotting

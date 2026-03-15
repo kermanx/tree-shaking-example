@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { resolve } from 'path';
 
 interface FnSummaryData {
   [benchmark: string]: {
@@ -27,12 +28,12 @@ interface ManglingRow {
 }
 
 function loadFnSummary(): FnSummaryData {
-  const content = fs.readFileSync('fnSummary.json', 'utf-8');
+  const content = fs.readFileSync(resolve(import.meta.dirname, '../data/fnSummary.json'), 'utf-8');
   return JSON.parse(content);
 }
 
 function loadGccMangling(): GccManglingData {
-  const content = fs.readFileSync('gccMangling.json', 'utf-8');
+  const content = fs.readFileSync(resolve(import.meta.dirname, '../data/gccMangling.json'), 'utf-8');
   return JSON.parse(content);
 }
 

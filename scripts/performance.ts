@@ -86,16 +86,16 @@ async function benchmarkJsshaker(depths = [1, 2, 3, 4, 5]) {
       Object.entries(depthResults).map(([name, data]) => [name, data.time])
     );
   }
-  await writeFile(join(import.meta.dirname, '../maxRecDepthTime.json'), JSON.stringify(timeResults, null, 2));
-  console.log('\nTime results saved to maxRecDepthTime.json');
+  await writeFile(join(import.meta.dirname, '../data/maxRecDepthTime.json'), JSON.stringify(timeResults, null, 2));
+  console.log('\nTime results saved to data/maxRecDepthTime.json');
 
   // Also save depth=DEFAULT_DEPTH results to time.json
-  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../data/time.json'), 'utf-8').catch(() => '{}'));
   timeData.jsshaker = Object.fromEntries(
     Object.entries(results[DEFAULT_DEPTH]).map(([name, data]) => [name, data.time])
   );
-  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
-  console.log(`Results for depth=${DEFAULT_DEPTH} saved to time.json`);
+  await writeFile(join(import.meta.dirname, '../data/time.json'), JSON.stringify(timeData, null, 2));
+  console.log(`Results for depth=${DEFAULT_DEPTH} saved to data/time.json`);
 }
 
 async function benchmarkJsshakerNoCache() {
@@ -138,10 +138,10 @@ async function benchmarkJsshakerNoCache() {
     console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
   }
 
-  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../data/time.json'), 'utf-8').catch(() => '{}'));
   timeData.jsshakerNoCache = results;
-  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
-  console.log('\nResults saved to time.json');
+  await writeFile(join(import.meta.dirname, '../data/time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to data/time.json');
 }
 
 
@@ -231,10 +231,10 @@ async function benchmarkTerser() {
     console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
   }
 
-  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../data/time.json'), 'utf-8').catch(() => '{}'));
   timeData.terser = results;
-  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
-  console.log('\nResults saved to time.json');
+  await writeFile(join(import.meta.dirname, '../data/time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to data/time.json');
 }
 
 async function benchmarkRollup() {
@@ -290,10 +290,10 @@ async function benchmarkRollup() {
     console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
   }
 
-  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../data/time.json'), 'utf-8').catch(() => '{}'));
   timeData.rollup = results;
-  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
-  console.log('\nResults saved to time.json');
+  await writeFile(join(import.meta.dirname, '../data/time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to data/time.json');
 }
 
 async function benchmarkGcc() {
@@ -355,10 +355,10 @@ async function benchmarkGcc() {
     console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
   }
 
-  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../data/time.json'), 'utf-8').catch(() => '{}'));
   timeData.gcc = results;
-  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
-  console.log('\nResults saved to time.json');
+  await writeFile(join(import.meta.dirname, '../data/time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to data/time.json');
 }
 
 async function benchmarkGccAdv() {
@@ -420,10 +420,10 @@ async function benchmarkGccAdv() {
     console.log(`[${name}] Time: ${avgTime.toFixed(2)}ms`);
   }
 
-  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
+  const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../data/time.json'), 'utf-8').catch(() => '{}'));
   timeData.gccAdv = results;
-  await writeFile(join(import.meta.dirname, '../time.json'), JSON.stringify(timeData, null, 2));
-  console.log('\nResults saved to time.json');
+  await writeFile(join(import.meta.dirname, '../data/time.json'), JSON.stringify(timeData, null, 2));
+  console.log('\nResults saved to data/time.json');
 }
 
 async function benchmarkLacuna(ol: number) {

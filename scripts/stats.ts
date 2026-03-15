@@ -200,9 +200,9 @@ async function main() {
     mangling: { manglingRate: avgManglingRate, manglingRatePct: pct(avgManglingRate) },
   };
 
-  const outPath = join(import.meta.dirname, '../fnSummary.json');
+  const outPath = join(import.meta.dirname, '../data/fnSummary.json');
   await writeFile(outPath, JSON.stringify(jsonOutput, null, 2));
-  console.log(`\nResults written to fnSummary.json`);
+  console.log(`\nResults written to data/fnSummary.json`);
 }
 
 main().catch(console.error);

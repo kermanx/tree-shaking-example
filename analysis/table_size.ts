@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { resolve } from 'path';
 
 // Configuration: which toolchains to display (ordered mapping from field name to display name)
 const TOOLCHAINS: Record<string, string> = {
@@ -43,12 +44,12 @@ interface FailedTests {
   [optimizer: string]: string[];
 }
 
-function loadSizes(filename: string = "sizes.json"): Record<string, number> {
+function loadSizes(filename: string = resolve(import.meta.dirname, "../data/sizes.json")): Record<string, number> {
   const content = fs.readFileSync(filename, 'utf-8');
   return JSON.parse(content);
 }
 
-function loadFailedTests(filename: string = "failed.json"): FailedTests {
+function loadFailedTests(filename: string = resolve(import.meta.dirname, "../data/failed.json")): FailedTests {
   try {
     const content = fs.readFileSync(filename, 'utf-8');
     return JSON.parse(content);

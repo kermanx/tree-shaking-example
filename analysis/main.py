@@ -10,7 +10,7 @@ TOOLCHAINS = {
     "rollup_jsshaker_gccAdv_terser": "Rollup + JsShaker + CC + Terser",
 }
 
-def load_sizes(filename: str = "sizes.json") -> dict:
+def load_sizes(filename: str = "../data/sizes.json") -> dict:
     """Load sizes data from JSON file."""
     with open(filename, 'r') as f:
         return json.load(f)

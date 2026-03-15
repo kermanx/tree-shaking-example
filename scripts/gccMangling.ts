@@ -289,9 +289,9 @@ async function main() {
     },
   };
 
-  const outPath = join(import.meta.dirname, '../gccMangling.json');
+  const outPath = join(import.meta.dirname, '../data/gccMangling.json');
   await writeFile(outPath, JSON.stringify(jsonOutput, null, 2));
-  console.log(`\nResults written to gccMangling.json`);
+  console.log(`\nResults written to data/gccMangling.json`);
 }
 
 main().catch(console.error);

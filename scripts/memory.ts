@@ -373,7 +373,7 @@ async function benchmarkMemory(optimizer: OptimizerType): Promise<void> {
     };
   }
 
-  const memoryPath = join(import.meta.dirname, '../memory.json');
+  const memoryPath = join(import.meta.dirname, '../data/memory.json');
   const memoryData = JSON.parse(await readFile(memoryPath, 'utf-8').catch(() => '{}'));
   memoryData[optimizer] = results;
 
@@ -386,7 +386,7 @@ async function benchmarkMemory(optimizer: OptimizerType): Promise<void> {
   memoryData['_average'][optimizer] = repVal;
 
   await writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
-  console.log(`\nResults saved to memory.json`);
+  console.log(`\nResults saved to data/memory.json`);
 }
 
 // ── special jsshaker variants ────────────────────────────────────────────────
@@ -485,7 +485,7 @@ async function benchmarkJsshakerNoCache(): Promise<void> {
     };
   }
 
-  const memoryPath = join(import.meta.dirname, '../memory.json');
+  const memoryPath = join(import.meta.dirname, '../data/memory.json');
   const memoryData = JSON.parse(await readFile(memoryPath, 'utf-8').catch(() => '{}'));
   memoryData['jsshakerNoCache'] = results;
 
@@ -495,7 +495,7 @@ async function benchmarkJsshakerNoCache(): Promise<void> {
   memoryData['_average']['jsshakerNoCache'] = repVal;
 
   await writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
-  console.log(`\nResults saved to memory.json`);
+  console.log(`\nResults saved to data/memory.json`);
 }
 
 async function benchmarkJsshakerDepths(): Promise<void> {
@@ -504,7 +504,7 @@ async function benchmarkJsshakerDepths(): Promise<void> {
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
   const depths = [1, 2, 3, 4, 5];
 
-  const memoryPath = join(import.meta.dirname, '../memory.json');
+  const memoryPath = join(import.meta.dirname, '../data/memory.json');
   const memoryData = JSON.parse(await readFile(memoryPath, 'utf-8').catch(() => '{}'));
 
   for (const depth of depths) {
@@ -607,7 +607,7 @@ async function benchmarkJsshakerDepths(): Promise<void> {
   }
 
   await writeFile(memoryPath, JSON.stringify(memoryData, null, 2));
-  console.log(`\nResults for all depths saved to memory.json`);
+  console.log(`\nResults for all depths saved to data/memory.json`);
 }
 
 async function benchmarkAllMemory(): Promise<void> {

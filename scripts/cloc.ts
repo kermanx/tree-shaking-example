@@ -138,8 +138,8 @@ export function extractPackages(files: Set<string>): Set<string> {
   return packages;
 }
 
-const allPkgsPath = resolve(import.meta.dirname, '../allPackages.json');
-const allFilesPath = resolve(import.meta.dirname, '../allFiles.json');
+const allPkgsPath = resolve(import.meta.dirname, '../data/allPackages.json');
+const allFilesPath = resolve(import.meta.dirname, '../data/allFiles.json');
 
 export function updateAllFilesAndPackages(newFiles: Set<string>, newPackages: Set<string>): void {
   const oldAllPkgs = existsSync(allPkgsPath) ? JSON.parse(readFileSync(allPkgsPath, 'utf-8')) : [];

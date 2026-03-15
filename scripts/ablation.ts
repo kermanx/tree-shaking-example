@@ -86,11 +86,11 @@ async function main() {
 
   // Write results to ablation.json
   await writeFile(
-    './ablation.json',
+    './data/ablation.json',
     JSON.stringify(results, null, 2)
   );
 
-  console.log('\n✓ Ablation study complete. Results written to ablation.json');
+  console.log('\n✓ Ablation study complete. Results written to data/ablation.json');
 
   // Print summary
   console.log('\n=== Summary ===');

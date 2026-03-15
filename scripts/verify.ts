@@ -22,7 +22,7 @@ function isManuallyFailed(testName: string, toolchainKey: string): boolean {
 }
 
 function loadFailedTests(): FailedTests {
-  const failedPath = path.join(process.cwd(), 'failed.json');
+  const failedPath = path.join(process.cwd(), 'data/failed.json');
   if (existsSync(failedPath)) {
     const content = readFileSync(failedPath, 'utf-8');
     return JSON.parse(content);
@@ -31,7 +31,7 @@ function loadFailedTests(): FailedTests {
 }
 
 function saveFailedTests(failed: FailedTests): void {
-  const failedPath = path.join(process.cwd(), 'failed.json');
+  const failedPath = path.join(process.cwd(), 'data/failed.json');
   writeFileSync(failedPath, JSON.stringify(failed, null, 2));
 }
 
@@ -100,7 +100,7 @@ async function main() {
   // Save updated failed tests
   if (!name) {
     saveFailedTests(failedTests);
-    console.log('\nFailed tests saved to failed.json');
+    console.log('\nFailed tests saved to data/failed.json');
   }
 }
 

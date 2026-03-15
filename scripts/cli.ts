@@ -42,31 +42,31 @@ async function main() {
       });
     }));
 
-    const oldSizes = existsSync('./sizes.json') ? JSON.parse(await readFile('./sizes.json', 'utf-8')) : {};
-    await writeFile('./sizes.json', JSON.stringify(
+    const oldSizes = existsSync('./data/sizes.json') ? JSON.parse(await readFile('./data/sizes.json', 'utf-8')) : {};
+    await writeFile('./data/sizes.json', JSON.stringify(
       Object.fromEntries(Object.entries({ ...oldSizes, ...sizes }).sort((a, b) => a[0].localeCompare(b[0]))),
       null, 2));
-    console.log('Updated sizes.json');
+    console.log('Updated data/sizes.json');
 
     if (!process.env.REC_DEPTH) {
       if (!name && optimizers.length === 1 && optimizers[0] === 'jsshaker') {
-        await writeFile('./sizes_jsshaker.json', JSON.stringify(
+        await writeFile('./data/sizes_jsshaker.json', JSON.stringify(
           Object.fromEntries(Object.entries(sizes).sort((a, b) => a[0].localeCompare(b[0]))),
           null, 2));
-        console.log('Updated sizes_jsshaker.json');
+        console.log('Updated data/sizes_jsshaker.json');
       }
     }
     else if (optimizers.length === 2 && optimizers[0] === 'jsshaker' && optimizers[1] === 'terser') {
-      // await writeFile('./maxRecDepthSize.json', JSON.stringify(
+      // await writeFile('./data/maxRecDepthSize.json', JSON.stringify(
       //   Object.fromEntries(Object.entries(sizes).sort((a, b) => a[0].localeCompare(b[0]))),
       //   null, 2));
       // console.log('Updated sizes_jsshaker_default.json');
-      const oldSizes = existsSync('./maxRecDepthSize.json') ? JSON.parse(await readFile('./maxRecDepthSize.json', 'utf-8')) : {};
+      const oldSizes = existsSync('./data/maxRecDepthSize.json') ? JSON.parse(await readFile('./data/maxRecDepthSize.json', 'utf-8')) : {};
       oldSizes[process.env.REC_DEPTH] = Object.fromEntries(Object.entries(sizes).sort((a, b) => a[0].localeCompare(b[0])));
-      await writeFile('./maxRecDepthSize.json', JSON.stringify(
+      await writeFile('./data/maxRecDepthSize.json', JSON.stringify(
         Object.fromEntries(Object.entries(oldSizes).sort((a, b) => parseInt(a[0]) - parseInt(b[0]))),
         null, 2));
-      console.log('Updated maxRecDepthSize.json');
+      console.log('Updated data/maxRecDepthSize.json');
     }
   }
 

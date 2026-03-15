@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { resolve } from 'path';
 
 // Configuration: which stages to display (ordered mapping from field name to display name)
 const BASELINE_STAGES = ["rollup", "terser"];
@@ -18,7 +19,7 @@ interface TimeData {
   };
 }
 
-function loadTimes(filename: string = "time.json"): TimeData {
+function loadTimes(filename: string = resolve(import.meta.dirname, "../data/time.json")): TimeData {
   const content = fs.readFileSync(filename, 'utf-8');
   return JSON.parse(content);
 }

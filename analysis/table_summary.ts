@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { resolve } from 'path';
 
 interface TimeData {
   jsshaker: Record<string, number>;
@@ -50,12 +51,12 @@ interface BenchmarkResult {
 }
 
 function loadTimeData(): TimeData {
-  const content = fs.readFileSync('time.json', 'utf-8');
+  const content = fs.readFileSync(resolve(import.meta.dirname, '../data/time.json'), 'utf-8');
   return JSON.parse(content);
 }
 
 function loadFnSummaryData(): FnSummaryData {
-  const content = fs.readFileSync('fnSummary.json', 'utf-8');
+  const content = fs.readFileSync(resolve(import.meta.dirname, '../data/fnSummary.json'), 'utf-8');
   return JSON.parse(content);
 }
 
