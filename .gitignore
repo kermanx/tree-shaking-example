@@ -1,16 +1,13 @@
-.cache
 node_modules
 dist
-.nyc_output
-.parcel-cache/
-maxRecursionDepth.json
-time.json
-ablation.json
-*.png
-out/
-memory.json
-fnSummary.json
-maxRecDepthTime.json
+
+data/time.json
+data/ablation.json
+data/memory.json
+data/fnSummary.json
+data/maxRecDepthTime.json
+graphs/*
+
 # IDE and OS files
 .vscode/
 .idea/
