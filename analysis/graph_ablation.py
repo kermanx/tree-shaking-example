@@ -11,6 +11,7 @@ For each test case, shows a horizontal bar divided into three regions:
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 # Configuration: Set to True to use gzip data, False for regular data
 USE_GZ = False
@@ -37,7 +38,7 @@ FIG_WIDTH = 6
 MIN_LABEL_VALUE = 5.3
 
 # Read ablation data
-with open('../data/ablation.json', 'r') as f:
+with open(os.path.join(os.path.dirname(__file__), '../data/ablation.json'), 'r') as f:
     data = json.load(f)
 
 # Prepare data for plotting

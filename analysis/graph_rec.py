@@ -1,16 +1,18 @@
 import json
 import matplotlib.pyplot as plt
 import math
+import os
 
 def load_data():
     """Load data from maxRecDepthTime.json, maxRecDepthSize.json and sizes.json"""
-    with open('../data/maxRecDepthTime.json', 'r') as f:
+    script_dir = os.path.dirname(__file__)
+    with open(os.path.join(script_dir, '../data/maxRecDepthTime.json'), 'r') as f:
         time_data = json.load(f)
     
-    with open('../data/maxRecDepthSize.json', 'r') as f:
+    with open(os.path.join(script_dir, '../data/maxRecDepthSize.json'), 'r') as f:
         size_data = json.load(f)
     
-    with open('../data/sizes.json', 'r') as f:
+    with open(os.path.join(script_dir, '../data/sizes.json'), 'r') as f:
         sizes_data = json.load(f)
     
     return time_data, size_data, sizes_data
