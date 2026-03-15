@@ -37,7 +37,7 @@
 		"google-closure-compiler-linux": "20260128.0.0",
 		"js-yaml": "4.1.1",
 		"jsdom": "^28.0.0",
-	"jsshaker": "link:./src/packages/napi",
+	  "jsshaker": "link:./src/packages/napi",
 		"magic-string": "^0.30.21",
 		"memfs": "^4.56.10",
 		"meriyah": "^7.1.0",
@@ -56,15 +56,15 @@
 		"webpack": "^5.104.1"
 	},
 	"scripts": {
-		"test": "node --experimental-strip-types scripts/cli.ts",
-		"verify": "node --experimental-strip-types scripts/verify.ts",
-		"performance": "node --experimental-strip-types scripts/performance.ts",
-		"memory": "node --experimental-strip-types scripts/memory.ts",
-		"ablation": "node --experimental-strip-types scripts/ablation.ts",
-		"stats": "node --experimental-strip-types scripts/stats.ts",
-		"table2": "node --experimental-strip-types table2.ts",
-		"cloc": "node --experimental-strip-types scripts/cloc.ts",
-		"recDepthSizes": "node --experimental-strip-types scripts/recDepthSizes.ts",
-		"build:slidev-demo": "pnpm -C vendor/slidev-demo build"
+		"build": "CLOC=1 pnpm test && CLOC=1 pnpm -C vendor/slidev-demo build",
+		"test": "node scripts/cli.ts",
+		"verify": "node scripts/verify.ts",
+		"performance": "node scripts/performance.ts",
+		"memory": "node scripts/memory.ts",
+		"ablation": "node scripts/ablation.ts",
+		"stats": "node scripts/stats.ts",
+		"gccMangling": "node scripts/gccMangling.ts",
+		"cloc": "node scripts/cloc.ts",
+		"recDepthSizes": "node scripts/recDepthSizes.ts"
 	}
 }

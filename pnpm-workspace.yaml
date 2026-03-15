@@ -1,15 +1,14 @@
 packages:
   - .
   - vendor/*
-  - '!vendor/excalidraw'
-  - '!vendor/vue-vben-admin'
-  - '!vendor/tldraw'
-  - vendor/bulletproof-react/apps/react-vite
   - vendor/Lacuna/analyzers/*
+  - src/packages/*
+  - src/packages/napi/npm/*
+  - src/tasks/*
 
 onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@swc/core'
+  - "@parcel/watcher"
+  - "@swc/core"
   - core-js
   - esbuild
   - lmdb
@@ -22,3 +21,6 @@ onlyBuiltDependencies:
 
 overrides:
   esprima-ast-utils: 0.0.7
+
+supportedArchitectures:
+  cpu: [current, wasm32]

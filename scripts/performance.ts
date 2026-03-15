@@ -596,14 +596,12 @@ async function main() {
   if (!optimizer) {
     console.log('No optimizer specified, running all benchmarks...\n');
     await benchmarkJsshaker();
-    await benchmarkJsshakerNoCache();
     await benchmarkTerser();
     await benchmarkRollup();
     await benchmarkGcc();
     await benchmarkGccAdv();
     await benchmarkLacuna(2);
     await benchmarkLacuna(3);
-    await benchmarkEsbuild();
     await benchmarkRolldown();
     console.log('\nAll benchmarks completed!');
     return;

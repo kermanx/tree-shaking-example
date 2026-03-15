@@ -8,6 +8,8 @@ data/fnSummary.json
 data/maxRecDepthTime.json
 graphs/*
 
+src/tasks/test262/test262
+
 # IDE and OS files
 .vscode/
 .idea/

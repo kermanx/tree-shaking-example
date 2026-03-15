@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 import math
 import os
 
+script_dir = os.path.dirname(__file__)
+
 def load_data():
     """Load data from maxRecDepthTime.json, maxRecDepthSize.json and sizes.json"""
-    script_dir = os.path.dirname(__file__)
     with open(os.path.join(script_dir, '../data/maxRecDepthTime.json'), 'r') as f:
         time_data = json.load(f)
     
@@ -213,8 +214,9 @@ def plot_graph(depths, avg_optimization_rates, avg_times):
     ax1.legend(lines, labels, loc='upper left')
     
     plt.tight_layout()
-    plt.savefig('graph3_depth_analysis.png', dpi=300, bbox_inches='tight')
-    print('Graph saved as graph3_depth_analysis.png')
+    output_path = os.path.join(script_dir, '../graphs/depth_analysis.png')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f'Graph saved as {output_path}')
     plt.show()
 
 def main():
