@@ -79,10 +79,15 @@ async function benchmarkJsshaker(depths = [1, 2, 3, 4, 5]) {
     }
   }
 
-  if (depths.length === 5) {
-    await writeFile(join(import.meta.dirname, '../maxRecursionDepth.json'), JSON.stringify(results, null, 2));
-    console.log('\nResults saved to maxRecursionDepth.json');
+  // Save only time data to maxRecDepthTime.json
+  const timeResults: Record<number, Record<string, number>> = {};
+  for (const [depth, depthResults] of Object.entries(results)) {
+    timeResults[Number(depth)] = Object.fromEntries(
+      Object.entries(depthResults).map(([name, data]) => [name, data.time])
+    );
   }
+  await writeFile(join(import.meta.dirname, '../maxRecDepthTime.json'), JSON.stringify(timeResults, null, 2));
+  console.log('\nTime results saved to maxRecDepthTime.json');
 
   // Also save depth=DEFAULT_DEPTH results to time.json
   const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../time.json'), 'utf-8').catch(() => '{}'));
@@ -437,6 +442,11 @@ async function benchmarkLacuna(ol: number) {
   const results: Record<string, number> = {};
 
   loop: for (const [name, code] of Object.entries(bundled)) {
+    if (name === 'slidev-demo') {
+      console.log(`[${name}] Skipping lacuna${ol} benchmark due to OOM..`);
+      continue;
+    }
+
     console.log(`[${name}] Warming up...`);
 
     const config = getTestCaseConfig(name);
@@ -643,7 +653,7 @@ async function main() {
         break;
       default:
         console.error(`Unknown optimizer: ${o}`);
-        console.error('Available: jsshaker, jsshakerNoCache, terser, rollup, gcc, gccAdv, lacuna2, lacuna3, esbuild, rolldown');
+        console.error('Available: jsshaker, jsshakerDepths, jsshakerNoCache, terser, rollup, gcc, gccAdv, lacuna2, lacuna3, esbuild, rolldown');
         console.error('Or run without arguments to test all optimizers');
         process.exit(1);
     }

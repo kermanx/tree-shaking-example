@@ -6766,7 +6766,7 @@ function deflateResetKeep(strm) {
 	return;
 }
 function deflateReset(strm) {
-	deflateResetKeep(strm);
+	var __unused_0E02 = deflateResetKeep(strm);
 	{
 		{
 			lm_init(strm.state);
@@ -7894,7 +7894,7 @@ class Websock {
 	// Check to see if we must wait for 'num' bytes (default to FBU.bytes)
 	// to be available in the receive queue. Return true if we need to
 	// wait (and possibly print a debug message), otherwise false.
-	rQwait(__unused_1628, num, goback) {
+	rQwait(__unused_60A7, num, goback) {
 		if (this._rQlen - this._rQi < num) {
 			if (goback) {
 				if (this._rQi < goback) {
@@ -8244,7 +8244,7 @@ class AESECBCipher {
 	get algorithm() {
 		return { name: "AES-ECB" };
 	}
-	static async a(key, __unused_33DC, __unused_E4B7, keyUsages) {
+	static async a(key, __unused_4442, __unused_6DC5, keyUsages) {
 		const cipher = new AESECBCipher();
 		await cipher._importKey(key, false, keyUsages);
 		return cipher;
@@ -8252,7 +8252,7 @@ class AESECBCipher {
 	async _importKey(key, extractable, keyUsages) {
 		this._key = await window.crypto.subtle.importKey("raw", key, { name: "AES-CBC" }, extractable, keyUsages);
 	}
-	async encrypt(__unused_F479, plaintext) {
+	async encrypt(__unused_EE79, plaintext) {
 		const x = new Uint8Array(plaintext);
 		if (x.length % 16 !== 0 || this._key === null) {
 			return null;
@@ -9244,7 +9244,7 @@ class DESECBCipher {
 	a(key) {
 		this.b = new DES(key);
 	}
-	encrypt(__unused_17BE, plaintext) {
+	encrypt(__unused_EE79_0, plaintext) {
 		const x = new Uint8Array(plaintext);
 		if (x.length % 8 !== 0 || this.b === null) {
 			return null;
@@ -9386,7 +9386,7 @@ class RSACipher {
 		this._eBigInt = u8ArrayToBigInt(this._e);
 		this._extractable = extractable;
 	}
-	async encrypt(__unused_0C70, message) {
+	async encrypt(__unused_4C47, message) {
 		if (message.length > this._keyBytes - 11) {
 			return null;
 		}
@@ -9403,7 +9403,7 @@ class RSACipher {
 		const c = modPow(emBigInt, this._eBigInt, this._nBigInt);
 		return bigIntToU8Array(c, this._keyBytes);
 	}
-	async decrypt(__unused_45BC, message) {
+	async decrypt(__unused_4C47_0, message) {
 		if (message.length !== this._keyBytes) {
 			return null;
 		}
@@ -9578,7 +9578,7 @@ class LegacyCrypto {
 		}
 		return key.decrypt(algorithm, data);
 	}
-	d(__unused_5999, keyData, algorithm, __unused_501D, keyUsages) {
+	d(__unused_BD75, keyData, algorithm, __unused_6DC5_1, keyUsages) {
 		const alg = this.a[algorithm.a];
 		return alg.a(keyData, 0, 0, keyUsages);
 	}
@@ -9586,13 +9586,13 @@ class LegacyCrypto {
 		const alg = this.a[algorithm.name];
 		return alg.b(algorithm);
 	}
-	f(__unused_AA8D, key) {
+	f(__unused_BD75_0, key) {
 		if (typeof key.exportKey !== "function") {
 			throw new Error("key does not support exportKey");
 		}
 		return key.exportKey();
 	}
-	g(__unused_11EB, data) {
+	g(__unused_9B39, data) {
 		const alg = this.a["f"];
 		return alg(data);
 	}
@@ -10593,7 +10593,7 @@ class ZRLEDecoder {
 		}
 		return data;
 	}
-	_decodePaletteTile(paletteSize, __unused_3442, tilew, tileh) {
+	_decodePaletteTile(paletteSize, __unused_8080, tilew, tileh) {
 		const data = this._tileBuffer;
 		const palette = this._readPixels(paletteSize);
 		const bitsPerPixel = this._getBitsPerPixelInPalette(paletteSize);
@@ -11283,7 +11283,7 @@ class RFB extends EventTargetMixin {
 	get touchButton() {
 		return 0;
 	}
-	set touchButton(__unused_FD63) {
+	set touchButton(__unused_0BE9) {
 		Warn("Using old API!");
 	}
 	get clipViewport() {
@@ -12611,7 +12611,10 @@ class RFB extends EventTargetMixin {
 		return true;
 	}
 	_negotiateTightTunnels(numTunnels) {
-		const clientSupportedTunnelTypes = { 0: {} };
+		const clientSupportedTunnelTypes = { 0: {
+			vendor: "TGHT",
+			signature: "NOTUNNEL"
+		} };
 		const serverSupportedTunnelTypes = {};
 		// receive tunnel capabilities
 		for (let i = 0; i < numTunnels; i++) {
@@ -13722,7 +13725,7 @@ RFB.b = {
 		sock.sQpushString(payload);
 		sock.flush();
 	},
-	o(sock, __unused_9F8F, __unused_7BB4, __unused_C7E9, width, height) {
+	o(sock, __unused_6A34, __unused_2BE2, __unused_7A43_0, width, height) {
 		sock.sQpush8(150);
 		sock.sQpush8(true);
 		sock.sQpush16(0);
@@ -13769,7 +13772,7 @@ RFB.b = {
 		}
 		sock.flush();
 	},
-	i(sock, incremental, __unused_A60C, __unused_2FEC, w, h) {
+	i(sock, incremental, __unused_01C5, __unused_C2DE, w, h) {
 		sock.sQpush8(3);
 		sock.sQpush8(incremental ? 1 : 0);
 		sock.sQpush16(0);
@@ -14467,6 +14470,7 @@ const UI = {
 				statusElem.classList.remove("noVNC_status_normal");
 				statusElem.classList.add("noVNC_status_warn");
 				break;
+			case "b":
 		}
 		statusElem.textContent = text;
 		statusElem.classList.add("noVNC_open");
@@ -14831,7 +14835,7 @@ const UI = {
 	Va() {
 		document.getElementById("noVNC_connect_dlg").classList.remove("noVNC_open");
 	},
-	F(__unused_789A, password) {
+	F(__unused_87A8, password) {
 		// Ignore when rfb already exists
 		if (typeof UI.ha !== "undefined") {
 			return;
@@ -14956,7 +14960,7 @@ const UI = {
 			if (wasConnected) {
 				UI.q(_("Something went wrong, connection is closed"), "a");
 			} else {
-				UI.q(_("Failed to connect to server"), "d");
+				UI.q(_("Failed to connect to server"), "error");
 			}
 		}
 		// If reconnecting is allowed process it now
@@ -14984,7 +14988,7 @@ const UI = {
 		} else {
 			msg = _("New connection has been rejected");
 		}
-		UI.q(msg, "d");
+		UI.q(msg, "error");
 	},
 	fb(e) {
 		// Trigger a "Leave site?" warning prompt before closing the

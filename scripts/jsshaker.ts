@@ -15,6 +15,11 @@ export async function jsshaker({ name, code }: OptimizeOptions, options: Partial
     // propertyMangling: 'enabled',
   }, options);
 
+  if (process.env.REC_DEPTH) {
+    options.maxRecursionDepth = parseInt(process.env.REC_DEPTH);
+    console.log(`[${name}] Using maxRecursionDepth: ${options.maxRecursionDepth}`);
+  }
+
   console.log(`[${name}] Running jsshaker...`);
 
   const startTime = performance.now();

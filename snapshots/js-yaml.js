@@ -911,7 +911,7 @@ function throwWarning(state, message) {
 	}
 }
 var directiveHandlers = {
-	YAML: function(state, __unused_0350, args) {
+	YAML: function(state, __unused_3649, args) {
 		var match, major, minor;
 		if (state.version !== null) {
 			throwError(state, "duplication of %YAML directive");
@@ -934,7 +934,7 @@ var directiveHandlers = {
 			throwWarning(state, "unsupported YAML version of the document");
 		}
 	},
-	TAG: function(state, __unused_4546, args) {
+	TAG: function(state, __unused_3649_0, args) {
 		var handle, prefix;
 		if (args.length !== 2) {
 			throwError(state, "TAG directive accepts exactly two arguments");

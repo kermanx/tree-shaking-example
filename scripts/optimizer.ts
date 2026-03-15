@@ -18,6 +18,7 @@ export interface OptimizeOptions {
 
 export const Optimizers: Record<string, (options: OptimizeOptions) => Promise<string>> = {
   jsshaker,
+  jsshaker2: jsshaker,
   async rollup({ code, env }) {
     const { rollup } = await import('rollup');
     const { nodeResolve } = await import('@rollup/plugin-node-resolve');

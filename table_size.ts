@@ -8,13 +8,21 @@ const TOOLCHAINS: Record<string, string> = {
   "rollup_gccAdv_terser": "CC\\textsubscript{Adv.}",
   "rollup_lacuna2_terser": "Lacuna\\textsubscript{O2}",
   "rollup_lacuna3_terser": "Lacuna\\textsubscript{O3}",
-  "rollup_dfahc2_terser": "DFAHC",
+  // "rollup_dfahc2_terser": "DFAHC",
 };
 
 const DEFAULT_BASELINE = "rollup_terser";
 const BASELINE_MAPPINGS: Record<string, string> = {
   "rollup_dfahc2_terser": "rollup_dfahcBaseline_terser"
 };
+
+const WITH_EXTRA_DATA: Record<string, { cases: string[]; toolchain: string; name: string }> = {
+  "rollup_jsshaker_terser": {
+    cases: ["antd", "material-ui", "react-icons"],
+    toolchain: "rollup_jsshaker2_terser",
+    name: "React-aware"
+  }
+}
 
 const SHOW_GZ = true;
 
@@ -52,10 +60,11 @@ function loadFailedTests(filename: string = "failed.json"): FailedTests {
 function parseData(sizes: Record<string, number>, toolchains: Record<string, string>): ParsedData {
   const data: ParsedData = {};
 
-  // Collect all toolchain keys including baselines from BASELINE_MAPPINGS
+  // Collect all toolchain keys including baselines from BASELINE_MAPPINGS and extra toolchains from WITH_EXTRA_DATA
   const allToolchains = new Set([
     ...Object.keys(toolchains),
-    ...Object.values(BASELINE_MAPPINGS)
+    ...Object.values(BASELINE_MAPPINGS),
+    ...Object.values(WITH_EXTRA_DATA).map(v => v.toolchain)
   ]);
 
   for (const [key, value] of Object.entries(sizes)) {
@@ -91,24 +100,46 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
   const toolchainKeys = Object.keys(toolchains);
 
   // Build table header
-  const numColumns = 1 + 1 + (toolchainKeys.length - 1); // Program + Baseline + Other toolchains
-  const columnSpec = 'l' + 'r'.repeat(numColumns - 1);
+  // Count extra columns for toolchains with WITH_EXTRA_DATA
+  let extraColumns = 0;
+  for (let i = 1; i < toolchainKeys.length; i++) {
+    if (WITH_EXTRA_DATA[toolchainKeys[i]]) {
+      extraColumns++;
+    }
+  }
+  
+  // Build column spec: l for program name, r for baseline, then for each toolchain:
+  // - if has extra data: r@{\hspace{2pt}}l (two columns)
+  // - otherwise: r (one column)
+  let columnSpec = 'lr';
+  for (let i = 1; i < toolchainKeys.length; i++) {
+    const toolchain = toolchainKeys[i];
+    if (WITH_EXTRA_DATA[toolchain]) {
+      columnSpec += 'r@{\\hspace{2pt}}l';
+    } else {
+      columnSpec += 'r';
+    }
+  }
 
-  let latex = '\\begin{table}[t]\n';
-  latex += '  \\scriptsize\n';
-  latex += '  \\centering\n';
-  latex += '  \\caption{Percentage of post-Gzip code size reduced compared to the Rollup + Terser baseline (higher is better). Bold values indicate the highest reduction among valid runs. Failures are marked as \\textit{Failed}, and results with incorrect semantics are denoted by strikethroughs.}\n';
-  latex += '  \\label{tab:size-reduction}\n';
+  let latex = '';
   latex += `  \\begin{tabular}{${columnSpec}}\n`;
   latex += '    \\toprule\n';
 
   // Header row
   latex += '    Program & Baseline (KB)';
   for (let i = 1; i < toolchainKeys.length; i++) {
-    const displayName = toolchains[toolchainKeys[i]];
+    const toolchain = toolchainKeys[i];
+    const displayName = toolchains[toolchain];
     // Escape special LaTeX characters
     const escapedName = displayName.replace(/&/g, '\\&');
-    latex += ` & ${escapedName}`;
+    
+    if (WITH_EXTRA_DATA[toolchain]) {
+      // Two columns: main name and extra name in small font with parentheses
+      const extraName = WITH_EXTRA_DATA[toolchain].name.replace(/&/g, '\\&');
+      latex += ` & ${escapedName} & {\\tiny (${extraName})}`;
+    } else {
+      latex += ` & ${escapedName}`;
+    }
   }
   latex += ' \\\\\n';
   latex += '    \\midrule\n';
@@ -191,10 +222,44 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
         // Apply strikethrough if ALL_FAIL
         const formattedValue = reduction.allFail ? `\\sout{${valueStr}}` : valueStr;
         // Mark the best result with bold (only if not ALL_FAIL)
+        let cellValue = formattedValue;
         if (reductionIdx === bestIndex && !reduction.allFail) {
-          latex += ` & \\textbf{${formattedValue}}`;
+          cellValue = `\\textbf{${formattedValue}}`;
+        }
+        
+        // Check if there's extra data for this toolchain and testcase
+        const extraConfig = WITH_EXTRA_DATA[toolchain];
+        
+        if (extraConfig) {
+          // This toolchain has extra data config, output two columns
+          latex += ` & ${cellValue}`;
+          
+          if (extraConfig.cases.includes(testcase)) {
+            const extraToolchain = extraConfig.toolchain;
+            const extraToolchainData = testcaseData[extraToolchain];
+            
+            if (extraToolchainData && extraToolchainData.size > 20) {
+              const baselineKey = BASELINE_MAPPINGS[toolchain] || DEFAULT_BASELINE;
+              const toolchainBaselineGzSize = testcaseData[baselineKey]?.gz_size || 0;
+              const extraGzSize = extraToolchainData.gz_size;
+              
+              if (toolchainBaselineGzSize > 0) {
+                const extraReductionPercent = ((toolchainBaselineGzSize - extraGzSize) / toolchainBaselineGzSize) * 100;
+                const extraValueStr = `${extraReductionPercent.toFixed(1)}\\%`;
+                latex += ` & {\\tiny (${extraValueStr})}`;
+              } else {
+                latex += ' &';
+              }
+            } else {
+              latex += ' &';
+            }
+          } else {
+            // No extra data for this testcase, empty second column
+            latex += ' &';
+          }
         } else {
-          latex += ` & ${formattedValue}`;
+          // No extra data config, output single column
+          latex += ` & ${cellValue}`;
         }
       } else {
         latex += ' & ---';
@@ -206,7 +271,7 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
 
   // Add average row
   latex += '    \\midrule\n';
-  latex += '    \\textbf{Average}';
+  latex += '    \\textbf{Geomean}';
   
   // Baseline column shows N/A
   latex += ' & ';
@@ -215,8 +280,12 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
   for (let i = 1; i < toolchainKeys.length; i++) {
     const toolchain = toolchainKeys[i];
     
-    let product = 1;
-    let count = 0;
+    // Check if this toolchain has extra data configuration
+    const extraConfig = WITH_EXTRA_DATA[toolchain];
+    
+    // Calculate original average (without replacement)
+    let originalLogSum = 0;
+    let originalCount = 0;
     
     for (const testcase of testcases) {
       const testcaseData = data[testcase];
@@ -242,21 +311,98 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
       }
       
       if (toolchainBaselineGzSize > 0) {
-        const reductionPercent = ((toolchainBaselineGzSize - gzSize) / toolchainBaselineGzSize) * 100;
-        // For geometric mean of percentages, we use (1 + reduction/100)
-        product *= (1 + reductionPercent / 100);
-        count++;
+        // Calculate size ratio for geometric mean
+        const sizeRatio = gzSize / toolchainBaselineGzSize;
+        originalLogSum += Math.log(sizeRatio);
+        originalCount++;
       }
     }
     
-    if (count > 0) {
-      const geomean = Math.pow(product, 1 / count);
-      // Convert back to percentage: (geomean - 1) * 100
-      const avgReduction = (geomean - 1) * 100;
-      const avgStr = `${avgReduction.toFixed(1)}\\%`;
-      latex += ` & \\textbf{${avgStr}}`;
+    let avgStr = '';
+    
+    // If there's extra config, also calculate the average with replacement
+    if (extraConfig) {
+      let extraLogSum = 0;
+      let extraCount = 0;
+      
+      for (const testcase of testcases) {
+        const testcaseData = data[testcase];
+        
+        // Determine the baseline for this toolchain
+        const baselineKey = BASELINE_MAPPINGS[toolchain] || DEFAULT_BASELINE;
+        const toolchainBaselineGzSize = testcaseData[baselineKey]?.gz_size || 0;
+        
+        // Determine which toolchain data to use first:
+        // If this testcase is in the extra cases list, use extra toolchain
+        // Otherwise use the regular toolchain
+        let actualToolchainData: ToolchainData | undefined;
+        let shouldSkip = false;
+        
+        if (extraConfig.cases.includes(testcase)) {
+          // For extra cases, check the extra toolchain
+          const extraToolchainData = testcaseData[extraConfig.toolchain];
+          if (!extraToolchainData || extraToolchainData.size <= 20) {
+            shouldSkip = true;
+          } else {
+            actualToolchainData = extraToolchainData;
+          }
+        } else {
+          // For regular cases, check the main toolchain
+          const isAllFail = failedTests[toolchain]?.includes(testcase) || false;
+          if (!testcaseData[toolchain] || isAllFail || testcaseData[toolchain].size <= 20) {
+            shouldSkip = true;
+          } else {
+            actualToolchainData = testcaseData[toolchain];
+          }
+        }
+        
+        if (shouldSkip || !actualToolchainData) {
+          continue;
+        }
+        
+        const gzSize = actualToolchainData.gz_size;
+        
+        if (toolchainBaselineGzSize > 0) {
+          // Calculate size ratio for geometric mean
+          const sizeRatio = gzSize / toolchainBaselineGzSize;
+          extraLogSum += Math.log(sizeRatio);
+          extraCount++;
+        }
+      }
+      
+      // Build output for average row
+      // Two columns: original average, then extra average in parentheses
+      let originalAvgStr = '';
+      let extraAvgStr = '';
+      
+      if (originalCount > 0) {
+        const originalGeomeanRatio = Math.exp(originalLogSum / originalCount);
+        const originalAvgReduction = (1 - originalGeomeanRatio) * 100;
+        originalAvgStr = `${originalAvgReduction.toFixed(1)}\\%`;
+      } else {
+        originalAvgStr = 'N/A';
+      }
+      
+      if (extraCount > 0) {
+        const extraGeomeanRatio = Math.exp(extraLogSum / extraCount);
+        const extraAvgReduction = (1 - extraGeomeanRatio) * 100;
+        extraAvgStr = `${extraAvgReduction.toFixed(1)}\\%`;
+      } else {
+        extraAvgStr = 'N/A';
+      }
+      
+      latex += ` & \\textbf{${originalAvgStr}} & {\\tiny \\textbf{(${extraAvgStr})}}`;
     } else {
-      latex += ' & \\textbf{N/A}';
+      // No extra config, single column: just original average
+      if (originalCount > 0) {
+        const originalGeomeanRatio = Math.exp(originalLogSum / originalCount);
+        const originalAvgReduction = (1 - originalGeomeanRatio) * 100;
+        avgStr = `${originalAvgReduction.toFixed(1)}\\%`;
+      } else {
+        avgStr = 'N/A';
+      }
+      
+      latex += ` & \\textbf{${avgStr}}`;
     }
   }
   
@@ -264,7 +410,6 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
 
   latex += '    \\bottomrule\n';
   latex += '  \\end{tabular}\n';
-  latex += '\\end{table}\n';
 
   return latex;
 }

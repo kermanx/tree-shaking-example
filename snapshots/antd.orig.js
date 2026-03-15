@@ -1,4 +1,4 @@
-function _mergeNamespaces(n, m) {
+function _mergeNamespaces$1(n, m) {
 	m.forEach(function(e) {
 		e && typeof e !== "string" && !Array.isArray(e) && Object.keys(e).forEach(function(k) {
 			if (k !== "default" && !(k in n)) {
@@ -14,7 +14,7 @@ function _mergeNamespaces(n, m) {
 	});
 	return Object.freeze(n);
 }
-function getDefaultExportFromCjs$1(x) {
+function getDefaultExportFromCjs(x) {
 	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
 }
 var react = { exports: {} };
@@ -388,63 +388,11 @@ function requireReact() {
 	return react.exports;
 }
 var reactExports = requireReact();
-var React__default = /* @__PURE__ */ getDefaultExportFromCjs$1(reactExports);
-var React = /* @__PURE__ */ _mergeNamespaces({
+var React = /* @__PURE__ */ getDefaultExportFromCjs(reactExports);
+var React$1 = /* @__PURE__ */ _mergeNamespaces$1({
 	__proto__: null,
-	default: React__default
+	default: React
 }, [reactExports]);
-var jsxRuntime = { exports: {} };
-var reactJsxRuntime_production = {};
-/**
-* @license React
-* react-jsx-runtime.production.js
-*
-* Copyright (c) Meta Platforms, Inc. and affiliates.
-*
-* This source code is licensed under the MIT license found in the
-* LICENSE file in the root directory of this source tree.
-*/
-var hasRequiredReactJsxRuntime_production;
-function requireReactJsxRuntime_production() {
-	if (hasRequiredReactJsxRuntime_production) return reactJsxRuntime_production;
-	hasRequiredReactJsxRuntime_production = 1;
-	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
-	function jsxProd(type, config, maybeKey) {
-		var key = null;
-		void 0 !== maybeKey && (key = "" + maybeKey);
-		void 0 !== config.key && (key = "" + config.key);
-		if ("key" in config) {
-			maybeKey = {};
-			for (var propName in config) "key" !== propName && (maybeKey[propName] = config[propName]);
-		} else maybeKey = config;
-		config = maybeKey.ref;
-		return {
-			$$typeof: REACT_ELEMENT_TYPE,
-			type,
-			key,
-			ref: void 0 !== config ? config : null,
-			props: maybeKey
-		};
-	}
-	reactJsxRuntime_production.Fragment = REACT_FRAGMENT_TYPE;
-	reactJsxRuntime_production.jsx = jsxProd;
-	reactJsxRuntime_production.jsxs = jsxProd;
-	return reactJsxRuntime_production;
-}
-jsxRuntime.exports;
-var hasRequiredJsxRuntime;
-function requireJsxRuntime() {
-	if (hasRequiredJsxRuntime) return jsxRuntime.exports;
-	hasRequiredJsxRuntime = 1;
-	{
-		jsxRuntime.exports = requireReactJsxRuntime_production();
-	}
-	return jsxRuntime.exports;
-}
-var jsxRuntimeExports = requireJsxRuntime();
-function getDefaultExportFromCjs(x) {
-	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
-}
 var client = { exports: {} };
 var reactDomClient_production = {};
 var scheduler = { exports: {} };
@@ -719,7 +667,7 @@ var hasRequiredReactDom_production;
 function requireReactDom_production() {
 	if (hasRequiredReactDom_production) return reactDom_production;
 	hasRequiredReactDom_production = 1;
-	var React = React__default;
+	var React = requireReact();
 	function formatProdErrorMessage(code) {
 		var url = "https://react.dev/errors/" + code;
 		if (1 < arguments.length) {
@@ -889,7 +837,7 @@ var hasRequiredReactDomClient_production;
 function requireReactDomClient_production() {
 	if (hasRequiredReactDomClient_production) return reactDomClient_production;
 	hasRequiredReactDomClient_production = 1;
-	var Scheduler = requireScheduler(), React = React__default, ReactDOM = requireReactDom();
+	var Scheduler = requireScheduler(), React = requireReact(), ReactDOM = requireReactDom();
 	function formatProdErrorMessage(code) {
 		var url = "https://react.dev/errors/" + code;
 		if (1 < arguments.length) {
@@ -10094,7 +10042,7 @@ function omit(obj, fields) {
 }
 function toArray$3(children, option = {}) {
 	let ret = [];
-	React__default.Children.forEach(children, (child) => {
+	React.Children.forEach(children, (child) => {
 		if ((child === undefined || child === null) && !option.keepEmpty) {
 			return;
 		}
@@ -12785,7 +12733,7 @@ var uniqueMap = new ArrayKeyMap();
 * Like `useMemo`, but this hook result will be shared across all instances.
 */
 function useUniqueMemo(memoFn, deps) {
-	return React__default.useMemo(function() {
+	return React.useMemo(function() {
 		var cachedValue = uniqueMap.get(deps);
 		if (cachedValue) {
 			return cachedValue;
@@ -14342,7 +14290,7 @@ const defaultConfig = {
 	override: { override: seedToken },
 	hashed: true
 };
-const DesignTokenContext = /* @__PURE__ */ React__default.createContext(defaultConfig);
+const DesignTokenContext = /* @__PURE__ */ React.createContext(defaultConfig);
 function isStableColor(color) {
 	return color >= 0 && color <= 255;
 }
@@ -14599,7 +14547,7 @@ const getComputedToken = (originToken, overrideToken, theme) => {
 };
 // ================================== Hook ==================================
 function useToken() {
-	const { token: rootDesignToken, hashed, theme, override, cssVar: ctxCssVar, zeroRuntime } = React__default.useContext(DesignTokenContext);
+	const { token: rootDesignToken, hashed, theme, override, cssVar: ctxCssVar, zeroRuntime } = React.useContext(DesignTokenContext);
 	const cssVar = {
 		prefix: ctxCssVar?.prefix ?? "ant",
 		key: ctxCssVar?.key ?? "css-var-root"
@@ -14817,12 +14765,12 @@ function normalizeAttrs(attrs = {}) {
 }
 function generate(node, key, rootProps) {
 	if (!rootProps) {
-		return /* @__PURE__ */ React__default.createElement(node.tag, {
+		return /* @__PURE__ */ React.createElement(node.tag, {
 			key,
 			...normalizeAttrs(node.attrs)
 		}, (node.children || []).map((child, index) => generate(child, `${key}-${node.tag}-${index}`)));
 	}
-	return /* @__PURE__ */ React__default.createElement(node.tag, {
+	return /* @__PURE__ */ React.createElement(node.tag, {
 		key,
 		...normalizeAttrs(node.attrs),
 		...rootProps
@@ -16056,7 +16004,7 @@ const useMergeSemantic = (classNamesList, stylesList, info, schema) => {
 		schema
 	]);
 };
-const zIndexContext = /* @__PURE__ */ React__default.createContext(undefined);
+const zIndexContext = /* @__PURE__ */ React.createContext(undefined);
 // Z-Index control range
 // Container: 1000 + offset 100 (max base + 10 * offset = 2000)
 // Popover: offset 50
@@ -16083,7 +16031,7 @@ const isContainerType = (type) => {
 };
 const useZIndex = (componentType, customZIndex) => {
 	const [, token] = useToken();
-	const parentZIndex = React__default.useContext(zIndexContext);
+	const parentZIndex = React.useContext(zIndexContext);
 	const isContainer = isContainerType(componentType);
 	let result;
 	if (customZIndex !== undefined) {
@@ -16264,7 +16212,7 @@ html body {
 }
 function getUseId() {
 	// We need fully clone React function here to avoid webpack warning React 17 do not export `useId`
-	const fullClone = { ...React };
+	const fullClone = { ...React$1 };
 	return fullClone.useId;
 }
 let uuid = 0;
@@ -17412,10 +17360,10 @@ function useWinClick(open, clickToHide, targetEle, popupEle, mask, maskClosable,
 * 4. During appear/enter animation, cache new options and apply after animation completes.
 */
 function useTargetState() {
-	const [options, setOptions] = React__default.useState(null);
-	const [open, setOpen] = React__default.useState(false);
-	const [isAnimating, setIsAnimating] = React__default.useState(false);
-	const pendingOptionsRef = React__default.useRef(null);
+	const [options, setOptions] = React.useState(null);
+	const [open, setOpen] = React.useState(false);
+	const [isAnimating, setIsAnimating] = React.useState(false);
+	const pendingOptionsRef = React.useRef(null);
 	const trigger = useEvent((nextOptions) => {
 		if (nextOptions === false) {
 			// Clear pending options when hiding
@@ -17476,11 +17424,11 @@ function _extends$r() {
 const UniqueContainer = (props) => {
 	const { prefixCls, isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY, arrowPos, popupSize, motion, uniqueContainerClassName, uniqueContainerStyle } = props;
 	const containerCls = `${prefixCls}-unique-container`;
-	const [motionVisible, setMotionVisible] = React__default.useState(false);
+	const [motionVisible, setMotionVisible] = React.useState(false);
 	// ========================= Styles =========================
 	const offsetStyle = useOffsetStyle(isMobile, ready, open, align, offsetR, offsetB, offsetX, offsetY);
 	// Cache for offsetStyle when ready is true
-	const cachedOffsetStyleRef = React__default.useRef(offsetStyle);
+	const cachedOffsetStyleRef = React.useRef(offsetStyle);
 	// Update cached offset style when ready is true
 	if (ready) {
 		cachedOffsetStyleRef.current = offsetStyle;
@@ -17492,7 +17440,7 @@ const UniqueContainer = (props) => {
 		sizeStyle.height = popupSize.height;
 	}
 	// ========================= Render =========================
-	return /* @__PURE__ */ React__default.createElement(CSSMotion, _extends$r({
+	return /* @__PURE__ */ React.createElement(CSSMotion, _extends$r({
 		motionAppear: true,
 		motionEnter: true,
 		motionLeave: true,
@@ -17505,7 +17453,7 @@ const UniqueContainer = (props) => {
 		}
 	}), ({ className: motionClassName, style: motionStyle }) => {
 		const cls = clsx(containerCls, motionClassName, uniqueContainerClassName, { [`${containerCls}-visible`]: motionVisible });
-		return /* @__PURE__ */ React__default.createElement("div", {
+		return /* @__PURE__ */ React.createElement("div", {
 			className: cls,
 			style: {
 				"--arrow-x": `${arrowPos?.x || 0}px`,
@@ -18092,26 +18040,26 @@ function generateTrigger(PortalComponent = Portal) {
 }
 var Trigger = generateTrigger(Portal);
 function isFragment(child) {
-	return child && /* @__PURE__ */ React__default.isValidElement(child) && child.type === React__default.Fragment;
+	return child && /* @__PURE__ */ React.isValidElement(child) && child.type === React.Fragment;
 }
 const replaceElement = (element, replacement, props) => {
-	if (!/* @__PURE__ */ React__default.isValidElement(element)) {
+	if (!/* @__PURE__ */ React.isValidElement(element)) {
 		return replacement;
 	}
-	return /* @__PURE__ */ React__default.cloneElement(element, typeof props === "function" ? props(element.props || {}) : props);
+	return /* @__PURE__ */ React.cloneElement(element, typeof props === "function" ? props(element.props || {}) : props);
 };
 function cloneElement(element, props) {
 	return replaceElement(element, element, props);
 }
 const MotionContent = ({ children }) => {
-	const { getPrefixCls } = React__default.useContext(ConfigContext);
+	const { getPrefixCls } = React.useContext(ConfigContext);
 	const rootPrefixCls = getPrefixCls();
 	// This will never reach since we will not render this when no children
 	/* istanbul ignore next */
-	if (!/* @__PURE__ */ React__default.isValidElement(children)) {
+	if (!/* @__PURE__ */ React.isValidElement(children)) {
 		return children;
 	}
-	return /* @__PURE__ */ React__default.createElement(CSSMotion, {
+	return /* @__PURE__ */ React.createElement(CSSMotion, {
 		visible: true,
 		motionName: `${rootPrefixCls}-fade`,
 		motionAppear: true,
@@ -18152,11 +18100,11 @@ const UniqueProvider = ({ children }) => {
 			...options,
 			getPopupContainer: null,
 			arrow: false,
-			popup: /* @__PURE__ */ React__default.createElement(MotionContent, { key: id }, popupEle),
+			popup: /* @__PURE__ */ React.createElement(MotionContent, { key: id }, popupEle),
 			builtinPlacements: parsedPlacements
 		};
 	};
-	return /* @__PURE__ */ React__default.createElement(UniqueProvider$1, { postTriggerProps: renderPopup }, children);
+	return /* @__PURE__ */ React.createElement(UniqueProvider$1, { postTriggerProps: renderPopup }, children);
 };
 const DisabledContext = /* @__PURE__ */ reactExports.createContext(false);
 const DisabledContextProvider = ({ children, disabled }) => {
@@ -18720,7 +18668,7 @@ const Wave = (props) => {
 	// =============================== Wave ===============================
 	const showWave = useWave(containerRef, clsx(prefixCls, hashId), component, colorSource);
 	// ============================== Effect ==============================
-	React__default.useEffect(() => {
+	React.useEffect(() => {
 		const node = containerRef.current;
 		if (!node || node.nodeType !== window.Node.ELEMENT_NODE || disabled) {
 			return;
@@ -18740,15 +18688,15 @@ const Wave = (props) => {
 		};
 	}, [disabled]);
 	// ============================== Render ==============================
-	if (!/* @__PURE__ */ React__default.isValidElement(children)) {
+	if (!/* @__PURE__ */ React.isValidElement(children)) {
 		return children ?? null;
 	}
 	const ref = supportRef(children) ? composeRef(getNodeRef(children), containerRef) : containerRef;
 	return cloneElement(children, { ref });
 };
 const useSize = (customSize) => {
-	const size = React__default.useContext(SizeContext);
-	const mergedSize = React__default.useMemo(() => {
+	const size = React.useContext(SizeContext);
+	const mergedSize = React.useMemo(() => {
 		if (!customSize) {
 			return size;
 		}
@@ -18842,13 +18790,13 @@ function splitCNCharsBySpace(child, needInserted, style, className) {
 		});
 	}
 	if (isString(child)) {
-		return /* @__PURE__ */ React__default.createElement("span", {
+		return /* @__PURE__ */ React.createElement("span", {
 			className,
 			style
 		}, isTwoCNChar(child) ? child.split("").join(SPACE) : child);
 	}
 	if (isFragment(child)) {
-		return /* @__PURE__ */ React__default.createElement("span", {
+		return /* @__PURE__ */ React.createElement("span", {
 			className,
 			style
 		}, child);
@@ -18865,7 +18813,7 @@ function splitCNCharsBySpace(child, needInserted, style, className) {
 function spaceChildren(children, needInserted, style, className) {
 	let isPrevChildPure = false;
 	const childList = [];
-	React__default.Children.forEach(children, (child) => {
+	React.Children.forEach(children, (child) => {
 		const type = typeof child;
 		const isCurrentChildPure = type === "string" || type === "number";
 		if (isPrevChildPure && isCurrentChildPure) {
@@ -18877,7 +18825,7 @@ function spaceChildren(children, needInserted, style, className) {
 		}
 		isPrevChildPure = isCurrentChildPure;
 	});
-	return React__default.Children.map(childList, (child) => splitCNCharsBySpace(child, needInserted, style, className));
+	return React.Children.map(childList, (child) => splitCNCharsBySpace(child, needInserted, style, className));
 }
 [
 	"default",
@@ -18887,7 +18835,7 @@ function spaceChildren(children, needInserted, style, className) {
 const IconWrapper = /* @__PURE__ */ reactExports.forwardRef((props, ref) => {
 	const { className, style, children, prefixCls } = props;
 	const iconWrapperCls = clsx(`${prefixCls}-icon`, className);
-	return /* @__PURE__ */ React__default.createElement("span", {
+	return /* @__PURE__ */ React.createElement("span", {
 		ref,
 		className: iconWrapperCls,
 		style
@@ -18896,12 +18844,12 @@ const IconWrapper = /* @__PURE__ */ reactExports.forwardRef((props, ref) => {
 const InnerLoadingIcon = /* @__PURE__ */ reactExports.forwardRef((props, ref) => {
 	const { prefixCls, className, style, iconClassName } = props;
 	const mergedIconCls = clsx(`${prefixCls}-loading-icon`, className);
-	return /* @__PURE__ */ React__default.createElement(IconWrapper, {
+	return /* @__PURE__ */ React.createElement(IconWrapper, {
 		prefixCls,
 		className: mergedIconCls,
 		style,
 		ref
-	}, /* @__PURE__ */ React__default.createElement(RefIcon$6, { className: iconClassName }));
+	}, /* @__PURE__ */ React.createElement(RefIcon$6, { className: iconClassName }));
 });
 const getCollapsedWidth = () => ({
 	width: 0,
@@ -18917,13 +18865,13 @@ const DefaultLoadingIcon = (props) => {
 	const { prefixCls, loading, existIcon, className, style, mount } = props;
 	const visible = !!loading;
 	if (existIcon) {
-		return /* @__PURE__ */ React__default.createElement(InnerLoadingIcon, {
+		return /* @__PURE__ */ React.createElement(InnerLoadingIcon, {
 			prefixCls,
 			className,
 			style
 		});
 	}
-	return /* @__PURE__ */ React__default.createElement(CSSMotion, {
+	return /* @__PURE__ */ React.createElement(CSSMotion, {
 		visible,
 		motionName: `${prefixCls}-loading-icon-motion`,
 		motionAppear: !mount,
@@ -18941,7 +18889,7 @@ const DefaultLoadingIcon = (props) => {
 			...style,
 			...motionStyle
 		};
-		return /* @__PURE__ */ React__default.createElement(InnerLoadingIcon, {
+		return /* @__PURE__ */ React.createElement(InnerLoadingIcon, {
 			prefixCls,
 			className: clsx(className, motionCls),
 			style: mergedStyle,
@@ -20041,13 +19989,13 @@ const ButtonTypeMap = {
 	link: ["link", "link"],
 	text: ["default", "text"]
 };
-const InternalCompoundedButton = /* @__PURE__ */ React__default.forwardRef((props, ref) => {
+const InternalCompoundedButton = /* @__PURE__ */ React.forwardRef((props, ref) => {
 	const { _skipSemantic, loading = false, prefixCls: customizePrefixCls, color, variant, type, danger = false, shape: customizeShape, size: customizeSize, disabled: customDisabled, className, rootClassName, children, icon, iconPosition, iconPlacement, ghost = false, block = false, htmlType = "button", classNames, styles, style, autoInsertSpace, autoFocus, ...rest } = props;
 	const childNodes = toArray$3(children);
 	// https://github.com/ant-design/ant-design/issues/47605
 	// Compatible with original `type` behavior
 	const mergedType = type || "default";
-	const { button } = React__default.useContext(ConfigContext);
+	const { button } = React.useContext(ConfigContext);
 	const shape = customizeShape || button?.shape || "default";
 	const [parsedColor, parsedVariant] = reactExports.useMemo(() => {
 		// >>>>> Local
@@ -20106,7 +20054,7 @@ const InternalCompoundedButton = /* @__PURE__ */ React__default.forwardRef((prop
 	// Record for mount status.
 	// This will help to no to show the animation of loading on the first mount.
 	const isMountRef = reactExports.useRef(true);
-	React__default.useEffect(() => {
+	React.useEffect(() => {
 		isMountRef.current = false;
 		return () => {
 			isMountRef.current = true;
@@ -20155,7 +20103,7 @@ const InternalCompoundedButton = /* @__PURE__ */ React__default.forwardRef((prop
 		}
 	}, []);
 	// ========================= Events =========================
-	const handleClick = React__default.useCallback((e) => {
+	const handleClick = React.useCallback((e) => {
 		// FIXME: https://github.com/ant-design/ant-design/issues/30207
 		if (innerLoading || mergedDisabled) {
 			e.preventDefault();
@@ -20223,11 +20171,11 @@ const InternalCompoundedButton = /* @__PURE__ */ React__default.forwardRef((prop
 	* Extract icon node
 	* If there is a custom icon and not in loading state: show custom icon
 	*/
-	const iconWrapperElement = (child) => /* @__PURE__ */ React__default.createElement(IconWrapper, {
+	const iconWrapperElement = (child) => /* @__PURE__ */ React.createElement(IconWrapper, {
 		prefixCls,
 		...iconSharedProps
 	}, child);
-	const defaultLoadingIconElement = /* @__PURE__ */ React__default.createElement(DefaultLoadingIcon, {
+	const defaultLoadingIconElement = /* @__PURE__ */ React.createElement(DefaultLoadingIcon, {
 		existIcon: !!icon,
 		prefixCls,
 		loading: innerLoading,
@@ -20247,7 +20195,7 @@ const InternalCompoundedButton = /* @__PURE__ */ React__default.forwardRef((prop
 	}
 	const contentNode = isNonNullable(children) ? spaceChildren(children, needInserted && mergedInsertSpace, mergedStyles.content, mergedClassNames.content) : null;
 	if (linkButtonRestProps.href !== undefined) {
-		return /* @__PURE__ */ React__default.createElement("a", {
+		return /* @__PURE__ */ React.createElement("a", {
 			...linkButtonRestProps,
 			className: clsx(classes, { [`${prefixCls}-disabled`]: mergedDisabled }),
 			href: mergedDisabled ? undefined : linkButtonRestProps.href,
@@ -20258,7 +20206,7 @@ const InternalCompoundedButton = /* @__PURE__ */ React__default.forwardRef((prop
 			"aria-disabled": mergedDisabled
 		}, iconNode, contentNode);
 	}
-	let buttonNode = /* @__PURE__ */ React__default.createElement("button", {
+	let buttonNode = /* @__PURE__ */ React.createElement("button", {
 		...rest,
 		type: htmlType,
 		className: classes,
@@ -20266,9 +20214,9 @@ const InternalCompoundedButton = /* @__PURE__ */ React__default.forwardRef((prop
 		onClick: handleClick,
 		disabled: mergedDisabled,
 		ref: mergedRef
-	}, iconNode, contentNode, compactItemClassnames && /* @__PURE__ */ React__default.createElement(Compact, { prefixCls }));
+	}, iconNode, contentNode, compactItemClassnames && /* @__PURE__ */ React.createElement(Compact, { prefixCls }));
 	if (!isUnBorderedButtonVariant(mergedVariant)) {
-		buttonNode = /* @__PURE__ */ React__default.createElement(Wave, {
+		buttonNode = /* @__PURE__ */ React.createElement(Wave, {
 			component: "Button",
 			disabled: innerLoading
 		}, buttonNode);
@@ -23496,13 +23444,13 @@ const ContextIsolator = (props) => {
 	}
 	let result = children;
 	if (form) {
-		result = /* @__PURE__ */ React__default.createElement(NoFormStyle, {
+		result = /* @__PURE__ */ React.createElement(NoFormStyle, {
 			override: true,
 			status: true
 		}, result);
 	}
 	if (space) {
-		result = /* @__PURE__ */ React__default.createElement(NoCompactStyle, null, result);
+		result = /* @__PURE__ */ React.createElement(NoCompactStyle, null, result);
 	}
 	return result;
 };
@@ -23665,7 +23613,7 @@ function useEffectState(notifyEffectUpdate, defaultValue) {
 	});
 	return [stateValue, setEffectVal];
 }
-const OverflowContext = /* @__PURE__ */ React__default.createContext(null);
+const OverflowContext = /* @__PURE__ */ React.createContext(null);
 const InternalRawItem = (props, ref) => {
 	const context = reactExports.useContext(OverflowContext);
 	// Render directly when context not provided
@@ -25521,7 +25469,7 @@ function fillLocale(locale, showHour, showMinute, showSecond, showMillisecond, u
 */
 function useLocale(locale, showProps) {
 	var showHour = showProps.showHour, showMinute = showProps.showMinute, showSecond = showProps.showSecond, showMillisecond = showProps.showMillisecond, use12Hours = showProps.use12Hours;
-	return React__default.useMemo(function() {
+	return React.useMemo(function() {
 		return fillLocale(locale, showHour, showMinute, showSecond, showMillisecond, use12Hours);
 	}, [
 		locale,
@@ -26360,14 +26308,14 @@ function _arrayWithHoles$r(arr) {
 function useDelayState(value, defaultValue, onChange) {
 	var _useControlledState = useControlledState(defaultValue, value), _useControlledState2 = _slicedToArray$r(_useControlledState, 2), state = _useControlledState2[0], setState = _useControlledState2[1];
 	// Need force update to ensure React re-render
-	var _React$useState = React__default.useState({}), _React$useState2 = _slicedToArray$r(_React$useState, 2), forceUpdate = _React$useState2[1];
+	var _React$useState = React.useState({}), _React$useState2 = _slicedToArray$r(_React$useState, 2), forceUpdate = _React$useState2[1];
 	var triggerUpdate = useEvent(function(nextState) {
 		setState(nextState);
 		forceUpdate({});
 	});
-	var nextValueRef = React__default.useRef(value);
+	var nextValueRef = React.useRef(value);
 	// ============================= Update =============================
-	var rafRef = React__default.useRef();
+	var rafRef = React.useRef();
 	var cancelRaf = function cancelRaf() {
 		wrapperRaf.cancel(rafRef.current);
 	};
@@ -26386,7 +26334,7 @@ function useDelayState(value, defaultValue, onChange) {
 			rafRef.current = wrapperRaf(doUpdate);
 		}
 	});
-	React__default.useEffect(function() {
+	React.useEffect(function() {
 		return cancelRaf;
 	}, []);
 	return [state, updateValue];
@@ -34930,7 +34878,7 @@ const useSuffixIcon = ({ picker, hasFeedback, feedbackIcon, suffixIcon }) => {
 		return null;
 	}
 	if (suffixIcon === true || suffixIcon === undefined) {
-		return /* @__PURE__ */ React__default.createElement(React__default.Fragment, null, picker === TIME ? /* @__PURE__ */ React__default.createElement(RefIcon, null) : /* @__PURE__ */ React__default.createElement(RefIcon$1, null), hasFeedback && feedbackIcon);
+		return /* @__PURE__ */ React.createElement(React.Fragment, null, picker === TIME ? /* @__PURE__ */ React.createElement(RefIcon, null) : /* @__PURE__ */ React.createElement(RefIcon$1, null), hasFeedback && feedbackIcon);
 	}
 	return suffixIcon;
 };
@@ -35173,6 +35121,55 @@ DatePicker._InternalPanelDoNotUseOrYouWillBeFired = PurePanel;
 const PureRangePanel = genPurePanel(DatePicker.RangePicker, "popupAlign", undefined, "picker");
 DatePicker._InternalRangePanelDoNotUseOrYouWillBeFired = PureRangePanel;
 DatePicker.generatePicker = generatePicker;
+var jsxRuntime = { exports: {} };
+var reactJsxRuntime_production = {};
+/**
+* @license React
+* react-jsx-runtime.production.js
+*
+* Copyright (c) Meta Platforms, Inc. and affiliates.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*/
+var hasRequiredReactJsxRuntime_production;
+function requireReactJsxRuntime_production() {
+	if (hasRequiredReactJsxRuntime_production) return reactJsxRuntime_production;
+	hasRequiredReactJsxRuntime_production = 1;
+	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+	function jsxProd(type, config, maybeKey) {
+		var key = null;
+		void 0 !== maybeKey && (key = "" + maybeKey);
+		void 0 !== config.key && (key = "" + config.key);
+		if ("key" in config) {
+			maybeKey = {};
+			for (var propName in config) "key" !== propName && (maybeKey[propName] = config[propName]);
+		} else maybeKey = config;
+		config = maybeKey.ref;
+		return {
+			$$typeof: REACT_ELEMENT_TYPE,
+			type,
+			key,
+			ref: void 0 !== config ? config : null,
+			props: maybeKey
+		};
+	}
+	reactJsxRuntime_production.Fragment = REACT_FRAGMENT_TYPE;
+	reactJsxRuntime_production.jsx = jsxProd;
+	reactJsxRuntime_production.jsxs = jsxProd;
+	return reactJsxRuntime_production;
+}
+jsxRuntime.exports;
+var hasRequiredJsxRuntime;
+function requireJsxRuntime() {
+	if (hasRequiredJsxRuntime) return jsxRuntime.exports;
+	hasRequiredJsxRuntime = 1;
+	{
+		jsxRuntime.exports = requireReactJsxRuntime_production();
+	}
+	return jsxRuntime.exports;
+}
+var jsxRuntimeExports = requireJsxRuntime();
 const container = document.getElementById("root");
 const root = ReactDOM.createRoot(container);
-root.render(/* @__PURE__ */ jsxRuntimeExports.jsx(React__default.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(DatePicker, {}) }));
+root.render(/* @__PURE__ */ jsxRuntimeExports.jsx(React.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(DatePicker, {}) }));

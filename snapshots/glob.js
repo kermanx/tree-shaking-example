@@ -3,11 +3,11 @@ import { win32, posix } from "node:path";
 import { realpathSync as realpathSync$1, readlinkSync, readdirSync, readdir as readdir$1, lstatSync } from "fs";
 import * as actualFS from "node:fs";
 import { realpath, readlink, readdir, lstat } from "node:fs/promises";
-import "node:events";
-import "node:stream";
-import "node:string_decoder";
-const balanced = (__unused_0D75, __unused_B4AA, str) => {
-	const r = range(0, 0, str);
+import {} from "node:events";
+import {} from "node:stream";
+import {} from "node:string_decoder";
+const balanced = (__unused_128F, __unused_9413, str) => {
+	const r = "}" != null && range(0, 0, str);
 	return r && {
 		start: r[0],
 		end: r[1],
@@ -16,7 +16,7 @@ const balanced = (__unused_0D75, __unused_B4AA, str) => {
 		post: str.slice(r[1] + 1)
 	};
 };
-const range = (__unused_58F4, __unused_EC47, str) => {
+const range = (__unused_7366, __unused_9413_0, str) => {
 	let begs, beg, left, right = void 0, result;
 	let ai = str.indexOf("{");
 	let bi = str.indexOf("}", ai + 1);
@@ -2050,7 +2050,7 @@ if (typeof C > "u") {
 		_onabort = [];
 		reason;
 		aborted = false;
-		addEventListener(__unused_0858, s) {
+		addEventListener(__unused_9EBF, s) {
 			this._onabort.push(s);
 		}
 	}, C = class {
@@ -2292,7 +2292,7 @@ var G = (a) => !I.has(a), y = (a) => a && a === Math.floor(a) && a > 0 && isFini
 	}
 	$W = () => {};
 	$U = () => {};
-	$P = (__unused_4333, __unused_FD45, i, s) => {
+	$P = (__unused_A26F, __unused_F90E, i, s) => {
 		if (i || s) throw new TypeError("cannot set size without setting maxSize or maxEntrySize on cache");
 		return 0;
 	};
@@ -3894,7 +3894,7 @@ class PathScurryWin32 extends PathScurryBase {
 * Uses {@link PathPosix} for Path objects.
 */
 class PathScurryPosix extends PathScurryBase {
-	constructor(__unused_45C7, opts) {
+	constructor(__unused_3DB1, opts) {
 		const { nocase = false } = opts;
 		super("", posix, "/", {
 			...opts,
@@ -3924,7 +3924,7 @@ class PathScurryPosix extends PathScurryBase {
 * Uses {@link PathPosix} for Path objects.
 */
 class PathScurryDarwin extends PathScurryPosix {
-	constructor(__unused_92D5, opts) {
+	constructor(__unused_3DB1_0, opts) {
 		super(0, {
 			...opts,
 			nocase: true
@@ -4646,7 +4646,7 @@ class GlobUtil {
 			const childrenCached = t.readdirCached();
 			if (t.calledReaddir()) this.walkCB3(t, childrenCached, processor, next);
 			else {
-				t.readdirCB((__unused_9D7F, entries) => this.walkCB3(t, entries, processor, next), true);
+				t.readdirCB((__unused_D781, entries) => this.walkCB3(t, entries, processor, next), true);
 			}
 		}
 		next();
@@ -4843,7 +4843,7 @@ class Glob {
 		}).walkSync()];
 	}
 }
-function globSync(__unused_B01E, options) {
+function globSync(__unused_3CC0, options) {
 	return new Glob(0, options).g();
 }
 const files = globSync(0, { ignore: ["node_modules/**", "dist/**"] });

@@ -112,6 +112,15 @@ else:
     total_pm_contribution = np.mean(part3_ratios)
     total_bf_contribution = np.mean(part4_ratios)
 
+# Sort test cases alphabetically before adding Average
+sorted_indices = sorted(range(len(test_cases)), key=lambda i: test_cases[i], reverse=True)
+test_cases = [test_cases[i] for i in sorted_indices]
+part1_ratios = [part1_ratios[i] for i in sorted_indices]
+part2_ratios = [part2_ratios[i] for i in sorted_indices]
+part3_ratios = [part3_ratios[i] for i in sorted_indices]
+part4_ratios = [part4_ratios[i] for i in sorted_indices]
+error_ratios = [error_ratios[i] for i in sorted_indices]
+
 # Add total to the lists (insert at beginning so it appears at bottom of chart)
 test_cases.insert(0, 'Average')
 part1_ratios.insert(0, total_dce_contribution)
@@ -170,7 +179,7 @@ for i, label in enumerate(ax.get_yticklabels()):
     if label.get_text() == 'Average':
         label.set_weight('bold')
 # ax.set_xlabel('Additional Size Reduction over Basic Tree-Shaking Baseline (%)')
-ax.legend(loc='upper right')
+ax.legend(loc='lower right')
 
 if TRUNCATE_AT:
     ax.set_xlim(0, TRUNCATE_AT)
@@ -268,7 +277,7 @@ print('Graph saved to ablation_analysis.png')
 
 # Print summary statistics
 print('\n=== Summary Statistics ===')
-print(f'{"Test Case":<15} {"CF":<10} {"PM":<10} {"BF":<10} {"DCE":<10}')
+print(f'{"Test Case":<15} {"CF":<10} {"PM":<10} {"BF":<10} {"Rest":<10}')
 print('-' * 65)
 for name, cf, pm, bf, dce in zip(test_cases, part2_ratios, part3_ratios, part4_ratios, part1_ratios):
     print(f'{name:<15} {cf:>8.1f}% {pm:>9.1f}% {bf:>9.1f}% {dce:>9.1f}%')

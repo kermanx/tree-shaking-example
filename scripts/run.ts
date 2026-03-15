@@ -25,7 +25,7 @@ export async function run({
 }) {
   let filename = [name, bundler, ...optimizers].join('_');
 
-  const isJsShaker = optimizers[0] === 'jsshaker';
+  const isJsShaker = optimizers[0] === 'jsshaker2';
   let code = await bundlers[bundler]({
     name,
     entry,

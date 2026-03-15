@@ -8,6 +8,7 @@ const MANUAL_FAILED: [RegExp,RegExp][] = [
   [/novnc/, /gccAdv/], // Cannot type
   [/vuetify/, /gccAdv/], // TypeError: Invalid color: [object Object] Expected #hex, #hexa, rgb(), rgba(), hsl(), hsla(), object or number
   [/vben-ele/, /gccAdv/], // Cannot load
+  [/slidev-demo/, /gccAdv/], // Many errors
 ]
 
 interface FailedTests {

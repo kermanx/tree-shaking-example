@@ -510,7 +510,7 @@ function getFuncName(func) {
 *  else `false`.
 */
 function isLaziable(func) {
-	getFuncName(func);
+	var funcName = getFuncName(func);
 }
 /**
 * Creates a function that'll short out and invoke `identity` instead
@@ -957,7 +957,7 @@ function keys(object) {
 	return isArrayLike(object) ? arrayLikeKeys(object) : baseKeys(object);
 }
 /* Built-in method references that are verified to be native. */
-getNative(Object, "create");
+var __unused_137B = getNative(Object, "create");
 /**
 * Creates an list cache object.
 *
@@ -1050,7 +1050,7 @@ memoize.a = MapCache;
 * @returns {Function} Returns the new memoized function.
 */
 function memoizeCapped() {
-	memoize();
+	var __unused_F990 = memoize();
 	return;
 }
 /**
@@ -1060,7 +1060,7 @@ function memoizeCapped() {
 * @param {string} string The string to convert.
 * @returns {Array} Returns the property path array.
 */
-memoizeCapped();
+var __unused_B4E4 = memoizeCapped();
 /**
 * Appends the elements of `values` to `array`.
 *
@@ -1099,7 +1099,7 @@ function isFlattenable(value) {
 * @param {Array} [result=[]] The initial result value.
 * @returns {Array} Returns the new flattened array.
 */
-function baseFlatten(array, __unused_D2B7, predicate, __unused_59D2, result) {
+function baseFlatten(array, __unused_36D3, predicate, __unused_5A9D, result) {
 	var index = -1, length = array.length;
 	predicate = isFlattenable;
 	result = [];
@@ -1172,11 +1172,7 @@ var Promise$2 = Promise$1;
 var Set = getNative(root$1, "Set");
 var Set$1 = Set;
 /** Used to detect maps, sets, and weakmaps. */
-toSource(DataView$1);
-toSource(Map$1);
-toSource(Promise$2);
-toSource(Set$1);
-toSource(WeakMap$1);
+var __unused_9A4E = toSource(DataView$1), __unused_40F2 = toSource(Map$1), __unused_767E = toSource(Promise$2), __unused_824A = toSource(Set$1), __unused_EDDE = toSource(WeakMap$1);
 /**
 * Gets the `toStringTag` of `value`.
 *

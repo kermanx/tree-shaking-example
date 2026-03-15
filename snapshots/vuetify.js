@@ -701,7 +701,7 @@ const targetMap = new WeakMap();
 const ITERATE_KEY = Symbol("");
 const MAP_KEY_ITERATE_KEY = Symbol("");
 const ARRAY_ITERATE_KEY = Symbol("");
-function track(target, __unused_EF71, key) {
+function track(target, __unused_3FDF, key) {
 	if (shouldTrack && activeSub) {
 		let depsMap = targetMap.get(target);
 		if (!depsMap) {
@@ -1126,6 +1126,12 @@ function createInstrumentations(readonly, shallow) {
 			const target = this["__v_raw"];
 			const rawTarget = toRaw(target);
 			const rawKey = toRaw(key);
+			if (!readonly) {
+				if (hasChanged(key, rawKey)) {
+					track(rawTarget, 0, key);
+				}
+				track(rawTarget, 0, rawKey);
+			}
 			const { has } = getProto(rawTarget);
 			const wrap = shallow ? toShallow : readonly ? toReadonly : toReactive;
 			if (has.call(rawTarget, key)) {
@@ -1156,7 +1162,7 @@ function createInstrumentations(readonly, shallow) {
 		forEach(callback, thisArg) {
 			const observed = this;
 			const target = observed["__v_raw"];
-			toRaw(target);
+			const __unused_79C9 = toRaw(target);
 			const wrap = shallow ? toShallow : readonly ? toReadonly : toReactive;
 			return target.forEach((value, key) => {
 				return callback.call(thisArg, wrap(value), wrap(key), observed);
@@ -1528,7 +1534,7 @@ class ComputedRefImpl {
 		}
 	}
 }
-function computed$1(getterOrOptions, __unused_E86B, isSSR = false) {
+function computed$1(getterOrOptions, __unused_6ACB, isSSR = false) {
 	let getter;
 	let setter;
 	if (isFunction(getterOrOptions)) {
@@ -1543,7 +1549,7 @@ function computed$1(getterOrOptions, __unused_E86B, isSSR = false) {
 const INITIAL_WATCHER_VALUE = {};
 const cleanupMap = new WeakMap();
 let activeWatcher = void 0;
-function onWatcherCleanup(cleanupFn, __unused_DBF3, owner = activeWatcher) {
+function onWatcherCleanup(cleanupFn, __unused_2F5D, owner = activeWatcher) {
 	if (owner) {
 		let cleanups = cleanupMap.get(owner);
 		if (!cleanups) cleanupMap.set(owner, cleanups = []);
@@ -1779,7 +1785,7 @@ function handleError(err, instance, type) {
 	}
 	logError(err, 0, 0, 0, throwUnhandledErrorInProduction);
 }
-function logError(err, __unused_9ABC, __unused_0E4F, __unused_B710, throwInProd = false) {
+function logError(err, __unused_DB3E, __unused_5D5C, __unused_5FAA, throwInProd = false) {
 	if (throwInProd) {
 		throw err;
 	} else {
@@ -1843,7 +1849,7 @@ function queuePostFlushCb(cb) {
 	}
 	queueFlush();
 }
-function flushPreFlushCbs(instance, __unused_9C68, i = flushIndex + 1) {
+function flushPreFlushCbs(instance, __unused_F607, i = flushIndex + 1) {
 	for (; i < queue.length; i++) {
 		const cb = queue[i];
 		if (cb && cb.flags & 2) {
@@ -2406,7 +2412,7 @@ function createAppAPI(render) {
 			get config() {
 				return context.config;
 			},
-			set config(__unused_273E) {},
+			set config(__unused_8175) {},
 			use(plugin, ...options) {
 				if (!installedPlugins.has(plugin)) {
 					if (plugin && isFunction(plugin.install)) {
@@ -2436,7 +2442,7 @@ function createAppAPI(render) {
 				context.directives[name] = directive;
 				return app;
 			},
-			mount(rootContainer, __unused_614D, namespace) {
+			mount(rootContainer, __unused_D603, namespace) {
 				if (!isMounted) {
 					const vnode = app._ceVNode || createVNode(rootComponent, null);
 					vnode.appContext = context;
@@ -2902,7 +2908,7 @@ function validatePropName(key) {
 }
 const isInternalKey = (key) => key === "_" || key === "_ctx" || key === "$stable";
 const normalizeSlotValue = (value) => isArray(value) ? value.map(normalizeVNode) : [normalizeVNode(value)];
-const normalizeSlot = (__unused_E9EB, rawSlot, ctx) => {
+const normalizeSlot = (__unused_1280, rawSlot, ctx) => {
 	if (rawSlot._n) {
 		return rawSlot;
 	}
@@ -3985,7 +3991,7 @@ const normalizeRef = ({ ref, ref_key, ref_for }) => {
 		f: !!ref_for
 	} : ref : null;
 };
-function createBaseVNode(type, props = null, children = null, patchFlag = 0, dynamicProps = null, shapeFlag = type === Fragment ? 0 : 1, __unused_6930, needFullChildrenNormalization = false) {
+function createBaseVNode(type, props = null, children = null, patchFlag = 0, dynamicProps = null, shapeFlag = type === Fragment ? 0 : 1, __unused_1709, needFullChildrenNormalization = false) {
 	const vnode = {
 		__v_isVNode: true,
 		__v_skip: true,
@@ -4315,12 +4321,12 @@ function isStatefulComponent(instance) {
 	return instance.vnode.shapeFlag & 4;
 }
 let isInSSRComponentSetup = false;
-function setupComponent(instance, __unused_ECDD, optimized = false) {
+function setupComponent(instance, __unused_0261, optimized = false) {
 	const { props, children } = instance.vnode;
 	const isStateful = isStatefulComponent(instance);
 	initProps(instance, props, isStateful);
 	initSlots(instance, children, optimized || false);
-	isStateful && setupStatefulComponent(instance);
+	const __unused_2A68 = isStateful && setupStatefulComponent(instance);
 	return;
 }
 function setupStatefulComponent(instance) {
@@ -4614,7 +4620,7 @@ function autoPrefix(style, rawName) {
 	}
 	return rawName;
 }
-function patchAttr(el, key, value, isSVG, __unused_0579, isBoolean = isSpecialBooleanAttr(key)) {
+function patchAttr(el, key, value, isSVG, __unused_11BA, isBoolean = isSpecialBooleanAttr(key)) {
 	if (isSVG && key.startsWith("xlink:")) {
 		if (value == null) {
 			el.removeAttributeNS("http://www.w3.org/1999/xlink", key.slice(6, key.length));
@@ -4629,7 +4635,7 @@ function patchAttr(el, key, value, isSVG, __unused_0579, isBoolean = isSpecialBo
 		}
 	}
 }
-function patchDOMProp(el, key, value, __unused_AE09, attrName) {
+function patchDOMProp(el, key, value, __unused_AA58, attrName) {
 	if (key === "innerHTML" || key === "textContent") {
 		if (value != null) {
 			el[key] = key === "innerHTML" ? unsafeToTrustedHTML(value) : value;
@@ -4674,7 +4680,7 @@ function removeEventListener(el, event, handler, options) {
 	el.removeEventListener(event, handler, options);
 }
 const veiKey = Symbol("_vei");
-function patchEvent(el, rawName, __unused_7A4B, nextValue, instance = null) {
+function patchEvent(el, rawName, __unused_387B, nextValue, instance = null) {
 	const invokers = el[veiKey] || (el[veiKey] = {});
 	const existingInvoker = invokers[rawName];
 	if (nextValue && existingInvoker) {
@@ -4904,7 +4910,7 @@ const makeComponentProps = propsFactory({
 		default: null
 	}
 }, "component");
-function deprecate(__unused_9C1B, replacement) {
+function deprecate(__unused_7B8E, replacement) {
 	Array.isArray(replacement) && (replacement.slice(0, -1).map((s) => `'${s}'`).join(", "), replacement.at(-1));
 }
 const IN_BROWSER = typeof window !== "undefined";
@@ -4934,7 +4940,7 @@ function getObjectValueByPath(obj, path) {
 }
 function createRange(length) {
 	let start = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : 0;
-	return Array.from({ length }, (__unused_6F3F, k) => start + k);
+	return Array.from({ length }, (__unused_92AB, k) => start + k);
 }
 function convertToUnit(str) {
 	let unit = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : "px";
@@ -6130,7 +6136,7 @@ var en = {
 	} }
 };
 const replace = (str, params) => {
-	return str.replace(/\{(\d+)\}/g, (__unused_160A, index) => {
+	return str.replace(/\{(\d+)\}/g, (__unused_0E24, index) => {
 		return String(params[Number(index)]);
 	});
 };
@@ -6978,7 +6984,7 @@ const makeVBtnGroupProps = propsFactory({
 	...makeThemeProps(),
 	...makeVariantProps()
 }, "VBtnGroup");
-genericComponent()({
+const __unused_ECD5 = genericComponent()({
 	name: "VBtnGroup",
 	props: makeVBtnGroupProps(),
 	setup() {}

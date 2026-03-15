@@ -41,7 +41,7 @@ function generateLatexTable(rows: ManglingRow[], jsAvg: number, gccAvg: number):
   let latex = '';
   latex += '  \\begin{tabular}{lrrrr}\n';
   latex += '    \\toprule\n';
-  latex += '    Program & Total & CC\\textsubscript{Adv.} (\\%) & JsShaker (\\%) & JsShaker/CC (\\%) \\\\\n';
+  latex += '    Program & Total & \\makecell[r]{CC\\textsubscript{Adv.} \\\\ (\\%)} & \\makecell[r]{JsShaker \\\\ (\\%)} & \\makecell[r]{JsShaker/ \\\\ CC (\\%)} \\\\';
   latex += '    \\midrule\n';
 
   for (const row of rows) {

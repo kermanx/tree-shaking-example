@@ -23,7 +23,8 @@
     "js-yaml",
     "react-icons",
     "sentry",
-    "material-ui"
+    "material-ui",
+    "slidev-demo"
   ],
   "rollup_lacuna3_terser": [
     "antd",

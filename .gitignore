@@ -3,7 +3,6 @@ node_modules
 dist
 .nyc_output
 .parcel-cache/
-sizes.json
 maxRecursionDepth.json
 time.json
 ablation.json
@@ -13,3 +12,4 @@ memory.json
 Heuristic分析文档.md
 Lacuna分析文档.md
 fnSummary.json
+maxRecDepthTime.json

@@ -10,7 +10,7 @@ function bisector(f) {
 	// used to test whether a single value is comparable.
 	if (f.length !== 2) {
 		compare1 = ascending$1;
-		compare2 = (__unused_FEF8, x) => ascending$1(NaN, x);
+		compare2 = (__unused_C815, x) => ascending$1(NaN, x);
 	} else {
 		compare1 = f;
 		compare2 = f;
@@ -576,8 +576,9 @@ function interpolateRound(a, b) {
 		return Math.round(a * (1 - t) + b * t);
 	};
 }
-typeof window === "object" && window.requestAnimationFrame && window.requestAnimationFrame.bind(window);
-dispatch("start", "end", "cancel", "interrupt");
+var __unused_8A70 = typeof window === "object" && window.requestAnimationFrame && window.requestAnimationFrame.bind(window);
+var __unused_88D0 = dispatch("start", "end", "cancel", "interrupt");
+Symbol.iterator;
 function formatDecimal(x) {
 	return Math.abs(x = Math.round(x)) >= 1e21 ? x.toLocaleString("en").replace(/,/g, "") : x.toString(10);
 }
