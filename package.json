@@ -1,8 +1,6 @@
 {
-	"name": "tree-shaking-example",
+	"name": "tree-shaking-evaluation",
 	"version": "1.0.0",
-	"repository": "git@github.com:selfrefactor/tree-shaking-example.git",
-	"author": "Dejan Toteff <deyan8284@gmail.com>",
 	"license": "MIT",
 	"type": "module",
 	"dependencies": {

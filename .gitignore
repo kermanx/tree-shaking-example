@@ -13,3 +13,12 @@ Heuristic分析文档.md
 Lacuna分析文档.md
 fnSummary.json
 maxRecDepthTime.json
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~
+
+# Submission directory
+submission_ready/
