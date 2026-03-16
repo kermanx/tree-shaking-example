@@ -108,6 +108,3 @@ curl -sSL https://github.com/tc39/test262/archive/26058a01fdbc8dad9ded0e97133190
 
 pnpm -C src/tasks/test262 run test
 ```
-
-## Mapping to Paper
-
