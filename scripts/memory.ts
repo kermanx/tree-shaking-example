@@ -278,8 +278,6 @@ async function benchmarkMemory(optimizer: OptimizerType): Promise<void> {
       case 'rollup':
       case 'rolldown':
         return join(srcFolder, `${name}.js`);
-      case 'terser':
-        return join(distFolder, `${name}_rollup_jsshaker.js`);
       default:
         return join(distFolder, `${name}_rollup.js`);
     }
@@ -621,8 +619,8 @@ async function benchmarkAllMemory(): Promise<void> {
   }
   
   // Special jsshaker variants
-  await benchmarkJsshakerNoCache();
-  await benchmarkJsshakerDepths();
+  // await benchmarkJsshakerNoCache();
+  // await benchmarkJsshakerDepths();
   
   console.log('\nAll memory benchmarks completed!');
 }

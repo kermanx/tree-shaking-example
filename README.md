@@ -79,7 +79,7 @@ pnpm build
 pnpm run cloc # Count lines of code in the project
 pnpm run test -o jsshaker/jsshaker2/gcc/gccAdv/lacuna2/lacuna3?,terser # All size data needed for the report
 pnpm run verify -o jsshaker/jsshaker2/gcc/gccAdv/lacuna2/lacuna3?,terser # Verify the output of the above test runs
-pnpm run performance # Measure build-time performance
+pnpm run performance # Measure build-time performance (30min)
 pnpm run memory # Measure memory usage during build
 pnpm run ablation # Measure the impact of individual optimizations in JsShaker
 pnpm run stats # Generate data for function summary and property mangling
