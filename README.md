@@ -85,7 +85,7 @@ pnpm run ablation # Measure the impact of individual optimizations in JsShaker
 pnpm run stats # Generate data for function summary and property mangling
 pnpm run gccMangling # Measure the impact of Google Closure Compiler's property mangling
 pnpm run recDepthSizes # Impact of MaxRecDepth on output size
-pnpm run performance benchmarkJsshaker # Impact of MaxRecDepth on build time
+pnpm run performance jsshakerDepths # Impact of MaxRecDepth on build time
 ```
 
 ## Tables and Figures
@@ -96,15 +96,15 @@ node ./analysis/table_mangling.ts
 node ./analysis/table_time.ts
 node ./analysis/table_summary.ts
 
-uv run ./analysis/figure_ablation.py # --> graphs/ablation_analysis.png
-uv run ./analysis/figure_rec.py # --> graphs/depth_analysis.png
+uv run ./analysis/graph_ablation.py # --> graphs/ablation_analysis.png
+uv run ./analysis/graph_rec.py # --> graphs/depth_analysis.png
 ```
 
 ## Test262
 
 ```sh
-mkdir -p src/tasks/test262/test262
-curl -sSL https://github.com/tc39/test262/archive/b81b71eac270824739107588f26eb684a7729eb3.tar.gz | tar -xz -C src/tasks/test262/test262 --strip-components=1
+mkdir -p c
+curl -sSL https://github.com/tc39/test262/archive/26058a01fdbc8dad9ded0e97133190098ea8c5d8.tar.gz | tar -xz -C src/tasks/test262/test262 --strip-components=1
 
 pnpm -C src/tasks/test262 run test
 ```

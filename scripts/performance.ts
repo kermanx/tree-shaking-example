@@ -13,7 +13,7 @@ const WARMUP_RUNS = 3;
 const BENCHMARK_RUNS = 3;
 const DEFAULT_DEPTH = 2;
 
-async function benchmarkJsshaker(depths = [1, 2, 3, 4, 5]) {
+async function benchmarkJsshaker(depths: number[]) {
   const distFolder = join(import.meta.dirname, '../dist');
   const srcFolder = join(import.meta.dirname, '../benchmarks');
   const srcFiles = (await readdir(srcFolder)).filter(f => f.endsWith('.js'));
@@ -201,7 +201,7 @@ async function benchmarkTerser() {
 
   for (const file of srcFiles) {
     const name = file.replace('.js', '');
-    const bundledPath = join(distFolder, `${name}_rollup_jsshaker.js`);
+    const bundledPath = join(distFolder, `${name}_rollup.js`);
     console.log(`[${name}] Loading ${bundledPath}...`);
     bundled[name] = await readFile(bundledPath, 'utf-8');
   }
@@ -595,7 +595,7 @@ async function main() {
 
   if (!optimizer) {
     console.log('No optimizer specified, running all benchmarks...\n');
-    await benchmarkJsshaker();
+    await benchmarkJsshaker([DEFAULT_DEPTH]);
     await benchmarkTerser();
     await benchmarkRollup();
     await benchmarkGcc();
@@ -620,7 +620,7 @@ async function main() {
         await benchmarkJsshaker([DEFAULT_DEPTH]);
         break;
       case 'jsshakerDepths':
-        await benchmarkJsshaker();
+        await benchmarkJsshaker([1, 2, 3, 4, 5]);
         break;
       case 'jsshakerNoCache':
         await benchmarkJsshakerNoCache();
