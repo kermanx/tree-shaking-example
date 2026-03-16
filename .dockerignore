@@ -1,13 +1,24 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 
+# Data files (generated)
 data/time.json
 data/ablation.json
 data/memory.json
 data/fnSummary.json
 data/maxRecDepthTime.json
+
+# Graphs (generated)
 graphs/*
 
+# Test files
 src/tasks/test262/test262
 
 # IDE and OS files
@@ -16,3 +27,12 @@ src/tasks/test262/test262
 .DS_Store
 *.swp
 *~
+
+# Python virtual environment
+.venv
+__pycache__
+*.pyc
+
+# Temporary directories
+temp
+tmp

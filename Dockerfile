@@ -78,6 +78,9 @@ RUN mkdir -p /home/user/workspace
 
 WORKDIR /home/user/workspace
 
+# Copy git tracked files from repository
+COPY --chown=user:user . /home/user/workspace/
+
 # Copy entrypoint script
 COPY --chown=user:user entrypoint.sh /home/user/entrypoint.sh
 RUN chmod +x /home/user/entrypoint.sh

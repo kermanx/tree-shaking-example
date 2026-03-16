@@ -34,6 +34,15 @@
 
 ## Prequisites
 
+Using docker compose to set up the environment:
+
+```sh
+docker compose up -d --build
+docker compose exec jsshaker-benchmark bash
+```
+
+Or manually set up the environment with the following tools and versions:
+
 - Node.js 24.11+ with pnpm 10.30.3+
 - Python 3.12.3+ with uv 0.9.11+
 - Rust 1.91.1+ with Cargo 1.91.1+, Rustup 1.28.2+
@@ -74,7 +83,7 @@ pnpm i
 ## Evaluation
 
 ```sh
-pnpm build
+pnpm build # Run this first
 
 pnpm run cloc # Count lines of code in the project
 pnpm run test -o jsshaker/jsshaker2/gcc/gccAdv/lacuna2/lacuna3?,terser # All size data needed for the report
@@ -103,7 +112,7 @@ uv run ./analysis/graph_rec.py # --> graphs/depth_analysis.png
 ## Test262
 
 ```sh
-mkdir -p c
+mkdir -p src/tasks/test262/test262
 curl -sSL https://github.com/tc39/test262/archive/26058a01fdbc8dad9ded0e97133190098ea8c5d8.tar.gz | tar -xz -C src/tasks/test262/test262 --strip-components=1
 
 pnpm -C src/tasks/test262 run test
