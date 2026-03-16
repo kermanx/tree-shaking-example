@@ -66,7 +66,7 @@ built-ins/String/prototype/slice/S15.5.4.13_A1_T13.js
 built-ins/String/prototype/lastIndexOf/S15.5.4.8_A4_T1.js
 built-ins/String/prototype/substring/S15.5.4.15_A1_T11.js
 built-ins/String/prototype/split/separator-override-tostring-limit-override-valueof-throws.js
-built-ins/RegExp/regexp-modifiers/remove-dotAll.js	|
+built-ins/RegExp/regexp-modifiers/remove-dotAll.js
 built-ins/RegExp/dotall/without-dotall.js
 built-ins/String/prototype/indexOf/searchstring-tostring-toprimitive.js
 built-ins/String/prototype/codePointAt/return-first-code-unit.js
