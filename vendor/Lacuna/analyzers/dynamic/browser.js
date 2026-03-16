@@ -54,7 +54,7 @@ module.exports = function()
 			var consoleLogs = [];
 			this.page.on('console', msg => consoleLogs.push(msg.text()));
 
-			await this.page.goto(url);
+		  await this.page.goto(url, { timeout: 120000 });
 
 			if (!timeout) { timeout = 0; }
 			// Wait at least min_required_time (browser startup time) seconds, more if we have a longer timeout.
