@@ -146,7 +146,7 @@ function generateLatexTable(data: TimeData): string {
 
   // Add total row
   latex += '    \\midrule\n';
-  latex += '    \\textbf{Average}';
+  latex += '    \\textbf{Geomean}';
 
   // Calculate baseline totals
   let rollupTotal = 0;

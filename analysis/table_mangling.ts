@@ -53,7 +53,7 @@ function generateLatexTable(rows: ManglingRow[], jsAvg: number, gccAvg: number):
   }
 
   latex += '    \\midrule\n';
-  latex += `    \\textbf{Average} & \\textbf{${avgCombinedTotal.toLocaleString('en-US', { maximumFractionDigits: 0 })}} & \\textbf{${(gccAvg * 100).toFixed(2)}} & \\textbf{${(jsAvg * 100).toFixed(2)}} & \\textbf{${((jsAvg / gccAvg) * 100).toFixed(2)}} \\\\\n`;
+  latex += `    \\textbf{Average} & & \\textbf{${(gccAvg * 100).toFixed(2)}} & \\textbf{${(jsAvg * 100).toFixed(2)}} & \\textbf{${((jsAvg / gccAvg) * 100).toFixed(2)}} \\\\\n`;
   latex += '    \\bottomrule\n';
   latex += '  \\end{tabular}\n';
 

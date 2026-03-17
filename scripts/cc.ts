@@ -48,17 +48,17 @@ export function gccWithTiming(
 
 
   // options.env ||= env === 'browser' ? 'BROWSER' : 'CUSTOM';
-  options.module_resolution ||= env === 'browser' ? 'BROWSER' : 'BROWSER_WITH_TRANSFORMED_PREFIXES';
-  options.browser_resolver_prefix_replacements ||= env === 'browser' ? undefined : [
-    'node:stream',
-    'node:url',
-    'node:path',
-    'fs',
-    'node:fs/promises',
-    'node:events',
-    'node:string_decoder',
-    'node:fs'
-  ].map(name => `${name}=${join(import.meta.dirname, 'cc-node-builtin.js')}`);
+  // options.module_resolution ||= env === 'browser' ? 'BROWSER' : 'BROWSER_WITH_TRANSFORMED_PREFIXES';
+  // options.browser_resolver_prefix_replacements ||= env === 'browser' ? undefined : [
+  //   'node:stream',
+  //   'node:url',
+  //   'node:path',
+  //   'fs',
+  //   'node:fs/promises',
+  //   'node:events',
+  //   'node:string_decoder',
+  //   'node:fs'
+  // ].map(name => `${name}=${join(import.meta.dirname, 'cc-node-builtin.js')}`);
   options['externs'] ||= join(import.meta.dirname, `cc-${env}-externs.js`);
   options.jscomp_off = 'checkVars'; // Disable undeclaredVars check, doesn't affect optimization results
 

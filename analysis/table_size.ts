@@ -25,6 +25,20 @@ const WITH_EXTRA_DATA: Record<string, { cases: string[]; toolchain: string; name
   }
 }
 
+const FAILED_REASON = [
+  [/glob/, /gcc/, "Unsupported"],
+  [/slidev-demo/, /lacuna/, "OOM"],
+  [/./, /lacuna/, "Syntax Err."]
+] as const;
+function getFailedReason(testcase: string, toolchain: string): string | null {
+  for (const [testRegex, toolchainRegex, reason] of FAILED_REASON) {
+    if (testRegex.test(testcase) && toolchainRegex.test(toolchain)) {
+      return reason;
+    }
+  }
+  return null;
+}
+
 const SHOW_GZ = true;
 
 interface ToolchainData {
@@ -217,11 +231,14 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
 
       // Check if optimization failed
       if (reduction.failed) {
-        latex += ' & \\textit{Failed}';
+        const failedReason = getFailedReason(testcase, toolchain);
+        latex += ` & \\textit{${failedReason || 'Failed'}}`;
       } else if (reduction.value > -Infinity) {
-        const valueStr = `${reduction.value.toFixed(1)}\\%`;
-        // Apply strikethrough if ALL_FAIL
-        const formattedValue = reduction.allFail ? `\\sout{${valueStr}}` : valueStr;
+        const absValue = Math.abs(reduction.value);
+        const sign = reduction.value < 0 ? '$-$' : '';
+        const valueStr = `${absValue.toFixed(1)}\\%`;
+        // Apply strikethrough if ALL_FAIL, with sign outside if negative
+        const formattedValue = reduction.allFail ? `${sign}\\sout{${valueStr}}` : `${sign}${valueStr}`;
         // Mark the best result with bold (only if not ALL_FAIL)
         let cellValue = formattedValue;
         if (reductionIdx === bestIndex && !reduction.allFail) {
@@ -246,7 +263,9 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
               
               if (toolchainBaselineGzSize > 0) {
                 const extraReductionPercent = ((toolchainBaselineGzSize - extraGzSize) / toolchainBaselineGzSize) * 100;
-                const extraValueStr = `${extraReductionPercent.toFixed(1)}\\%`;
+                const extraAbsValue = Math.abs(extraReductionPercent);
+                const extraSign = extraReductionPercent < 0 ? '$-$' : '';
+                const extraValueStr = `${extraSign}${extraAbsValue.toFixed(1)}\\%`;
                 latex += ` & {\\tiny (${extraValueStr})}`;
               } else {
                 latex += ' &';
@@ -379,7 +398,9 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
       if (originalCount > 0) {
         const originalGeomeanRatio = Math.exp(originalLogSum / originalCount);
         const originalAvgReduction = (1 - originalGeomeanRatio) * 100;
-        originalAvgStr = `${originalAvgReduction.toFixed(1)}\\%`;
+        const originalAbsValue = Math.abs(originalAvgReduction);
+        const originalSign = originalAvgReduction < 0 ? '$-$' : '';
+        originalAvgStr = `${originalSign}${originalAbsValue.toFixed(1)}\\%`;
       } else {
         originalAvgStr = 'N/A';
       }
@@ -387,18 +408,22 @@ function generateLatexTable(data: ParsedData, toolchains: Record<string, string>
       if (extraCount > 0) {
         const extraGeomeanRatio = Math.exp(extraLogSum / extraCount);
         const extraAvgReduction = (1 - extraGeomeanRatio) * 100;
-        extraAvgStr = `${extraAvgReduction.toFixed(1)}\\%`;
+        const extraAbsValue = Math.abs(extraAvgReduction);
+        const extraSign = extraAvgReduction < 0 ? '$-$' : '';
+        extraAvgStr = `${extraSign}${extraAbsValue.toFixed(1)}\\%`;
       } else {
         extraAvgStr = 'N/A';
       }
       
-      latex += ` & \\textbf{${originalAvgStr}} & {\\tiny \\textbf{(${extraAvgStr})}}`;
+      latex += ` & \\textbf{${originalAvgStr}} & {\\tiny (${extraAvgStr})}`;
     } else {
       // No extra config, single column: just original average
       if (originalCount > 0) {
         const originalGeomeanRatio = Math.exp(originalLogSum / originalCount);
         const originalAvgReduction = (1 - originalGeomeanRatio) * 100;
-        avgStr = `${originalAvgReduction.toFixed(1)}\\%`;
+        const absValue = Math.abs(originalAvgReduction);
+        const sign = originalAvgReduction < 0 ? '$-$' : '';
+        avgStr = `${sign}${absValue.toFixed(1)}\\%`;
       } else {
         avgStr = 'N/A';
       }

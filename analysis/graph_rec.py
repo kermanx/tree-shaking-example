@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import math
 import os
 
+X_SCALE = 0.65
+Y_SCALE = 1.2
+
 script_dir = os.path.dirname(__file__)
 
 def load_data():
@@ -181,7 +184,9 @@ def print_detailed_tables(time_data, size_data, sizes_data):
 
 def plot_graph(depths, avg_optimization_rates, avg_times):
     """Plot the optimization rate and time vs depth"""
-    fig, ax1 = plt.subplots(figsize=(6, 3.5))
+    # 应用缩放比例到图片尺寸
+    base_width, base_height = 6, 3.5
+    fig, ax1 = plt.subplots(figsize=(base_width * X_SCALE, base_height * Y_SCALE))
     
     # Plot time on the left y-axis
     color = 'tab:orange'
@@ -211,7 +216,7 @@ def plot_graph(depths, avg_optimization_rates, avg_times):
     # Add legend
     lines = line1 + line2
     labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc='upper left')
+    ax1.legend(lines, labels, loc='lower right')
     
     plt.tight_layout()
     output_path = os.path.join(script_dir, '../graphs/depth_analysis.png')
