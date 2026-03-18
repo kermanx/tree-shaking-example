@@ -131,6 +131,12 @@ export function extractPackages(files: Set<string>): Set<string> {
     if (matchArray.length > 0) {
       const lastMatch = matchArray[matchArray.length - 1];
       packages.add(lastMatch[1]);
+    } else if (file.includes('vendor/')) {
+      // For vendor files, take the first directory after vendor/
+      const vendorMatch = file.match(/vendor\/([^/]+)/);
+      if (vendorMatch) {
+        packages.add(vendorMatch[1]);
+      }
     }
   }
   return packages;
@@ -140,31 +146,30 @@ const allPkgsPath = resolve(import.meta.dirname, '../data/allPackages.json');
 const allFilesPath = resolve(import.meta.dirname, '../data/allFiles.json');
 const projectRoot = resolve(import.meta.dirname, '..');
 
-export function updateAllFilesAndPackages(newFiles: Set<string>, newPackages: Set<string>): void {
+export function updateAllFilesAndPackages(absNewFiles: Set<string>, newPackages: Set<string>): void {
+  const newFiles = [...absNewFiles].map(file => file.startsWith(projectRoot) ? file.slice(projectRoot.length + 1) : file);
+
   const oldAllPkgs = existsSync(allPkgsPath) ? JSON.parse(readFileSync(allPkgsPath, 'utf-8')) : [];
   const newAllPkgs = [...new Set([...oldAllPkgs, ...newPackages])].sort();
   writeFileSync(allPkgsPath, JSON.stringify(newAllPkgs, null, 2), 'utf-8');
 
   const oldAllFiles = existsSync(allFilesPath) ? JSON.parse(readFileSync(allFilesPath, 'utf-8')) : [];
-  const newAllFiles = [...new Set([...oldAllFiles, ...newFiles])].sort().map((file: string) => {
-    // Convert absolute paths to paths relative to project root
-    const relativePath = file.startsWith(projectRoot) ? file.slice(projectRoot.length + 1) : file;
-    return relativePath;
-  });
+  const newAllFiles = [...new Set([...oldAllFiles, ...newFiles])].sort();
   writeFileSync(allFilesPath, JSON.stringify(newAllFiles, null, 2), 'utf-8');
 }
 
 if (import.meta.main) {
   // Input: allPackages.json, allFiles.json
   // Output: Total LOC, Total Size, Total Files, Total Packages
-  const files = new Set<string>(JSON.parse(readFileSync(allFilesPath, 'utf-8')));
+  const relativeFiles = JSON.parse(readFileSync(allFilesPath, 'utf-8'));
+  const files = new Set<string>(relativeFiles.map((f: string) => resolve(projectRoot, f)));
   const packages = new Set<string>(JSON.parse(readFileSync(allPkgsPath, 'utf-8')));
 
   const totalLines = await countTotalLines(files);
   const totalSize = await countTotalSize(files);
 
   console.log(`Total Lines: ${totalLines.nFiles} files, ${totalLines.code} lines of code, ${totalLines.comment} comments, ${totalLines.blank} blank lines`);
-  console.log(`Total Size: ${totalSize} bytes`);
+  console.log(`Total Size: ${totalSize/1024} KB`);
   console.log(`Total Packages: ${packages.size}`);
 
   const allSuffixes = new Set<string>();

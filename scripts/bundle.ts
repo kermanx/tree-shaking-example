@@ -203,6 +203,7 @@ export const bundlers: Record<string, (options: BundleOptions) => Promise<string
 
 function ClocPlugin(name: string) {
   if (!process.env.CLOC) return null;
+  if (name === 'slidev-demo') return null;
 
   const files = new Set<string>();
 

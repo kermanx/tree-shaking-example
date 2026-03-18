@@ -275,7 +275,7 @@ for i, (bf, cf, pm, dce) in enumerate(zip(part4_ratios, part2_ratios, part3_rati
 plt.tight_layout()
 script_dir = os.path.dirname(__file__)
 output_path = os.path.join(script_dir, '../graphs/ablation_analysis.png')
-plt.savefig(output_path, dpi=300, bbox_inches='tight')
+plt.savefig(output_path, dpi=300, bbox_inches='tight', pad_inches=3/300)
 print(f'Graph saved to {output_path}')
 
 # Print summary statistics

@@ -79,15 +79,17 @@ async function benchmarkJsshaker(depths: number[]) {
     }
   }
 
-  // Save only time data to maxRecDepthTime.json
-  const timeResults: Record<number, Record<string, number>> = {};
-  for (const [depth, depthResults] of Object.entries(results)) {
-    timeResults[Number(depth)] = Object.fromEntries(
-      Object.entries(depthResults).map(([name, data]) => [name, data.time])
-    );
+  if (depths.length > 1) {
+    // Save only time data to maxRecDepthTime.json
+    const timeResults: Record<number, Record<string, number>> = {};
+    for (const [depth, depthResults] of Object.entries(results)) {
+      timeResults[Number(depth)] = Object.fromEntries(
+        Object.entries(depthResults).map(([name, data]) => [name, data.time])
+      );
+    }
+    await writeFile(join(import.meta.dirname, '../data/maxRecDepthTime.json'), JSON.stringify(timeResults, null, 2));
+    console.log('\nTime results saved to data/maxRecDepthTime.json');
   }
-  await writeFile(join(import.meta.dirname, '../data/maxRecDepthTime.json'), JSON.stringify(timeResults, null, 2));
-  console.log('\nTime results saved to data/maxRecDepthTime.json');
 
   // Also save depth=DEFAULT_DEPTH results to time.json
   const timeData = JSON.parse(await readFile(join(import.meta.dirname, '../data/time.json'), 'utf-8').catch(() => '{}'));
@@ -596,6 +598,7 @@ async function main() {
   if (!optimizer) {
     console.log('No optimizer specified, running all benchmarks...\n');
     await benchmarkJsshaker([DEFAULT_DEPTH]);
+    await benchmarkJsshakerNoCache();
     await benchmarkTerser();
     await benchmarkRollup();
     await benchmarkGcc();

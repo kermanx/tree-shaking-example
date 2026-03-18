@@ -220,7 +220,7 @@ def plot_graph(depths, avg_optimization_rates, avg_times):
     
     plt.tight_layout()
     output_path = os.path.join(script_dir, '../graphs/depth_analysis.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight', pad_inches=3/300)
     print(f'Graph saved as {output_path}')
     plt.show()
 
